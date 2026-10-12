@@ -18,34 +18,11 @@ const emit = defineEmits<{
   sortSelected: [];
 }>();
 
-/**
- * The sort in force, read from `?sort=` rather than latched at setup.
- *
- * A local ref went stale the moment the sort changed anywhere other than this
- * button, and this button exists twice: the sticky sidebar and the mobile
- * drawer are both mounted, so sorting from one left the other's label reading
- * "Sort sentences" with no sort named. Worse, whichever copy remounted while
- * the navigation was still in flight latched `undefined` and lost the label
- * even for the sort it had just applied itself -- which is what made picking
- * Random from the drawer look like nothing had happened. The URL is the one
- * thing every copy agrees on, so read it every time.
- *
- * `?sort=` is always a single value; anything else is treated as unset.
- */
+/** The URL keeps sidebar and drawer controls synchronized, including copies remounted during navigation. */
 const currentSort = computed(() => (typeof route.query.sort === 'string' ? route.query.sort : 'none'));
 
-/**
- * A fresh shuffle for `sort=random`, written into the URL beside it.
- *
- * The seed has to travel in the URL rather than live in memory. Without one the
- * backend derives its seed from the calendar day, so "random" was one fixed
- * order for the whole day and re-picking it refetched a byte-identical page --
- * asking again with the same seed is not asking for a different shuffle. In the
- * URL it also means the order is reproducible: a shared link, a reload and the
- * back button all show the same shuffle rather than silently re-rolling one.
- *
- * Drawn away from the current seed so a click always changes the URL; a repeat
- * would navigate nowhere and look like nothing happened.
+/** Persist random seeds in the URL for reproducible reloads/shared links. Without one the backend uses a daily
+ * shuffle; choose a different seed so re-picking Random changes the URL.
  */
 const nextRandomSeed = (current: number | null): number => {
   let seed = current;

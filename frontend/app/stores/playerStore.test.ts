@@ -2,22 +2,8 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { ref } from 'vue';
 
 /**
- * The player store's ACTIONS. `player.test.ts` beside this covers the pure
- * helpers it is built from; this drives the store itself.
- *
- * Three things here are stated in the source as deliberate and are each the kind
- * of bug that is invisible from the outside:
- *
- * - A REPEAT IS NOT A NEW PLAY. A looped clip billed a play every few seconds,
- *   which inflated the numerator of every per-play rate read off
- *   `segment_played`. It is still reported -- a re-listen is real engagement --
- *   just marked, so the two can be told apart.
- * - A STALE ELEMENT MUST NOT BE RESUMED. The reader expands a segment, presses
- *   play, and hears the sentence they already had, because the built element
- *   still points at the pre-expansion object.
- * - AN UNPLAYABLE CLIP IS NOT AN ENDED ONE. Routing it through `handleEnded`
- *   means that under repeat it fails, repeats and fails again as fast as the
- *   iframe can report it.
+ * Drive store actions beyond the pure helpers: distinguish repeats from new plays, rebuild
+ * stale expansion audio, and keep unplayable videos out of the repeat loop.
  */
 const posthog = { capture: vi.fn() };
 
@@ -84,13 +70,7 @@ function youtubeResult(n: number, overrides: Record<string, unknown> = {}) {
   };
 }
 
-/**
- * A media element double, standing in for the `Audio` the store builds.
- *
- * `readyState` is HAVE_ENOUGH_DATA so the store takes its ordinary path: an
- * unbuffered element sends it through a gesture-window play/pause dance for
- * iOS, which is a different behaviour and not the one these cases are about.
- */
+/** HAVE_ENOUGH_DATA selects ordinary playback; cold-buffer iOS priming is tested separately. */
 function fakeAudio(src = 'https://cdn.test/seg-1.mp3') {
   return {
     src,

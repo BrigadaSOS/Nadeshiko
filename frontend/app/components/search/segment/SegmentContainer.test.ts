@@ -7,19 +7,7 @@ import { formatMs } from '~/utils/misc';
 import { youtubeWatchUrl } from '~/utils/media';
 import { PATREON_URL } from '#shared/utils/socialLinks';
 
-/**
- * The result cards: the list a search actually produces.
- *
- * The behaviour pinned here is the SPOILER reveal on translations. It is keyed
- * per card AND per language, and both halves matter: keyed on the language
- * alone, revealing one card's English uncovers every other card's on the page,
- * which for a reader working through a page of sentences destroys the exercise
- * they came for -- silently, and in the one direction that cannot be undone.
- *
- * Which rows exist at all is a second decision, taken from the account's
- * language order and the search's per-language visibility, and "hidden" has to
- * mean absent rather than blurred.
- */
+/** Spoiler reveals are per-card and per-language. Hidden translations must be absent, not blurred. */
 const englishMode = ref('visible');
 const spanishMode = ref('visible');
 const translationLanguages = ref(['EN', 'ES']);

@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { announcementTitle } from '~/utils/announcement';
 
-// Through `/api/announcement` rather than the SDK directly, so the one answer
-// every visitor shares can be cached once instead of re-fetched per render. The
-// route swallows the failure case too -- "no announcement" is served as an error
-// by the backend endpoint, so a null here covers both, and the banner is purely
-// additive chrome either way.
+// Cache the shared answer through /api/announcement. No configured banner is an API error; failures also
+// render nothing.
 const { data } = await useFetch('/api/announcement', {
   key: 'system-announcement',
   default: () => ({ announcement: null }),

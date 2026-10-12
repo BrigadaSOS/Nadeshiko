@@ -2,21 +2,9 @@ import { MOTION_COOKIE } from '#shared/utils/preferenceCookies';
 import { useCookiePreference } from '~/composables/useCookiePreference';
 
 /**
- * How much the interface is allowed to move.
- *
- *   system   follow the OS accessibility setting (the default)
- *   reduced  keep the cheap colour and opacity fades, drop anything that
- *            slides, resizes or re-blurs
- *   none     nothing animates
- *
- * A cookie rather than a stored user preference, for three reasons: a
- * signed-out reader gets to turn motion down too, the value is readable on the
- * server so `<html data-motion>` is correct in the first byte of HTML rather
- * than after hydration -- which is the difference between the setting applying
- * and the reader watching one last animation before it does -- and it needs no
- * round trip to the backend to take effect.
- *
- * The CSS half lives in `assets/css/tailwind.css` under MOTION TIERS.
+ * system follows the OS; reduced keeps color/opacity fades; none disables animation. A cookie
+ * supports signed-out readers and correct SSR without a backend round trip. CSS tiers live in
+ * assets/css/tailwind.css.
  */
 export const MOTION_LEVELS = ['system', 'reduced', 'none'] as const;
 export type MotionLevel = (typeof MOTION_LEVELS)[number];

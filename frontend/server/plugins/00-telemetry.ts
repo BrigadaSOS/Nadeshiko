@@ -10,18 +10,13 @@ const activeRequests = meter.createUpDownCounter('http.server.active_requests', 
   unit: '{request}',
 });
 
-// This is the surface crawlers actually land on — the backend mostly sees what
-// SSR asks for on their behalf — so the reader/bot/monitor split matters most
-// here. Kept off the auto-instrumented duration histogram, which cannot carry a
-// custom attribute; dividing bot by total here answers "how much of this is
-// crawlers", and the histogram still answers "and is it slow".
+// Count traffic classes separately because the auto-instrumented duration histogram cannot carry custom attributes.
 const requestCount = meter.createCounter('http.server.requests', {
   description: 'HTTP server requests by traffic type',
   unit: '{request}',
 });
 
-// The crawler's name on its own counter: ~40 families crossed with method and
-// status would be thousands of series to answer a question that needs neither.
+// Separate family counts to avoid crossing crawler families with method/status cardinality.
 const botRequestCount = meter.createCounter('http.server.bot_requests', {
   description: 'HTTP server requests by crawler family',
   unit: '{request}',
@@ -39,14 +34,7 @@ function isCatchAll(routePath: string): boolean {
   return routePath.includes('**') || routePath.includes('[...');
 }
 
-/**
- * Attach the templated route to the active HTTP span.
- *
- * Called from two hooks because they cover disjoint halves of the traffic: a
- * request that produces a response goes through `beforeResponse`, and one that
- * throws goes through `error` instead. Setting it twice for one request is
- * harmless -- both compute the same value and the second simply overwrites.
- */
+// Attach routes from response and error hooks; either may be the only hook reached, and duplicate writes are harmless.
 function applyRoute(event?: { context?: Record<string, unknown>; path?: string; node?: { req: { url?: string } } }) {
   if (!event || event.context?._otelIgnored) return;
 
@@ -69,9 +57,7 @@ export default defineNitroPlugin((nitroApp) => {
 
     const method = event.node.req.method || 'UNKNOWN';
 
-    // Classified once, here, at the first hook that sees the request: the
-    // access log, the error hooks and the SSR calls to the backend all read the
-    // memoised answer off `event.context` rather than re-parsing the UA.
+    // Resolve once so logs, error hooks and internal calls share the same classification.
     const { traffic, family } = resolveEventTraffic(event);
 
     const span = trace.getActiveSpan();
@@ -80,8 +66,7 @@ export default defineNitroPlugin((nitroApp) => {
       if (family) span.setAttribute(BOT_FAMILY_ATTRIBUTE, family);
     }
 
-    // Identical attributes on both sides of the pair, or the gauge never
-    // returns to zero.
+    // Increment and decrement with identical attributes or the gauge cannot return to zero.
     const inFlight = { 'http.request.method': method, ...trafficAttributes(traffic, family) };
     if (event.node.res.destroyed || event.node.res.writableEnded) return;
     activeRequests.add(1, inFlight);
@@ -108,20 +93,7 @@ export default defineNitroPlugin((nitroApp) => {
     applyRoute(event);
   });
 
-  // `beforeResponse` never runs for a thrown error. Nitro's error handler sends
-  // the response itself, which sets `event.handled`, and h3's catch block then
-  // returns before it reaches either response hook:
-  //
-  //   if (app.options.onError) await app.options.onError(error, event);
-  //   if (event.handled) return;                    // <- both hooks skipped
-  //   if (app.options.onBeforeResponse ...
-  //
-  // So every thrown error reached the metrics with no `http.route` at all.
-  // Measured in production on 2026-08-29: 123 of 123 frontend 429s and 464 of
-  // 471 404s carried no route label, which made "which page is being rate
-  // limited" unanswerable -- the request was for a real page, refused before it
-  // matched one. This hook fires inside `onError`, before the handler sends and
-  // while the span is still active, so the route can still be attached.
+  // Thrown errors skip beforeResponse when Nitro sends its own response. Attach the route in error while the span is active.
   nitroApp.hooks.hook('error', (_error, ctx) => {
     applyRoute(ctx?.event);
   });

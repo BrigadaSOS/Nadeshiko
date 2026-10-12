@@ -91,12 +91,7 @@ const currentView = computed(() => normalizeView(route.query.view));
 const searchQuery = computed(() => normalizeQuery(route.query.query));
 const filterCategory = computed(() => normalizeCategory(route.query.category));
 
-/**
- * The page of the catalogue to render, as an opaque cursor from a previous
- * response. See the next-page link at the foot of the template for why this
- * exists at all; `buildQueryParams` deliberately drops it, so changing the
- * search box or the category filter starts again from the first page.
- */
+// Changing search/category drops the opaque cursor and starts again at page one.
 const pageCursor = computed(() => (typeof route.query.cursor === 'string' ? route.query.cursor : undefined));
 
 const filterCategoryLabel = computed(() => {
@@ -130,28 +125,10 @@ const buildQueryParams = (params: MediaBrowseParams = {}) => {
   };
 };
 
-/**
- * Where "next page" points, or null when this is the last one.
- *
- * WHY A LINK AND NOT JUST THE INFINITE SCROLL. Googlebot runs JavaScript but it
- * does not scroll, so the sentinel below never fires for it and everything past
- * the first `take: pageSize` is invisible. This page is the only thing on the
- * site that links the ~319 title pages, and 28 of them were reachable; the rest
- * were in the sitemap and nothing else. A crawler can now walk the catalogue a
- * page at a time, and a reader without JavaScript gets the same way out.
- *
- * Built from the FIRST response rather than from live pagination state: once
- * the reader has scrolled and appended, "next page" would otherwise skip past
- * what they have already been shown. It hides itself in that case -- see the
- * template -- because at that point the scroll has taken over.
- *
- * An opaque cursor rather than `?page=2`, which would read better. The list
- * endpoint paginates by cursor only, and while the value happens to encode an
- * offset, that is the backend's business: constructing one here would put a
- * copy of its cursor format in the frontend, to be broken silently the next
- * time it changes. `canonical.ts` allowlists the param so each page of the
- * catalogue is its own canonical URL rather than collapsing onto the first.
- */
+// Crawlers do not scroll; a real next-page link also supports readers without JS.
+// Use the initial response's opaque cursor, not appended pagination state or a guessed
+// backend cursor format. Hide the link after scrolling appends a page.
+// canonical.ts preserves cursor so catalogue pages have distinct canonical URLs.
 const nextPageLink = computed(() => {
   const cursor = initialResponse.value?.cursor;
   if (!cursor) return null;
@@ -223,8 +200,7 @@ const filteredMedia = computed(() => {
   if (showHidden.value) return media.value;
 
   const hidden = new Set(hiddenMediaIds.value);
-  // Picking a category from the dropdown is an explicit request for it, so it
-  // survives being hidden -- the same override `?category=` gets on search.
+  // An explicitly requested category overrides category hiding, as on search.
   const dropsCategories = hasHiddenCategories.value && !filterCategory.value;
   if (hidden.size === 0 && !dropsCategories) return media.value;
 
@@ -245,8 +221,7 @@ watch(searchQuery, (value) => {
   }
 });
 
-// Cancelled on unmount by `useTimeoutFn`: a pending push landing after the
-// reader has left would navigate them back to this page.
+// Cancel pending URL pushes on unmount so they cannot navigate the reader back here.
 const { start: scheduleUrlUpdate } = useTimeoutFn(
   (value: string) => {
     updateUrl({ query: value.trim() });
@@ -292,8 +267,7 @@ const loadMore = async () => {
         cursor: raw?.pagination?.cursor ?? null,
       };
     } catch (error) {
-      // Infinite scroll: the sentinel just stops producing rows, so without a toast
-      // the page reads as "that's everything" when the next page actually failed.
+      // Report failed pagination rather than making it look like the end of the catalogue.
       handleApiError('media:load-more-failed', error, { toastKey: 'mediaBrowse.loadMoreError' });
       return null;
     }
@@ -343,11 +317,7 @@ watch([searchQuery, filterCategory], () => {
       <div class="flex items-center mb-4">
         <SearchDropdownContainer class="" dropdownId="nd-dropdown-with-header" teleport>
           <template #default>
-            <!-- Named rather than left on the shared `dropdown-toggle` test id.
-                 The page object reached for `.first()` of that id, which is a
-                 position on the page and not this control: once the header
-                 gained its own dropdown, `.first()` started resolving to the
-                 language switcher and the category assertion read " English". -->
+            <!-- A dedicated test ID avoids matching a header dropdown by position. -->
             <SearchDropdownMainButton dropdownId="nd-dropdown-with-header" testId="media-category-dropdown">
               {{ filterCategoryLabel }}
             </SearchDropdownMainButton>
@@ -409,13 +379,11 @@ watch([searchQuery, filterCategory], () => {
         data-testid="media-grid"
         class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 md:gap-4 lg:gap-5 xl:gap-6"
       >
-        <!-- Loading Placeholder for Grid (initial load) -->
         <div v-if="loading && filteredMedia.length === 0" v-for="i in pageSize" :key="i" class="flex flex-col items-center animate-pulse">
           <div class="relative w-full overflow-hidden rounded-lg bg-[rgba(255,255,255,0.06)] aspect-[2/3]"></div>
           <div class="mt-2 w-full h-4  rounded"></div>
         </div>
 
-        <!-- Media Content -->
         <div
           v-if="!loading || filteredMedia.length > 0"
           v-for="(mediaInfo, index) in filteredMedia"
@@ -460,7 +428,6 @@ watch([searchQuery, filterCategory], () => {
         </div>
       </div>
       <div v-if="currentView === 'list'" class="tab-content">
-        <!-- Loading Placeholder for List (initial load) -->
         <div v-if="loading && filteredMedia.length === 0" v-for="i in pageSize" :key="i" class="w-full relative mb-4 animate-pulse">
           <div
             class="relative flex flex-col z-20 items-center sm:items-start sm:flex-row rounded-lg bg-[rgba(255,255,255,0.06)] transition-all"
@@ -475,7 +442,6 @@ watch([searchQuery, filterCategory], () => {
             </div>
           </div>
         </div>
-        <!-- Media Content -->
         <div
           v-if="filteredMedia.length > 0"
           v-for="(mediaInfo, index) in filteredMedia"
@@ -611,17 +577,13 @@ watch([searchQuery, filterCategory], () => {
         </div>
       </div>
 
-      <!-- Loading more indicator -->
       <div v-if="loadingMore" class="flex justify-center py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
       </div>
 
-      <!-- Infinite scroll sentinel -->
       <CommonInfiniteScrollObserver v-if="hasMore && !loading" root-margin="200px" @intersect="onSentinelVisible" />
 
-      <!-- The crawlable way through the catalogue, and the one that works
-           without JavaScript. Hidden once the scroll has appended a page, when
-           it would point behind where the reader already is. -->
+      <!-- Crawlable/no-JS pagination; hide after infinite scroll takes over. -->
       <div v-if="nextPageLink && media.length <= pageSize" class="mt-6 text-center">
         <NuxtLink
           :to="nextPageLink"

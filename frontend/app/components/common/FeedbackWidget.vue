@@ -5,19 +5,8 @@ import { DISCORD_INVITE_URL } from '#shared/utils/socialLinks';
 import { userStore } from '~/stores/auth';
 import { handleApiError } from '~/utils/apiError';
 
-/**
- * The feedback panel.
- *
- * Rendered once in the default layout; opened from the floating button in
- * `CommonFabDock`, the navigation drawer, and the footer. Anyone can send —
- * signed in or not — so the panel asks for an email only when there is no
- * account to take one from.
- *
- * The submission is protected by an issue-time token the backend hands out when
- * the panel opens (see `feedbackController`). Fetching it here rather than
- * rendering it into the page is what lets the page itself stay cacheable at the
- * edge: a token baked into the HTML would be shared by every visitor served that
- * copy, and stale by an unbounded amount.
+/** Fetch the issue-time anti-spam token when the panel opens, not into edge-cached HTML that visitors would
+ * share.
  */
 
 const { t, locale } = useI18n();
@@ -83,10 +72,7 @@ onBeforeUnmount(() => {
 async function submit() {
   if (!canSubmit.value) return;
 
-  // No token means the issuing call failed. Say so and try again in the
-  // background: a token minted right now would be younger than the minimum fill
-  // time and the submission would be dropped as automated — silently, which is
-  // the one outcome worth going out of the way to avoid.
+  // A token minted at submit is too young and silently rejected; fetch one for the retry instead.
   if (!formToken.value) {
     errorMessage.value = t('feedback.errorRetry');
     fetchFormToken();
@@ -127,15 +113,8 @@ async function submit() {
   }
 }
 
-/**
- * The sender's PostHog ids, read at submit so a report links to their session
- * replay. Absent wherever posthog is not loaded, which includes local dev.
- *
- * `__loaded` and not `isAnalyticsEnabled()`, unlike every other call site: these
- * are reads, and a read is the one thing the pre-load stub cannot defer -- there
- * is no session id to give until the SDK has made one. A submission in that
- * window travels without ids rather than with wrong ones, which is what it did
- * before this was deferred too.
+/** Read analytics ids at submit and only after __loaded: the pre-load stub cannot defer a read or supply real
+ * ids.
  */
 function analyticsIds(): { posthogSessionId?: string; posthogDistinctId?: string } {
   if (!posthog.__loaded) return {};

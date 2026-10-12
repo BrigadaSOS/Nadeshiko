@@ -5,21 +5,9 @@ import { trafficHeaders } from '#shared/utils/traffic';
 import { publicApiRoutes } from '~~/server/utils/generated/publicApiRoutes';
 
 /**
- * The SDK, on either side of the render.
- *
- * There used to be a second composable for owner-scoped SSR calls, and choosing
- * between them was left to whoever wrote the call site — with the unsafe one as
- * the default. That is how a server render came to read private collections as
- * an admin. The choice now belongs to the route, not the caller, so there is one
- * composable again and it is correct wherever it is used:
- *
- *   - a route on the generated public allowlist → the service key, as before,
- *     which is what keeps anonymous browsing out of the per-account quota
- *   - anything else → the visitor's own session cookie, forwarded from the
- *     request being rendered
- *
- * See `createInternalSdk` for why the key has to be absent rather than merely
- * accompanied on that second path.
+ * SSR authenticates generated public routes with the service key and other routes with the
+ * visitor's session cookie. Owner-scoped requests must omit the service key, not merely add a
+ * cookie; see createInternalSdk.
  */
 export function useNadeshikoSdk(): NadeshikoClient {
   if (import.meta.server) {
@@ -48,10 +36,8 @@ function useSSRSdk(): NadeshikoClient {
 let clientSdk: NadeshikoClient | null = null;
 
 /**
- * `'PROXY'` is an SDK environment constant that resolves to an empty base URL,
- * so requests stay same-origin (`/v1/...`) and land on the Nitro proxy, which
- * attaches credentials. Reaching for `'LOCAL'` instead would point the browser
- * straight at the backend on localhost, bypassing the proxy and its credentials.
+ * PROXY keeps browser requests same-origin through Nitro, which attaches credentials. LOCAL
+ * would bypass that proxy and target localhost.
  */
 function useClientSdk(): NadeshikoClient {
   if (!clientSdk) {

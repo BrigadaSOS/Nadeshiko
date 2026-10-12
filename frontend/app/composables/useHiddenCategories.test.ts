@@ -4,18 +4,8 @@ import { reactive } from 'vue';
 import { useHiddenCategories } from './useHiddenCategories';
 
 /**
- * Whole-category hiding: a reader drops every live-action title or every YouTube
- * video at once, rather than naming shows one at a time.
- *
- * Two things here are worth defending. The first is the LAST VISIBLE guard:
- * `filters.category` reads an empty term list as "no filter", so hiding the last
- * category hands the reader back the entire corpus -- the exact opposite of what
- * they asked for, and the failure mode that made the guard necessary.
- *
- * The second is the optimistic toggle and its rollback. The switch flips before
- * the server has agreed, because waiting makes it feel broken; keeping the flip
- * after a failed write shows the category as hidden on this device while every
- * other one, and the next page load, still shows it.
+ * Prevent hiding the last category: an empty API filter means the whole corpus. Roll back
+ * failed optimistic toggles.
  */
 const sdk = { updateUserPreferences: vi.fn() };
 const user = reactive({

@@ -12,9 +12,7 @@ import { reportError } from '~/utils/reportError';
 import { buildMediaPath, decodeSearchQuery, readSearchRouteFilters } from '~/utils/routes';
 
 definePageMeta({
-  // All from `/media/<slug>` only changes the path because the title lives in
-  // it. Nuxt treats that as a new page and would jump to the top; the reader
-  // is still in the same list.
+  // Leaving a title scope changes the route, not the list's scroll position.
   scrollToTop(_to, from) {
     return !/\/media\/[^/]+\/?$/.test(from.path);
   },
@@ -50,27 +48,9 @@ const { fetchSentences, fetchStats } = useSearchFetch();
 const { favoriteMediaIds } = useFavoriteMedia();
 const { entries: familiarMedia, load: loadFamiliarMedia } = useFamiliarMedia();
 
-/**
- * The reader's own titles, for the tie-break the backend applies under the
- * default order: among segments Elasticsearch ranked equally, theirs first.
- *
- * Both halves of "their titles" -- the ones they starred, and the ones the
- * activity tally infers they already know -- because the filter sidebar already
- * treats the two the same way, and a reader who has to star a show they watch
- * every week to get it treated as theirs has been asked to state something the
- * app worked out on its own.
- *
- * Signed-out is empty rather than falling back to anything local. Nothing here
- * is worth guessing at from a device: the whole list describes a person, and the
- * page renders the same for everyone who has not said who they are.
- *
- * One honest gap: on a cold server render the tally is still in flight beside
- * this search rather than ahead of it, so that first page is tie-broken on
- * favourites alone. Making the search wait would put a round trip in front of
- * every signed-in render to reorder rows within a tie, which is the wrong trade
- * -- and by the reader's next search the ranking is in `useState` and both
- * halves are sent.
- */
+// Break equal-ranked results toward starred and familiar titles; signed-out renders use neither.
+// Cold SSR uses favourites alone while the tally loads in parallel. Waiting for it
+// would add a round trip just to reorder ties; subsequent searches use the cached tally.
 const preferMedia = computed<string[]>(() => {
   if (!userStore().isLoggedIn) return [];
 
@@ -81,18 +61,14 @@ const preferMedia = computed<string[]>(() => {
 
 const searchScope = computed<SearchScope>(() => ({
   query: searchQuery.value,
-  // Mirrors `implicitCategorySlug` in `SearchContainer`: no `?category=` means the
-  // reader's default, except when `?media=` already named the title to search --
-  // one outside that category would otherwise come back empty.
+  // A named media scope overrides the default category, matching SearchContainer.
   category:
     routeFilters.value.category ??
     (mediaQueryParam.value ? 'all' : defaultCategorySlug.value),
   mediaPublicId: mediaQueryParam.value,
   episode: episodeNumberParam.value,
   sort: routeFilters.value.sort,
-  // Sent on the server pass too, so a shared `?sort=random&seed=` link renders
-  // the shuffle it names instead of the backend's day-seed one and then
-  // reordering under the reader when the client takes over.
+  // Apply shared random seeds during SSR too, avoiding a different shuffle at hydration.
   randomSeed: routeFilters.value.randomSeed,
   segmentPublicId: routeFilters.value.segmentPublicId,
   collectionId: null,
@@ -105,28 +81,21 @@ const searchScope = computed<SearchScope>(() => ({
 
 const fetchSentenceData = async () => {
   const outcome = await fetchSentences(searchScope.value);
-  // Slimmed before it is handed back, because what this returns IS the hydration
-  // payload: see `stripUnreadTokenFields`.
+  // Strip unread fields before serializing the hydration payload.
   return outcome.status === 'ok' ? { ...outcome, data: stripUnreadTokenFields(outcome.data) } : outcome;
 };
 
 const fetchStatsData = async () => {
   const outcome = await fetchStats(searchScope.value);
   if (outcome.status === 'ok') {
-    // Per-episode counts only for a title the URL actually named. A word search
-    // names none, so all 492 of the pairs it was carrying go; `?media=` keeps
-    // the one the meta description and the open drawer both read.
+    // Keep episode counts only for the URL's title; its drawer and meta description need them.
     return { ...outcome, data: stripEpisodeHits(outcome.data, mediaQueryParam.value) };
   }
-  // Failures are reported inside `fetchStats`, which still has the response and
-  // can tell a 403 apart from a real error. Re-reporting the bare outcome here
-  // only produced a stackless duplicate of something already captured.
+  // fetchStats already reports failures with response context; do not report a duplicate.
   return outcome;
 };
 
-// Keyed on the *resolved* category rather than the raw `?category=`: with a
-// default category set, the same URL means a different search than it does for a
-// reader who kept "All", and both would otherwise share one cache entry.
+// Include the resolved default category: the same URL can represent different searches.
 const sentenceCacheKey = computed(() => {
   const params = [
     searchQuery.value,
@@ -150,36 +119,14 @@ const statsCacheKey = computed(() => {
 
 const sdk = useNadeshikoSdk();
 
-/**
- * THE STATS CALL IS NOT MADE FOR A CRAWLER, and this is the one guard on the
- * page that changes what gets rendered rather than only how fast.
- *
- * `/v1/search/stats` is the most expensive thing a search render asks for: an
- * Elasticsearch aggregation over every media and every episode that matches,
- * cached on the backend under a key that is the query plus every filter. A
- * crawler walks a new query per request, so every one of those renders minted a
- * cache entry nobody would ever read again -- 48k bot calls per 6h against 1.6k
- * from readers (measured 2026-08-22), and a backend that OOM-killed every three
- * hours because of it (Nadeshiko#522).
- *
- * WHAT A CRAWLER LOSES: the per-category breakdown clause in the meta
- * description ("N from anime, M from drama"). The result count itself comes
- * from the sentences call's `estimatedTotalHits` and is unaffected, as are the
- * title, the results, and every link on the page. The filter panel's counts are
- * a reader control that a crawler does not render.
- *
- * If that breakdown turns out to be worth keeping for search engines, the fix
- * is a stats request that asks only for the category buckets -- cheap, bounded,
- * and cacheable under a key with no query in it -- not turning this back on.
- */
+// Skip expensive per-media/episode aggregations for crawlers: unique-query cache growth
+// previously caused backend OOMs (Nadeshiko#522). Result totals still come from sentences;
+// only the category breakdown in the meta description is lost. Any crawler replacement
+// should use bounded category buckets, not restore the full aggregation.
 const rendersForCrawler = useRequestTraffic() === 'bot';
 
-/**
- * User-scoped, unlike the two keys above, because the ranking is about months of
- * study and does not change between queries -- one fetch serves every search in
- * the session. The identity is folded into the key so signing out and back in
- * without a reload cannot serve the previous reader's ranking from the cache.
- */
+// Reuse familiar-media rankings across queries, but scope the cache to the account
+// so switching users without a reload cannot reuse the previous reader's ranking.
 const familiarMediaCacheKey = computed(() => `familiar-media-${userStore().userEmail ?? 'anonymous'}`);
 
 const [{ data: initialSentenceOutcome }, { data: initialStatsOutcome }, , { data: scopedMedia }] = await Promise.all([
@@ -193,25 +140,19 @@ const [{ data: initialSentenceOutcome }, { data: initialStatsOutcome }, , { data
     lazy: false,
     watch: [],
   }),
-  // Loaded server-side with the rest so the filter renders already ordered.
-  // Fetching it client-side would sort the list a second time after hydration,
-  // moving rows under the cursor of someone reaching for one.
+  // Load rankings during SSR to avoid reshuffling the filter list after hydration.
   useAsyncData(familiarMediaCacheKey.value, () => loadFamiliarMedia(), {
     server: true,
     lazy: false,
     watch: [],
   }),
-  // The title card for a search narrowed to one show. Watched: `?media=` is
-  // not part of the page key, so picking a different title in the sidebar
-  // must replace the card without remounting the page.
+  // ?media= is not part of the page key; watch it to replace the card without a remount.
   useAsyncData(
     () => `search-scoped-media-${mediaQueryParam.value ?? 'none'}`,
     async () => {
       const id = mediaQueryParam.value;
       if (!id) return null;
-      // Server-side this goes through the shared media cache: `?media=` is in
-      // the sitemap for every title, so a crawl asks for the same few hundred
-      // records over and over. See `server/utils/mediaCache.ts`.
+      // Repeated title lookups use the shared server/utils/mediaCache.ts cache.
       const load = async () => {
         if (!import.meta.server) return sdk.getMedia(id);
         const { cachedMedia } = await import('~~/server/utils/mediaCache');
@@ -236,20 +177,8 @@ if (initialSentenceOutcome.value?.status === 'forbidden' || initialStatsOutcome.
   await navigateTo(localePath('/'), { redirectCode: 302 });
 }
 
-/**
- * `/search?media=<publicId>` with nothing being searched is a title browse, and
- * that now lives at `/media/<slug>`. Permanent, because this URL was in the
- * sitemap for 317 titles and is what external links point at.
- *
- * Issued from here rather than from the HTTP middleware for one reason: the slug
- * is already in the payload this page just fetched, so the redirect costs no
- * extra backend call. Resolving it in middleware would mean a lookup on every
- * legacy hit.
- *
- * Only when the media filter is the WHOLE request. With a word (`/search/食べる`)
- * the page is a search narrowed to a title and keeps its own URL, and `?uuid=`
- * is a permalink that `search-redirect.ts` already owns.
- */
+// Permanently redirect legacy title-only browse URLs using the slug already fetched.
+// Word searches keep their scoped URL; ?uuid= belongs to search-redirect.ts.
 const browsedMediaSlug = computed(() => {
   if (!mediaQueryParam.value || searchQuery.value || route.query.uuid) return null;
   const fromStats = initialStatsData.value?.media?.find((s) => s.mediaPublicId === mediaQueryParam.value)?.slug;
@@ -263,33 +192,9 @@ if (browsedMediaSlug.value) {
   });
 }
 
-/**
- * A QUERY THAT FOUND NOTHING IS NOT A PAGE WORTH INDEXING, and this route mints
- * them without limit: `/search/<anything>` answers 200 for any string,
- * self-canonicalises, and advertises a Spanish twin of itself. The sitemap
- * submits 19,784 curated word searches; everything else typed, linked or
- * guessed at is the same template over an empty result set, competing with
- * them. Crawlers do walk it -- that enumeration is what filled the search-stats
- * cache until the backend ran out of heap.
- *
- * `follow`, not `noindex, nofollow`: the page still carries the nav and the
- * related-word links, and they lead somewhere worth having.
- *
- * ONLY WHEN THE EMPTINESS IS KNOWN. `initialSentenceData` is null when the SSR
- * fetch FAILED as well as when it returned nothing, and the two must not be
- * treated alike -- a backend blip would otherwise de-index good pages wholesale,
- * which is far more expensive than briefly indexing a thin one.
- *
- * THROUGH `useRobotsRule`, NOT A `robots` META IN `metaTags` BELOW, and the
- * difference is not stylistic: @nuxtjs/robots renders its meta from
- * `event.context.robots.rule` and wins the dedupe against a hand-pushed tag.
- * This page used to push `noindex, follow` for `/ja` that way, and production
- * served `noindex, nofollow` on those pages regardless -- the module's value,
- * from `'/ja/**': { robots: false }`. That branch was removed rather than
- * ported: the route rule already says what it was trying to say, and it says it
- * where the rest of the estate's indexing rules live. This composable sets the
- * rule the module itself renders, so it survives.
- */
+// Noindex only confirmed empty results, never failed fetches; keep follow for useful links.
+// useRobotsRule updates the robots module's own rule, which wins meta-tag deduplication.
+// Locale-wide indexing policy remains in route rules.
 const emptyResultPage = computed(() => {
   const data = initialSentenceData.value;
   if (!searchQuery.value || data == null) return false;
@@ -351,9 +256,7 @@ const metaTags = computed(() => {
     }
 
     const social = socialTitle(title);
-    // The `<title>` was the bare word -- `食べる` and nothing else -- on ~19.8k
-    // indexed pages. The share card stays short; see `pageTitle` for why these
-    // are no longer the same string.
+    // Indexable word pages need descriptive titles; share-card titles stay short.
     tags.title = pageTitle(t('seo.search.wordTitle', { query: q }));
     tags.meta = [
       { name: 'description', content: description },
@@ -386,24 +289,12 @@ const metaTags = computed(() => {
 
 useHead(metaTags);
 
-/**
- * `CollectionPage` for both branches, and NOT `SearchResultsPage` for the word
- * one.
- *
- * The word pages are the site's main indexable asset -- 20k of them are in the
- * sitemap -- and `SearchResultsPage` announced them as exactly the thing Google's
- * own guidance says to keep out of the index ("Don't let your internal search
- * results be crawled"). Nothing about the page fit that label anyway: the URL is
- * a permanent path, not a query the visitor typed, and what it lists is a curated
- * collection of sentences containing a word, which is what `CollectionPage`
- * means. The media branch has always used it.
- */
+// Curated word collections use CollectionPage, not SearchResultsPage: they are permanent
+// indexable pages, not the internal search results Google advises excluding.
 const breadcrumbItems = computed(() => {
   const items = [{ name: t('navbar.buttons.home'), item: localePath('/') }];
 
-  // A media-scoped page sits under the catalogue; a word page sits under search.
-  // Only the trail that matches the page is emitted -- a breadcrumb naming a
-  // parent the page does not actually have is worse than none.
+  // Emit only the matching parent: catalogue for media, search for words.
   if (mediaQueryParam.value) {
     items.push({ name: t('seo.media.title'), item: localePath('/media') });
     const firstResult = initialSentenceData.value?.results?.[0];
@@ -440,10 +331,7 @@ useSchemaOrg(schemaOrgNodes);
                             :initial-sentence-outcome="initialSentenceOutcome"
                             :initial-stats-outcome="initialStatsOutcome"
                             :media-display-name="scopedMedia ? mediaName(scopedMedia) : null">
-                            <!-- Same slot as the title page, so leaving a
-                                 narrowed search does not move the tabs either.
-                                 `mediaQueryParam` is what the reader asked for;
-                                 `scopedMedia` can lag a tick behind. -->
+                            <!-- Keep the hero below tabs. Use the requested scope; scopedMedia can lag a tick. -->
                             <template #below-tabs>
                                 <MediaHeader v-if="scopedMedia && mediaQueryParam" :media="scopedMedia" heading="h2" />
                             </template>

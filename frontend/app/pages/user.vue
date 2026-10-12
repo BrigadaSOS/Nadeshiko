@@ -28,9 +28,7 @@ const tabsGeneral = computed(() => [
   { name: t('accountSettings.tabs.sync'), icon: mdiSync, route: '/user/sync' },
   { name: t('accountSettings.tabs.collections'), icon: mdiFormatListBulletedSquare, route: '/user/collections' },
   { name: t('accountSettings.tabs.activity'), icon: mdiHistory, route: '/user/activity' },
-  // Starring and hiding share one tab: both decide which titles the search
-  // media filter shows and in what order, so they are one setting with two
-  // signs rather than two places to look. See `pages/user/media.vue`.
+  // Favorites and hidden titles share the media-filter settings tab.
   { name: t('accountSettings.tabs.media'), icon: mdiMovieOpenOutline, route: '/user/media' },
 ]);
 
@@ -52,8 +50,7 @@ const allTabs = computed(() => [
   ...(store.isAdmin ? tabsAdmin.value : []),
 ]);
 
-// Locale-agnostic: the child route decides which tab is active, so the nav only
-// has to strip the /en|/es|/ja prefix instead of rebuilding every candidate path.
+// Strip the locale prefix so tab selection is language-independent.
 const activeTabRoute = computed(() => {
   const { localizedPath } = splitLocalePrefix(route.path);
   const normalized = localizedPath.replace(/\/+$/, '') || '/';
@@ -62,9 +59,8 @@ const activeTabRoute = computed(() => {
 
 definePageMeta({
   robots: false,
-  // Applies to every /user/** child route: Nuxt collects middleware from all
-  // matched records, parent first. Per-route redirects (/user, /user/admin and
-  // unknown paths) live in the pages that own those URLs.
+  // Nuxt applies parent middleware to all /user/** children, parent first.
+  // URL-specific redirects remain in the pages that own them.
   middleware: [
     defineNuxtRouteMiddleware(() => {
       const store = userStore();
@@ -90,8 +86,7 @@ function scrollActiveTabIntoView() {
   nextTick(() => {
     const container = mobileTabsRef.value;
     if (!container) return;
-    // Keyed off the marker attribute rather than the active tab's styling, so
-    // restyling the tab can't quietly stop it from scrolling into view.
+    // Use the marker rather than styling so restyling cannot break active-tab scrolling.
     const activeBtn = container.querySelector<HTMLElement>('[data-active-tab]');
     if (activeBtn) {
       activeBtn.scrollIntoView({ inline: 'center', block: 'nearest' });
@@ -154,10 +149,7 @@ watch(activeTabRoute, scrollActiveTabIntoView);
           </nav>
         </div>
 
-        <!-- `mb-3` matches the gap `nd-settings-card` leaves between cards, so
-             the first card sits off the tab underline by the same amount every
-             later card sits off the one above it. Without it the card's top
-             edge and the active tab's border touch. -->
+        <!-- Match the card spacing below the mobile tab underline. -->
         <div class="block md:hidden mb-3">
           <nav ref="mobileTabsRef" :aria-label="$t('accountSettings.menu.tabsAriaLabel')" class="mobile-settings-tabs flex select-none overflow-x-auto">
             <NuxtLink

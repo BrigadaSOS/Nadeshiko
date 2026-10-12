@@ -10,17 +10,8 @@ export interface CardLocation {
 }
 
 /**
- * Where the card is standing, relative to the token it opened on.
- *
- * `trail` is the parts the reader has opened, deepest last; empty means they are
- * on the word the card opened on, which is why the original never needs storing
- * -- `origin()` still holds it. `forward` is what they have stepped back out of,
- * discarded the moment they walk somewhere new, which is what every
- * back/forward pair does and what stops the two disagreeing.
- *
- * `load` is the card's own lookup, shared by the parts row and both history
- * controls, so all three paint an answer the same way and guard staleness the
- * same way.
+ * An empty trail resolves to origin(); deepest parts are last. New navigation discards forward
+ * history. Share load across parts and history controls so rendering and staleness rules agree.
  */
 export function useCardTrail(load: (location: CardLocation) => Promise<void>, origin: () => CardLocation | null) {
   const trail = ref<CardLocation[]>([]);

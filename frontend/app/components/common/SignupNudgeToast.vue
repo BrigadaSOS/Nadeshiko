@@ -1,22 +1,5 @@
 <script setup lang="ts">
-/**
- * The panel a signup nudge is drawn as.
- *
- * A nudge is a proposal, and the library's stock `info` toast is the wrong
- * register for one: a flat coloured bar with a generic (i) is how this app
- * reports that something already happened, so an ask wearing that costume reads
- * as a status message and gets dismissed as one.
- *
- * So this borrows the dialog's chrome instead -- `--modal-background` on
- * `--modal-border` with the menu shadow, the same three values
- * `ModalLoginSignUp` uses -- and pairs it with the mark for whatever is being
- * offered. It is the login dialog's little sibling, which is what it should look
- * like given that pressing the button opens exactly that.
- *
- * The library's own chrome is switched off by the caller (`icon: false`,
- * `closeButton: false`) and its wrapper is flattened by `.nd-toast-nudge`, so
- * what the reader sees is only this component.
- */
+/** The caller disables stock toast chrome; .nd-toast-nudge flattens its wrapper so only this panel renders. */
 defineProps<{
   /** An `@mdi/js` path. The mark of the thing being offered, not a generic alert glyph. */
   iconPath: string;
@@ -69,27 +52,10 @@ const emit = defineEmits<{ action: []; dismiss: [] }>();
   box-shadow: var(--shadow-menu);
 }
 
-/*
- * The gutter on a phone.
- *
- * Below 600px the library throws its container full-bleed -- `width: 100vw`
- * with `padding: 0; left: 0; margin: 0` -- so a panel narrower than the screen
- * lands flush against the left edge and every pixel of slack piles up on the
- * right. The width cap above reserves 2rem; this is what splits it evenly
- * instead of donating it all to one side.
- *
- * Matched to the library's own breakpoint rather than a Tailwind one, because
- * the rule being corrected is theirs and the two must switch together.
- */
+/* Match the toast library's 600px breakpoint to split the reserved mobile gutter evenly. */
 @media only screen and (max-width: 600px) {
   .nd-nudge-panel {
-    /* Wider than the desktop cap on purpose. At 21rem on a 390px phone the panel
-       is 86% of the screen, and the leftover lands entirely on the right -- 16px
-       one side, 38px the other, which reads as a misalignment rather than as a
-       panel anchored left. Letting it take the width the screen offers puts an
-       even 1rem down both edges on every common handset. The 24rem ceiling is
-       only there so a small tablet, still inside this breakpoint, does not get a
-       near-600px slab. */
+    /* Use even 1rem phone gutters; cap small-tablet width at 24rem. */
     width: min(24rem, calc(100vw - 2rem));
     margin-inline: 1rem;
   }

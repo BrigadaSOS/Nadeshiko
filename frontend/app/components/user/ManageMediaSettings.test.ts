@@ -3,18 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 
-/**
- * The settings card for starring and hiding titles.
- *
- * One list does two jobs: with an empty box it shows what the reader has already
- * marked, and with something typed it becomes a lookup over the catalogue. The
- * two are the same rows with different sources, so the thing that has to hold is
- * that a toggle acts on the row it was pressed on in EITHER mode.
- *
- * The toasts and the analytics both report which direction the switch moved, and
- * that has to be read BEFORE the write -- afterwards the state has already
- * changed and every message says the opposite of what happened.
- */
+/** Managed and lookup rows share toggles; capture their direction before writes change the stored state. */
 const toastSuccess = vi.fn();
 vi.mock('~/utils/toast', () => ({ useToastSuccess: (...a: unknown[]) => toastSuccess(...a), useToastError: vi.fn() }));
 

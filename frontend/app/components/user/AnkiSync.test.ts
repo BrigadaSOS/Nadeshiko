@@ -3,16 +3,7 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 
-/**
- * The Anki settings page: which deck, which note type, and what goes in each
- * field.
- *
- * Everything here AUTOSAVES, which is what makes the failure modes quiet. There
- * is no Save button to fail, so a write that silently does the wrong thing --
- * replacing a field template instead of adding to it, or persisting an empty
- * mapping because Anki stopped answering -- is discovered by the reader later,
- * on a card that came out wrong.
- */
+/** Autosave must preserve existing field templates and mappings when Anki stops answering. */
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));
 

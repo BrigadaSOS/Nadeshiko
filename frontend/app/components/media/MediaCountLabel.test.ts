@@ -4,17 +4,6 @@ import { describe, test, expect } from 'vitest';
 
 import MediaCountLabel from './MediaCountLabel.vue';
 
-/**
- * The "12 Episodes" / "Videos: 12" / "Movie" label under a media card.
- *
- * Small, but it is three branches over data the catalogue genuinely mixes, and
- * every way it goes wrong is a sentence a reader reads and believes: a film
- * captioned "1 Episodes", a YouTube channel counted in episodes rather than
- * videos, or a series whose count vanishes because the field arrived null.
- *
- * `$t` returns the key, so a copy change never breaks a structural assertion --
- * the same convention `BlogPagination.test.ts` set.
- */
 function render(media: Record<string, unknown>, labelFirst = false) {
   return mount(MediaCountLabel, {
     props: { media, labelFirst } as never,

@@ -6,16 +6,8 @@ const SEARCH_MAX_RESULTS = 25;
 const DEBOUNCE_MS = 120;
 
 /**
- * Debounced catalogue lookup for the account's media settings.
- *
- * There used to be one of these inside the favorites panel and an identical one
- * inside the hidden-media panel -- same debounce, same `take`, same failure
- * handling -- which is what made `/user/media` render two search boxes asking
- * the backend the same question. One search now feeds both actions.
- *
- * `failed` is deliberately separate from "nothing matched": a search outage must
- * not read as an empty catalogue, which is what a single empty-results state
- * would have said.
+ * Share one debounced catalogue lookup across favorite and hidden-media actions. Keep failure
+ * distinct from an empty result set.
  */
 export function useMediaSearch(reportKey: string) {
   const sdk = useNadeshikoSdk();

@@ -36,25 +36,10 @@ import { useToastSuccess } from '~/utils/toast';
 const { englishMode, spanishMode } = useTranslationVisibility();
 const { languages: translationLanguages } = useTranslationLanguages();
 
-/**
- * Every action on this menu that a signed-out reader cannot take used to render
- * disabled with a "please log in" tooltip and no click handler -- a dead end at
- * the exact moment the reader had shown what they wanted the account for. They
- * now open the login modal, tagged with which one was pressed, which is what
- * makes "what makes people create an account" answerable at all.
- */
+/** Signed-out actions open login with their source rather than ending at a disabled tooltip. */
 const { openLoginModal } = useLoginModal();
 
-/**
- * The same offer, made a step earlier.
- *
- * Opening this menu signed out is a reader reaching for Anki, which is the
- * intent the download nudge was built around -- so it raises the same panel,
- * spends the same weekly cooldown, and is told apart from the download only in
- * PostHog and in the signup attribution. The greyed-out entries below still open
- * the login modal on their own when pressed; the panel just says why they are
- * grey without asking anyone to hover a tooltip to find out.
- */
+/** Opening Add signed out shares the download nudge's weekly cooldown, with separate analytics/attribution. */
 const signupNudge = useSignupNudge();
 
 type Props = {
@@ -269,7 +254,6 @@ const sharedMediaName = computed(() =>
     </template>
     <template #content>
       <SearchDropdownContent :header="$t('searchpage.main.buttons.add')">
-        <!-- Anki by last added -->
         <ClientOnly>
           <template v-if="user.isLoggedIn">
             <SearchDropdownItem :is-disabled="ankiUnavailable" :text="$t('searchpage.main.buttons.addToAnkiLast')"
@@ -305,7 +289,6 @@ const sharedMediaName = computed(() =>
         <template v-if="user.isLoggedIn">
           <div class="nd-menu-divider" />
 
-          <!-- Quick-add to last used collection -->
           <ClientOnly>
             <SearchDropdownItem
               v-if="lastCollection"
@@ -316,7 +299,6 @@ const sharedMediaName = computed(() =>
             />
           </ClientOnly>
 
-          <!-- Choose collection picker -->
           <SearchDropdownItem
             v-if="collectionsLoading"
             :is-disabled="true"

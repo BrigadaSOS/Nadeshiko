@@ -47,24 +47,10 @@ const providerLabel = (provider: string) => {
 const statusLabel = (banned: boolean) =>
   banned ? t('accountSettings.dashboard.status.banned') : t('accountSettings.dashboard.status.active');
 
-/**
- * Which request the table is currently showing.
- *
- * Every fetch here is racing the reader: the search box debounces but does not
- * wait, and Next can be pressed again before the last page is back. Two replies
- * were assigned in the order they ARRIVED rather than the order they were asked
- * for, so whichever server round-trip happened to be quicker won -- a slow reply
- * for a search the box no longer shows would overwrite the one it does.
- */
+/** Only the latest request may update the table; search and pagination replies can arrive out of order. */
 let latestRequest = 0;
 
-/**
- * `offset` is the page being ASKED for, and it is only committed once the rows
- * that go under it are in hand. It used to be written to `currentOffset` before
- * the request, with nothing to put it back: a failed page left the reader
- * reading "showing 21-40" over page one's rows, and pressing Next again skipped
- * a page that had never been shown.
- */
+/** Commit the requested offset only after rows arrive, so failed pages do not advance or skip the counter. */
 async function fetchUsers(offset = currentOffset.value) {
   const request = ++latestRequest;
   isLoading.value = true;

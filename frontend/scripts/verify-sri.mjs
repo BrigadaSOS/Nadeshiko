@@ -1,33 +1,6 @@
-/**
- * Fails the build if any asset's bytes no longer match the Subresource
- * Integrity digest the HTML will advertise for it.
- *
- * WHY THIS EXISTS. On 2026-08-13 a production release rendered nadeshiko.co
- * inert: 37 of 41 scripts were blocked by the browser, the page arrived from SSR
- * and never hydrated, and every click did nothing. The cause was an ordering
- * accident between two modules that never meet in a test:
- *
- *   nuxt-security  hashes the built assets at `nitro:build:before`
- *   @posthog/nuxt  injects a chunk id into every JS file at
- *                  `nitro:build:public-assets`, which fires AFTER
- *
- * So every digest described the file as it was one step earlier in the build.
- * Nothing downstream could notice: the deploy succeeded, the container was
- * healthy, `/up` answered, and the HTML and assets were both "current" -- they
- * simply disagreed about the bytes.
- *
- * It could not be caught on staging either, and that is the part worth fixing
- * rather than remembering. `@posthog/nuxt` is gated on `isProd`, staging builds
- * with `NUXT_PUBLIC_ENVIRONMENT=development`, so the injection never runs
- * there. Staging was green because it had never executed the code path that
- * breaks.
- *
- * A check that runs inside the image build has neither problem. It sees whatever
- * the build actually produced, in every environment, before anything is
- * deployed -- and it fails on ANY post-hash mutation, not just this one. The
- * sourcemap-comment flip that broke staging earlier the same day is the same
- * class of fault and would also be caught here.
- */
+// Verify final asset bytes against the SRI digests advertised by the server bundle. PostHog can mutate JS
+// after nuxt-security hashes it, leaving a healthy but unhydratable site. This image-build check covers
+// production-only mutations that staging never executes.
 
 import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
@@ -37,14 +10,7 @@ const OUTPUT = resolve(process.cwd(), '.output');
 const SERVER_DIR = join(OUTPUT, 'server');
 const PUBLIC_DIR = join(OUTPUT, 'public');
 
-/**
- * Pulls the `const sriHashes = {...}` object nuxt-security serialises into the
- * server bundle.
- *
- * Brace-matched rather than regex-terminated: the object is a single line of
- * JSON hundreds of entries long, and "up to the first `};`" is the kind of
- * shortcut that quietly truncates and then passes.
- */
+// Brace-match the serialized sriHashes object; stopping at the first }; can truncate the map.
 function extractHashes(source) {
   const marker = /const sriHashes\s*=\s*\{/.exec(source);
   if (!marker) return null;
@@ -64,9 +30,7 @@ function extractHashes(source) {
   return null;
 }
 
-// Nuxt moved its generated entry bundle from `chunks/nitro/nitro.mjs` to a
-// virtual chunk. Find the security-generated map instead of coupling this
-// safety check to that internal filename.
+// Locate the generated hash map rather than coupling the check to Nuxt's internal chunk filename.
 async function findServerBundle() {
   const files = await readdir(SERVER_DIR, { recursive: true }).catch(() => []);
   for (const file of files) {
@@ -85,29 +49,15 @@ if (!bundle) {
 
 const hashes = extractHashes(bundle);
 
-// NOT a pass. If nuxt-security stops emitting this map -- renamed, restructured,
-// removed -- the check silently verifies nothing, which is worse than not having
-// it, because the build still goes green.
+// Fail closed if an upgrade changes/removes the map; verifying zero assets is not a pass.
 if (!hashes || Object.keys(hashes).length === 0) {
   console.error("verify-sri: could not read nuxt-security's sriHashes from the server bundle");
   console.error('verify-sri: refusing to pass a build whose integrity cannot be checked');
   process.exit(1);
 }
 
-/**
- * The app manifest is hashed and then rewritten, and that is fine.
- *
- * `/_nuxt/builds/latest.json` and `builds/meta/<build-id>.json` are Nuxt's own
- * record of which build is live. Nothing loads them through a tag carrying an
- * `integrity` attribute -- the client `$fetch`es them -- so a digest that no
- * longer matches cannot block anything, and the browser never checks. Verified
- * against production, where the manifest has always mismatched while every
- * document-referenced asset matched.
- *
- * Scoped to this one directory on purpose. A blanket "ignore JSON" would also
- * excuse a real asset, and the value of this check is that it has no exceptions
- * worth arguing about.
- */
+// Nuxt fetches build manifests without integrity attributes and rewrites them after hashing. Exclude only
+// this directory, not arbitrary JSON assets.
 const UNENFORCED = '/_nuxt/builds/';
 
 const mismatched = [];
@@ -132,9 +82,7 @@ for (const [path, declared] of Object.entries(hashes)) {
   if (actual !== expected) mismatched.push({ path, expected, actual });
 }
 
-// Missing files are reported but do not fail: `@posthog/nuxt` deletes sourcemaps
-// after uploading them, and a hashed-then-deleted `.map` breaks nothing -- no
-// document references one with an integrity attribute.
+// PostHog deletes uploaded source maps; absent hashed files have no document SRI reference and do not fail.
 if (missing.length > 0) {
   console.log(`verify-sri: ${missing.length} hashed file(s) absent from the build (not an error)`);
 }

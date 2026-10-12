@@ -2,13 +2,8 @@
 import { defineComponent, h, resolveComponent, type VNodeChild } from 'vue';
 import { parseAnnouncement, type AnnouncementNode } from '~/utils/announcementMarkdown';
 
-/**
- * An announcement's message, with its markdown subset drawn as elements.
- *
- * A render function rather than a template because the node tree is recursive,
- * and -- the part that matters -- because `v-html` is the one tool that must not
- * appear on this path. See `~/utils/announcementMarkdown` for what is supported
- * and why the blog's `marked` pipeline is not reused here.
+/** Render the recursive markdown tree as elements, never v-html. See announcementMarkdown for the supported
+ * subset.
  */
 export default defineComponent({
   name: 'AnnouncementText',

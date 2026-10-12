@@ -3,13 +3,8 @@ import { ALL_CATEGORIES, isCategory } from '~/utils/categories';
 import { handleApiError } from '~/utils/apiError';
 
 /**
- * Whole-category hiding, the coarse counterpart to `useHiddenMedia`: instead of
- * naming individual shows, a reader drops every live action title or every
- * YouTube video at once.
- *
- * Stored in the same user preferences blob, so it follows the reader across
- * devices, and applied the same way -- as a filter on the outgoing search, not as
- * a post-filter on the results, so the pagination and tab counts stay honest.
+ * Persist category exclusions with account preferences and apply them to outgoing searches, not
+ * post-filtered results, so pagination and tab counts stay correct.
  */
 export function useHiddenCategories() {
   const user = userStore();

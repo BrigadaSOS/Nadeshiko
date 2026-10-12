@@ -3,18 +3,8 @@ import { mdiCheckBold } from '@mdi/js';
 import { useRoute, useRouter } from 'vue-router';
 import { handleApiError } from '~/utils/apiError';
 
-/**
- * Where Shirabe sends the reader back after they approve.
- *
- * This URL is registered over there and exact-matched, so it is a fixed address
- * rather than something to build per environment. It exists as a PAGE rather
- * than as a backend route so the reader lands on something of ours that can say
- * what is happening and where they are going next: a redirect straight into an
- * API would have answered them with JSON.
- *
- * The code is handed straight to the backend and never kept: it is one-time,
- * two minutes old, and the exchange needs a PKCE verifier only the backend has.
- */
+// Shirabe exact-matches this fixed callback URL. A page shows progress instead of API JSON.
+// Forward the one-time, two-minute code immediately; only the backend holds the PKCE verifier.
 
 const { t } = useI18n();
 const route = useRoute();
@@ -28,9 +18,7 @@ const shirabeName = ref('');
 onMounted(async () => {
   const code = String(route.query.code ?? '');
   const sealed = String(route.query.state ?? '');
-  // Shirabe reports a refusal on the redirect, the way the spec says. The
-  // ordinary one is `access_denied`: the reader looked at the consent screen and
-  // said no, which is an answer rather than a failure.
+  // access_denied is declined consent, not an exchange failure.
   const error = String(route.query.error ?? '');
 
   if (error || !code || !sealed) {
@@ -45,25 +33,14 @@ onMounted(async () => {
       { method: 'POST', body: { code, state: sealed } },
     );
     shirabeName.value = connection?.shirabeName || t('connections.shirabe.anonymous');
-    // The code is spent and the state has done its job; neither belongs in the
-    // address bar any longer. Left there, a reload re-posted a consumed code
-    // and told the reader a link that had worked seconds ago had failed, and
-    // the code sat in browser history for good measure. Only on success: on a
-    // failure the URL stays, so a reload is a retry for the one case where
-    // that helps (the exchange never reached Shirabe).
+    // Clear spent credentials only on success: reload must not replay them,
+    // but a failed exchange should remain retryable.
     await router.replace({ path: route.path, query: {} });
-    // Says so and stops, rather than redirecting to settings on its own. A
-    // redirect here spends the one moment the reader is looking for an answer:
-    // they approved something on another site, came back, and the page they
-    // asked for flashes past into a settings page that looks the same as before.
-    // Whether it worked is the only thing they came back to find out.
+    // Keep the outcome visible instead of redirecting to an unchanged settings page.
     state.value = 'done';
   } catch (caught) {
     state.value = 'failed';
-    // The one failure the reader can do something about on their own: the
-    // session ran out (or was never here -- another browser opened the magic
-    // link) while they were over at Shirabe. Named, so the page does not say
-    // "could not be completed" about a link that only needs them signed in.
+    // Name an expired/missing session so the reader knows to sign in again.
     const status =
       (caught as { status?: number; response?: { status?: number } })?.status ??
       (caught as { response?: { status?: number } })?.response?.status;
@@ -74,11 +51,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <!-- Three outcomes, all of them said out loud on this page rather than
-       forwarded on. The failure borrows app/error.vue's shape, gif and all: a
-       connect that does not connect leaves the reader at a dead end on a page
-       they have never seen before, and the site already has a way of looking
-       sorry about that. -->
+  <!-- Show outcomes here; failures reuse the site's error-page presentation. -->
   <div class="flex min-h-[70vh] flex-col items-center justify-center px-4" data-testid="shirabe-callback">
     <div class="flex flex-col items-center max-w-lg mx-auto text-center">
       <template v-if="state === 'working'">

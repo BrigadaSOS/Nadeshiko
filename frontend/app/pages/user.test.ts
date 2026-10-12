@@ -3,18 +3,8 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { reactive, ref } from 'vue';
 
-/**
- * The settings shell: the tab strip every `/user/**` page sits inside.
- *
- * Two decisions live here. WHICH TABS a reader is offered -- the admin ones are
- * appended only for an admin, and offering them otherwise is a row of links to
- * pages that will bounce them. And WHICH TAB is lit, which is derived by
- * stripping the locale prefix rather than by rebuilding every candidate path in
- * three languages: a Spanish reader on `/es/user/sync` must light the same tab
- * an English one does on `/en/user/sync`.
- *
- * `/user` itself is lit as Settings, because that is where it lands.
- */
+// Admin tabs are role-gated; active-tab selection ignores locale prefixes.
+// /user highlights Settings because that is its redirect target.
 const isAdmin = ref(false);
 const route = reactive({ path: '/en/user/sync', params: {}, query: {}, fullPath: '/en/user/sync' });
 
@@ -56,12 +46,8 @@ function render(path = '/en/user/sync') {
   return wrapper;
 }
 
-/**
- * Every tab link's target, DEDUPLICATED: the strip is rendered twice, once for
- * desktop and once for mobile, so a raw list double-counts every tab.
- */
+// Deduplicate targets because desktop and mobile each render the tab strip.
 const tabs = (w: ReturnType<typeof render>) => [...new Set(w.findAll('a').map((a) => a.attributes('href') ?? ''))];
-/** The tab the shell marks current, which it does with an `active` class. */
 const currentTab = (w: ReturnType<typeof render>) => {
   const marked = [
     ...new Set(
@@ -97,7 +83,6 @@ describe('which tabs are offered', () => {
   });
 
   test('but NOT the admin ones', () => {
-    // A row of links to pages that would bounce them.
     const wrapper = render();
 
     for (const path of ['/user/admin/users', '/user/admin/reports', '/user/admin/announcement']) {
@@ -115,10 +100,7 @@ describe('which tabs are offered', () => {
   });
 
   test('the desktop and mobile strips offer the SAME tabs', () => {
-    // They are built from different lists -- the sidebar iterates each group, the
-    // mobile bar iterates the combined one -- so they can drift apart, and a tab
-    // reachable on one layout and not the other is invisible to whoever is on the
-    // wrong screen. Every tab should therefore appear exactly twice.
+    // Desktop iterates grouped tabs; mobile iterates the combined list. Require each tab on both layouts.
     isAdmin.value = true;
     const wrapper = render();
 
@@ -144,8 +126,6 @@ describe('which tab is lit', () => {
   });
 
   test('whatever language the reader is in', () => {
-    // Derived by stripping the locale prefix rather than rebuilding every
-    // candidate path in three languages.
     expect(currentTab(render('/es/user/sync'))).toBe('/en/user/sync');
     expect(currentTab(render('/ja/user/sync'))).toBe('/en/user/sync');
   });

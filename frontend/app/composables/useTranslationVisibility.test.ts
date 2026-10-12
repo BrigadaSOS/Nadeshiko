@@ -2,15 +2,8 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { ref } from 'vue';
 
 /**
- * The per-language show / spoiler / hidden choice.
- *
- * Two things here are worth holding down. The COOKIE is read during SSR and is
- * part of the page cache key, so its encoding is a wire format: a shape change
- * silently reverts every reader to the default on their next visit, and one
- * that grows for the default value would fragment the cache. And the SERVER
- * copy has to win on the client for a signed-in reader, which is the whole
- * point of storing it -- getting that backwards means a preference set on a
- * laptop is ignored on a phone that happens to have any cookie at all.
+ * Cookie encoding is an SSR cache-key contract. Signed-in server preferences override local
+ * cookies so choices follow the reader across devices.
  */
 const cookies = new Map<string, ReturnType<typeof ref<string | null>>>();
 const sdk = { updateUserPreferences: vi.fn().mockResolvedValue({}) };

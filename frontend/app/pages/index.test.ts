@@ -3,18 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, ref } from 'vue';
 
-/**
- * The home page.
- *
- * The example searches mirror the translation-language defaults: English and
- * Spanish readers see their own language, Portuguese readers see both, and
- * other locales see English.
- *
- * The Discord install link is the only step of that funnel on our side, and
- * `autocapture` is off -- so without an explicit event, a visitor who clicked and
- * did not finish and a visitor who never clicked are the same absence, and they
- * call for opposite fixes.
- */
+// Examples mirror translation defaults. Discord install clicks need explicit analytics
+// because autocapture is disabled.
 const capture = vi.fn();
 const locale = ref('en');
 const recentMedia = ref<Record<string, unknown> | null>({ media: [] });
@@ -88,8 +78,6 @@ afterEach(() => {
 
 describe('the example searches', () => {
   test('an English reader is offered only the English one', async () => {
-    // Offering the Spanish example too hints that Spanish is searchable, which
-    // nobody needs on the page they landed on in their own language.
     locale.value = 'en';
     const wrapper = await render();
 
@@ -158,8 +146,6 @@ describe('the recently added grid', () => {
 
 describe('the Discord install link', () => {
   test('records the click, because autocapture would not', async () => {
-    // Otherwise "clicked and did not finish" and "never clicked" are the same
-    // absence, and they call for opposite fixes.
     const wrapper = await render();
     const link = wrapper.findAll('a').find((a) => (a.attributes('href') ?? '').includes('discord'));
     if (!link) throw new Error('no Discord install link');

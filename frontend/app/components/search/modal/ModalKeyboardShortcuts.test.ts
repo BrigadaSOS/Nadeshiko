@@ -3,18 +3,7 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 
-/**
- * The `?` shortcuts sheet.
- *
- * Its listener is on `window` in the CAPTURE phase, so it sees every key pressed
- * anywhere on the page -- including inside the search box, where `?` is a
- * character a reader is typing and not a request for help. Opening the sheet
- * over their half-written query is the failure this guards.
- *
- * Both spellings have to work: `?` arrives as a key on most layouts, but on
- * layouts where it needs Shift the browser may report the physical `Slash` with
- * a shift modifier instead.
- */
+/** The window capture listener must ignore typing. Support both ? and Shift+Slash keyboard layouts. */
 vi.stubGlobal('useI18n', () => ({ t: (k: string) => k, locale: ref('en') }));
 
 import ModalKeyboardShortcuts from './ModalKeyboardShortcuts.vue';

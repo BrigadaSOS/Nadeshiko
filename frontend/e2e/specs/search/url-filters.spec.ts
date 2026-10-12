@@ -17,17 +17,13 @@ test.describe('Search URL filters', () => {
     await search.goto('学校');
     await search.expectResultsVisible();
 
-    // Get media name and click to filter
     const mediaLink = search.segmentCards.first().getByTestId('segment-media-name');
     const mediaName = (await mediaLink.textContent())!.trim();
     const mediaId = await clickFirstMediaFilter(search);
 
-    // Extract the media ID from the URL
-    // Navigate directly with query + media filter
     await page.goto(`/search/学校?media=${mediaId}`);
     await search.expectResultsVisible();
 
-    // All results should be from the same media
     const firstMediaLink = search.segmentCards.first().getByTestId('segment-media-name');
     await expect(firstMediaLink).toContainText(mediaName);
   });
@@ -39,7 +35,6 @@ test.describe('Search URL filters', () => {
 
     const unfilteredCount = await search.getResultCount();
 
-    // Click media name to filter
     await clickFirstMediaFilter(search);
 
     await search.expectResultsVisible();
@@ -55,10 +50,8 @@ test.describe('Search URL filters', () => {
     await search.goto('学校');
     await search.expectResultsVisible();
 
-    // Get a media ID by clicking the media name
     const mediaId = await clickFirstMediaFilter(search);
 
-    // Navigate with only media filter (no query)
     await page.goto(`/search?media=${mediaId}`);
     await search.expectResultsVisible();
 

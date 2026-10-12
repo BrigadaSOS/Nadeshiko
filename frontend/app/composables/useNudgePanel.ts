@@ -13,21 +13,8 @@ export interface NudgePanel {
 }
 
 /**
- * Raises a proposal as a panel rather than as one of the bars in `~/utils/toast`.
- *
- * It lives in its own file rather than beside those three because it is the only
- * thing in the app that renders a component into a toast, and `toast.ts` is
- * imported by `apiError.ts` -- which puts it in the import graph of tests that
- * run in a bare Node environment with no Vue plugin. A `.vue` import there breaks
- * three unrelated test files. Keeping the component reference here, in a file no
- * test imports, is what keeps that graph clean. Extracted from
- * `useSignupNudge` when a second caller appeared; the reasoning below is that
- * file's, and it applies unchanged to any panel that asks the reader something.
- *
- * Every piece of the library's own chrome is off: its icon and close button
- * would sit alongside the panel's own, its click-to-close would fire whenever a
- * reader went for the dismiss button, and dragging a panel with two controls in
- * it is a way to press neither.
+ * Keep the Vue component outside toast.ts: apiError imports it into bare-Node tests. Disable
+ * library chrome and click/drag dismissal so the panel's own controls remain authoritative.
  */
 export function raiseNudgePanel(panel: NudgePanel) {
   const toaster = useToast();
@@ -54,16 +41,8 @@ export function raiseNudgePanel(panel: NudgePanel) {
       },
     },
     {
-      // Never auto-dismisses. A status toast can expire because missing it costs
-      // nothing -- the thing it reported already happened. This one is a
-      // question, and a question that withdraws itself after twelve seconds is
-      // one a reader who looked away has been asked and never got to answer. It
-      // leaves when they decide it does, by either button.
-      //
-      // A pleasant side effect: with no timeout the library renders no progress
-      // bar at all, so the trap that bar carries -- it drives the close via its
-      // own `animationend`, and its `opacity` is written inline where no
-      // stylesheet can reach it -- stops being ours to work around.
+      // A proposal stays until the reader answers or dismisses it; no timeout also avoids the
+      // library's animation-driven progress-bar close.
       timeout: false,
       // Bottom-LEFT, alone among this app's toasts. The opposite corner belongs
       // to `FabDock`, which stacks feedback and the page's own buttons there and

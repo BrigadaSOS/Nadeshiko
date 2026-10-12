@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { splitLocalePrefix } from '~/utils/routes';
 
-// Every real settings tab has its own page file; this only catches leftovers
-// (old bookmarks, typos) and keeps the pre-existing "bounce to the first tab"
-// behaviour instead of 404ing through the site-wide content catch-all.
+// Unknown account paths keep their settings fallback instead of hitting the content 404.
 definePageMeta({
   middleware: defineNuxtRouteMiddleware((to) => {
     const localePath = useLocalePath();

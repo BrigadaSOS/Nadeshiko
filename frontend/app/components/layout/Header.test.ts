@@ -3,19 +3,7 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick, reactive, ref } from 'vue';
 
-/**
- * The site header and the mobile drawer inside it.
- *
- * Everything here turns on ONE question -- is anyone signed in -- and the two
- * ways of getting it wrong are not symmetric. Offering a signed-out reader links
- * to an account they do not have is a dead end; showing a signed-in reader the
- * sign-in prompt is merely confusing. Both are pinned.
- *
- * The drawer is the other half. It closes itself on a ROUTE CHANGE, which covers
- * every link inside it -- and leaves every control that does NOT navigate to
- * close it by hand. Each of those is its own small bug: the drawer sits open
- * behind the panel or modal it just raised.
- */
+/** Route changes close the drawer automatically; controls opening panels must close it explicitly. */
 const isLoggedIn = ref(false);
 const logout = vi.fn();
 const openFeedback = vi.fn();

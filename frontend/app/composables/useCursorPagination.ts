@@ -29,14 +29,8 @@ export type CursorPageFetcher<T extends CursorPage> = (cursor: string | null) =>
 export type CursorPageOutcome<T> = { status: 'ok'; page: T } | { status: 'stale' } | { status: 'error' };
 
 /**
- * Cursor pagination for a list whose query can change under an in-flight
- * request — a filter switch, a tab change, a new search. Every fetch runs in a
- * generation (see `createRequestSequencer`), so starting a fresh list
- * invalidates the page that was already on its way and its results can never be
- * appended to, or its cursor written over, the new list.
- *
- * The caller keeps ownership of the items; this only owns the cursor, the
- * end-of-list flag and the two in-flight flags.
+ * A fresh query invalidates in-flight pages so stale results and cursors cannot overwrite the
+ * new list. The caller owns items; this owns pagination and loading state.
  */
 export function useCursorPagination() {
   const cursor = ref<string | null>(null);

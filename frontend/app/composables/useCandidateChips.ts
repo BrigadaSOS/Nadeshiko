@@ -7,29 +7,12 @@ import {
   type ShirabeCandidate,
 } from '~/utils/wordCard';
 
-/**
- * How many chips the glance shows before it stops.
- *
- * Four, not six. The row is no longer the only way to reach a candidate -- what
- * it does not fit opens as a list a click away -- so it can be sized for what is
- * READABLE at the card's width rather than for what is reachable. Four chips
- * hold one line at the widths these words run to; six wrapped, and a wrapped
- * glance is not one.
- */
+/** Keep the glance to one readable line; overflow candidates remain available in the list. */
 const PICKER_VISIBLE = 4;
 
 /**
- * Whether a candidate is a person or a place rather than a word.
- *
- * Read off the flag Shirabe publishes, never off the dictionary slug: JMdict
- * carries ~7,300 JMnedict rows under its own name, so a slug test keeps every
- * one of them and never says so. あれ is the case that shows it -- 亜礼, 阿礼 and
- * 安礼 all arrive under `jmdict`.
- *
- * Names are normally filtered out of an answer entirely (see
- * `withoutNameEntries`), so this only has anything to mark in the one case where
- * they survive: a token that resolves to nothing BUT names. Then the tag is what
- * stops six unfamiliar spellings reading as six words the reader has never met.
+ * Use Shirabe's name flag, not dictionary slug: JMdict also carries name entries. Name-only
+ * answers retain their tags.
  */
 const isNameCandidate = (candidate: ShirabeCandidate): boolean => candidate.name === true;
 
@@ -55,22 +38,8 @@ export function useCandidateChips(
   const showCandidateRows = computed(() => candidates().length > 1);
 
   /**
-   * The one letter that tells two same-spelling candidates apart, with the whole
-   * word on hover.
-   *
-   * PRONOUN and INTERJECTION spelled out cost more row than the words they were
-   * disambiguating -- あれ PRONOUN / あれ INTERJECTION pushed 有れ and 我 to the
-   * edge, so a tiebreak between two chips was crowding out the other four. An
-   * initial is enough to tell them apart, which is the whole job; `title` carries
-   * the rest for anyone who wants it, the same way the sense chips do.
-   *
-   * A collision (two candidates whose labels share a letter) is not worth guarding
-   * against: if two spellings have the SAME part of speech then the full word
-   * would not separate them either, and the list below -- where every row carries
-   * its gloss -- is what answers that.
-   *
-   * Localized by construction: it is the first character of the label the card
-   * would print, so Spanish gets P/I too and Japanese gets 代/感.
+   * Use the localized part-of-speech initial to disambiguate compact chips; title carries the
+   * full label and the expanded list supplies glosses.
    */
   function posInitial(candidate: ShirabeCandidate): string {
     return [...candidatePartOfSpeech(candidate, glossLanguages())][0] ?? '';

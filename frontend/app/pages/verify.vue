@@ -1,10 +1,5 @@
 <script setup lang="ts">
-/**
- * Compatibility entry point for verification links minted by older Nadeshiko
- * deployments. Better Auth's current endpoint is `/v1/auth/verify-email`, but
- * older mail used `/verify?token=...`; forwarding here lets those still-valid
- * tokens complete instead of falling through to the content catch-all and 404.
- */
+// Forward still-valid legacy /verify?token= links to Better Auth's current verification endpoint.
 const route = useRoute();
 const requestUrl = useRequestURL();
 
@@ -13,9 +8,7 @@ if (!token) {
   throw createError({ statusCode: 400, statusMessage: 'Verification token is missing' });
 }
 
-// The legacy `/settings` redirect localizes this path for the reader, so this
-// callback remains valid even when the verification link is opened in another
-// language or on another device.
+// The account settings redirect resolves the reader's locale across devices.
 const defaultCallback = `${requestUrl.origin}/user/settings`;
 const requestedCallback = typeof route.query.callbackURL === 'string' ? route.query.callbackURL : '';
 let callbackURL = defaultCallback;

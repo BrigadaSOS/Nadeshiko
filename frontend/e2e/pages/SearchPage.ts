@@ -26,15 +26,13 @@ export class SearchPage {
     this.recentsMenu = page.getByTestId('search-recents');
     this.recentsItems = page.getByTestId('search-recents-item');
     this.recentsClear = page.getByTestId('search-recents-clear');
-    // The headword at the top of an open word card, which is a button only when
-    // the card is about a token the dictionary answered for.
+    // The dictionary headword is actionable only when the token has an entry.
     this.tokenCardSearch = page.locator('.token-tooltip__word--action');
     this.searchButton = page.getByTestId('search-button');
     this.categoryTabs = page.getByTestId('search-category-tabs');
     this.segmentCards = page.getByTestId('segment-card');
     this.segmentImages = page.getByTestId('segment-image');
-    // Only on cards with an episode behind them: a movie has none, and a
-    // YouTube clip links out to the video instead.
+    // Movies have no episode; YouTube clips link to the video instead.
     this.episodeLinks = page.getByTestId('segment-episode-link');
     this.endOfResults = page.getByText("You've reached the end", { exact: false });
     this.enToggle = page.getByTestId('visibility-en');
@@ -52,31 +50,16 @@ export class SearchPage {
     await this.visibilityOption(lang, mode).click();
   }
 
-  /**
-   * The word the current URL is a search for, decoded, or null on a `/search`
-   * with no word in it.
-   *
-   * The query lives in the PATH and the filters live in the query string, so a
-   * filter that rebuilds the path instead of patching the query silently drops
-   * the search. That is a real regression -- `/search?media=X` is a valid page
-   * showing every sentence in a title -- and it is invisible to any assertion
-   * that only looks at `media=`, which is how it shipped.
-   */
+  // Query words live in the path; checking only query-string filters misses a dropped word.
+  // Return null for an unscoped /search browse.
   searchedWord(): string | null {
     const path = decodeURIComponent(new URL(this.page.url()).pathname);
     const match = path.match(/\/search\/(.+)$/);
     return match?.[1] ?? null;
   }
 
-  /**
-   * `locale` prefixes the path, which the app routes on (`strategy: 'prefix'`).
-   *
-   * It is how a spec asks for a reader with two translation languages without
-   * signing in: the interface language picks the default set until a reader
-   * saves an override, and only `pt-BR` defaults to both EN and ES — `en` gets
-   * English alone, `es` Spanish alone, and other locales default to English.
-   * See `defaultTranslationLanguages`.
-   */
+  // Locale prefixes select anonymous translation defaults: pt-BR uses EN+ES, es uses ES,
+  // and other locales use EN until the reader saves an override. See defaultTranslationLanguages.
   async goto(query?: string, options: { locale?: 'en' | 'es' | 'ja' | 'zh' | 'zh-hant' | 'id' | 'pt-BR' } = {}) {
     const prefix = options.locale ? `/${options.locale}` : '';
     const path = query ? `${prefix}/search/${encodeURIComponent(query)}` : `${prefix}/search`;
@@ -84,21 +67,8 @@ export class SearchPage {
     expect(response?.status(), `search navigation to ${path} should return HTTP 200`).toBe(200);
   }
 
-  /**
-   * Runs a search from the bar and waits for the URL to be the one asked for.
-   *
-   * Two things this used to get wrong, both of which showed up as a later step
-   * timing out somewhere unrelated:
-   *
-   * `/\/search\//` matched the URL the page was ALREADY on, so this could
-   * return before the navigation had happened at all — leaving the caller to
-   * act on the previous search, and any history assertion after it reading a
-   * stack that had not moved yet.
-   *
-   * `waitUntil: 'commit'` because the default is `'load'`: a results page whose
-   * first card is a YouTube segment embeds a `youtube-nocookie.com` iframe, and
-   * the page load state need never arrive. The URL is what this is waiting for.
-   */
+  // Wait for the requested word, not a /search/ pattern that already matches the old URL.
+  // Use commit: a YouTube iframe can prevent the page's load event from arriving.
   async search(query: string) {
     await this.searchInput.clear();
     await this.searchInput.fill(query);
@@ -109,13 +79,7 @@ export class SearchPage {
     });
   }
 
-  /**
-   * Waits for hydration as well as for cards, because the cards arrive first.
-   * They are server-rendered, so they are visible and clickable before Vue has
-   * attached anything — the keyboard listener, the image-zoom click, the
-   * infinite-scroll observer all mount later. Interacting in that window is
-   * silently dropped, which is what made these specs flaky rather than red.
-   */
+  // SSR cards appear before Vue attaches handlers; wait for hydration before interacting.
   async expectResultsVisible() {
     await expect(this.segmentCards.first()).toBeVisible({ timeout: 15_000 });
     await this.expectHydrated();
@@ -130,11 +94,7 @@ export class SearchPage {
     await expect(this.categoryTabs).toBeVisible({ timeout: 15_000 });
   }
 
-  /**
-   * Clicks into the box to drop the recents menu open. A click rather than
-   * `focus()`: the bar focuses itself on mount for desktop readers, and that
-   * focus deliberately does not open the menu.
-   */
+  // Click rather than focus: desktop mount autofocus intentionally does not open history.
   async openRecents() {
     await this.searchInput.click();
     await expect(this.recentsMenu).toBeVisible({ timeout: 10_000 });
@@ -144,13 +104,7 @@ export class SearchPage {
     return this.recentsItems.filter({ hasText: query });
   }
 
-  /**
-   * The row for a search run across everything, as opposed to the same word
-   * searched inside a title -- which is a separate row, by design.
-   *
-   * The distinction matters to any count: filtering rows by their text alone
-   * matches both, so `食べる` and `食べる in Bocchi` are two hits for one word.
-   */
+  // Text alone matches both general and title-scoped searches for the same word.
   unscopedRecentsItem(query: string) {
     return this.recentsItem(query).filter({ hasNot: this.page.getByTestId('search-recents-media') });
   }
@@ -173,23 +127,8 @@ export class SearchPage {
     return this.segmentCards.first().getByTestId(`translation-row-${lang}`).getByTestId('translation-content');
   }
 
-  /**
-   * Opens the word card on the first token in the results that has one, and
-   * returns the headword it is about — which is what pressing the headword
-   * searches for, and so what the bar has to end up holding.
-   *
-   * Walked rather than aimed at the first token, because only a word the
-   * dictionary knows opens a card at all: particles and names in a given
-   * sentence are tokens with no entry behind them, and which ones those are
-   * depends on the sentence the search happens to return.
-   *
-   * `excluding` skips a headword the caller cannot use — in practice the word
-   * the page is already searching for. Every result on `/search/彼女` contains
-   * 彼女, so it is routinely the first token with an entry, and searching it
-   * navigates to the URL the test is standing on. The callers that wait for the
-   * URL to *change* then wait forever, for a reason that has nothing to do with
-   * what they are testing.
-   */
+  // Walk tokens because particles/names may have no dictionary entry. Return the actionable
+  // headword; excluding skips the current query so callers waiting for a URL change do not hang.
   async openFirstTokenCard(options: { excluding?: string } = {}): Promise<string> {
     const tokens = this.page.locator('.token-text .token[role="button"]');
     await expect(tokens.first()).toBeVisible({ timeout: 15_000 });
@@ -206,16 +145,8 @@ export class SearchPage {
     throw new Error('no token in the results opened a usable word card');
   }
 
-  /**
-   * The headword as a word, with its reading stripped out.
-   *
-   * NOT `innerText()`. The card renders furigana as `<ruby>語<rt>ご</rt></ruby>`,
-   * and text extraction concatenates both halves — so the headword of 林間学校
-   * came back as "林間学校りんかんがっこう", which is not what pressing it
-   * searches for and matches nothing in the URL afterwards. `<rt>` holds the
-   * pronunciation guide by definition, so dropping it is what "the word" means
-   * whether or not a given entry happens to have furigana.
-   */
+  // Strip ruby <rt> readings: innerText/textContent otherwise concatenate pronunciation
+  // with the headword, which no longer matches the word searched by a click.
   private async tokenCardHeadword(): Promise<string> {
     const text = await this.tokenCardSearch.evaluate((element) => {
       const clone = element.cloneNode(true) as HTMLElement;

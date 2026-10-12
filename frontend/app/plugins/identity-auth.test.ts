@@ -1,32 +1,14 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { reactive, ref } from 'vue';
 
-// The KEY is inlined rather than imported: a static import is hoisted above the
-// `stubGlobal` calls below, and this module calls `defineNuxtPlugin` as it
-// loads. Asserted against the module's own export in the last test here, so the
-// two cannot drift apart silently.
+// Inline the key because static import would precede Nuxt-global stubs. The export-parity test prevents
+// drift.
 const SSR_IDENTITY_CHECK_KEY = 'nd-ssr-identity-check';
 type SsrIdentityCheck = 'none' | 'resolved' | 'failed';
 
 /**
- * The client half of the session bootstrap.
- *
- * (The SSR half is not reachable from here: `vitest.config.ts` replaces
- * `import.meta.server` with `false` so the app layer compiles in its CLIENT
- * configuration, which is the right default for every other test in the suite.
- * The server path is exercised end to end by Playwright.)
- *
- * What this decides is whether hydration spends an API call. The server already
- * settled the question for most renders -- `none` means the request carried no
- * session cookie at all, `resolved` means the backend answered -- and asking
- * again would only re-derive what the payload already says. The one case worth a
- * round trip is `failed`: the backend could not be reached, so the render is
- * signed-out by fallback rather than by fact.
- *
- * The identify is not merely an identify: it is where a signup or a login is
- * NOTICED, by comparing the account in session against the last one this browser
- * reported. So it has to happen on every load, including the ones that spend no
- * round trip.
+ * Client bootstrap coverage: settled SSR state avoids refetch, unresolved state retries, and identity
+ * reconciliation runs on every load. Vitest compiles out the server branch; Playwright covers SSR.
  */
 const store = reactive({
   isLoggedIn: false,
@@ -69,27 +51,20 @@ beforeEach(() => {
 
 describe('a render the server settled', () => {
   test.each([['none'], ['resolved']] as const)('%s spends no round trip re-deriving it', async (ssrCheck) => {
-    // `none` is "the request carried no session cookie", which is not in doubt;
-    // `resolved` is the backend having answered. Asking again on hydration is a
-    // request per page load that can only agree with the payload.
     await hydrate(ssrCheck);
 
     expect(store.getBasicInfo).not.toHaveBeenCalled();
   });
 
   test('but still reports who is here, which is how a login gets noticed', async () => {
-    // The identify compares the account in session against the last one this
-    // browser reported; skipping it on the cheap path would lose every signup
-    // that did not come through the auth callback.
+    // Reconciliation must run even without a fetch to detect signups outside the callback.
     await hydrate('none');
 
     expect(reconcileAnalyticsIdentity).toHaveBeenCalledWith({ viaCallback: false });
   });
 
   test('and says this was not an auth landing, which `auth-callback` is for', async () => {
-    // The two calls differ only in that: `viaCallback` is what lets a RETURNING
-    // reader's login be counted, and claiming it here would count every page
-    // load as one.
+    // Callback evidence belongs to auth-callback, not ordinary page loads.
     await hydrate('resolved');
 
     expect(reconcileAnalyticsIdentity).toHaveBeenCalledWith({ viaCallback: false });
@@ -98,8 +73,6 @@ describe('a render the server settled', () => {
 
 describe('a render the server could NOT settle', () => {
   test('asks the backend, because signed-out here is a fallback and not a fact', async () => {
-    // This branch is reached precisely when the backend failed to answer the
-    // server; the reader may well be signed in.
     await hydrate('failed');
 
     expect(store.getBasicInfo).toHaveBeenCalled();
@@ -127,8 +100,6 @@ describe('a render the server could NOT settle', () => {
   });
 
   test('does not hold hydration open for it', async () => {
-    // The worst moment to block first paint is the moment the backend has just
-    // failed to answer.
     let settle = () => {};
     store.getBasicInfo = vi.fn(
       () =>
@@ -157,8 +128,7 @@ describe('the payload key', () => {
 
 describe('a reader who arrived signed in', () => {
   test.each([['failed'], [undefined]] as const)('spends no round trip even when the server said %s', async (check) => {
-    // Pinia restored the session from the payload before this plugin ran, so
-    // the answer is already here.
+    // Pinia has already restored the signed-in session before this plugin.
     await hydrate(check, true);
 
     expect(store.getBasicInfo).not.toHaveBeenCalled();

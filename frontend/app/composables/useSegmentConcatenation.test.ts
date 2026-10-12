@@ -2,23 +2,9 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { effectScope, ref } from 'vue';
 
 /**
- * Expanding a sentence into its neighbours.
- *
- * The pure text-merging half already has tests (`utils/segmentConcatenation`).
- * What was untested is the ORCHESTRATION, and it is where every real bug in this
- * feature has been, because each one is a wrong ordering rather than a wrong
- * value:
- *
- * - The revert happens LATE, after every branch that could make the expansion a
- *   no-op. Reverting up front -- as this once did -- meant an "expand left" at
- *   the start of an episode silently threw away the expansion already on screen.
- * - A blob URL must be revoked on every path that abandons it: reverted,
- *   disposed, or superseded while its audio was still being built. Each leak is
- *   a WAV held for the life of the tab, and none of them is visible.
- * - The text swap is NOT held back for the audio, and an audio failure has to
- *   say so out loud -- the text on screen has grown, but an Anki export is about
- *   to attach the original clip, and shipping a card with the wrong audio is
- *   worse than the expansion failing outright.
+ * Cover ordering and resource ownership beyond pure text merging: no-op expansions preserve the
+ * current expansion, abandoned blobs are revoked, text appears before audio, and audio failures
+ * warn about export fallback.
  */
 const sdk = { getSegmentContext: vi.fn() };
 const player = { releaseIfSource: vi.fn(), retimeCurrentClip: vi.fn() };
