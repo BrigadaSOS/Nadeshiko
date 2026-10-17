@@ -8,6 +8,7 @@ import { getAppEnvironment } from '@config/environment';
 import { runInitializers, runShutdownInitializers } from '@config/initializers';
 import type { RuntimeContext } from '@config/initializers/types';
 import { logger } from '@config/log';
+import { shutdownTelemetry } from '@config/telemetry';
 
 // Match kamal-proxy's ∞ timeout to prevent half-open connections
 // 120s gives enough buffer for slow clients while preventing connection accumulation
@@ -52,10 +53,14 @@ async function startRuntime(): Promise<void> {
     logger.info({ signal }, 'Received shutdown signal, shutting down gracefully');
 
     try {
-      if (context.server) {
-        await closeServer(context.server);
+      try {
+        if (context.server) {
+          await closeServer(context.server);
+        }
+        await runShutdownInitializers(context);
+      } finally {
+        await shutdownTelemetry();
       }
-      await runShutdownInitializers(context);
       logger.info('Shutdown complete');
       process.exit(0);
     } catch (error) {
@@ -98,6 +103,12 @@ async function startRuntime(): Promise<void> {
       await runShutdownInitializers(context);
     } catch (shutdownError) {
       logger.error(shutdownError, 'Error while rolling back failed startup');
+    }
+
+    try {
+      await shutdownTelemetry();
+    } catch (telemetryError) {
+      logger.error(telemetryError, 'Error while shutting down telemetry after failed startup');
     }
 
     process.exit(1);
