@@ -11,6 +11,7 @@ import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node';
+import { registerTelemetryShutdown } from './config/telemetry';
 
 const IGNORED_INCOMING_PATHS = new Set(['/up', '/favicon.ico']);
 const IGNORED_INCOMING_PREFIXES = ['/_nuxt/', '/_i18n/'];
@@ -85,10 +86,5 @@ if (endpoint) {
 
   sdk.start();
 
-  const shutdown = async () => {
-    await sdk.shutdown();
-    process.exit(0);
-  };
-  process.on('SIGTERM', shutdown);
-  process.on('SIGINT', shutdown);
+  registerTelemetryShutdown(() => sdk.shutdown());
 }
