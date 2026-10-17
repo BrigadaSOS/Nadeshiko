@@ -1,6 +1,17 @@
 import { trace, metrics } from '@opentelemetry/api';
 import type { Meter, Tracer } from '@opentelemetry/api';
 
+let telemetryShutdown: (() => Promise<void>) | undefined;
+
+/** The preload supplies SDK cleanup; the application owns signals and process exit. */
+export function registerTelemetryShutdown(shutdown: () => Promise<void>): void {
+  telemetryShutdown = shutdown;
+}
+
+export async function shutdownTelemetry(): Promise<void> {
+  await telemetryShutdown?.();
+}
+
 // The OTel SDK is initialized in instrumentation.ts (preloaded before the app).
 // This module provides access to the global tracer and meter for custom spans/metrics.
 
