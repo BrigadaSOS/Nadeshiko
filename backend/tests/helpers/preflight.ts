@@ -2,6 +2,7 @@ import { Client } from 'pg';
 import { config as loadDotenv } from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { applyParcelaTestEnvironment } from '../../config/parcela';
 
 const SKIP_VALUES = new Set(['1', 'true', 'yes']);
 const __filename = fileURLToPath(import.meta.url);
@@ -12,6 +13,8 @@ const backendRoot = path.resolve(__dirname, '../..');
 // only to fill keys absent from the test file.
 loadDotenv({ path: path.join(backendRoot, '.env.test'), quiet: true, override: true });
 loadDotenv({ path: path.join(backendRoot, '.env'), quiet: true });
+// Under Parcela, point `.env.test` at this environment's own containers.
+applyParcelaTestEnvironment(process.env, backendRoot);
 
 interface PostgresTarget {
   host: string;

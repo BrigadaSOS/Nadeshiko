@@ -1,0 +1,74 @@
+# yaml-language-server: $schema=https://parcela.run/schema/v1.json
+# Every checkout runs its own PostgreSQL and Elasticsearch from backend/docker-compose.yaml, with
+# its own containers, volumes and ports, next to the native backend and frontend.
+version: 1
+project: nadeshiko
+
+# The first up builds the Elasticsearch image, and a cold Elasticsearch takes minutes.
+readiness_timeout_seconds: 900
+
+env:
+  # The containers start before setup copies backend/.env, which holds their passwords.
+  COMPOSE_ENV_FILES: ${PARCELA_PRIMARY_DIR}/backend/.env
+  # Read by the backend ahead of backend/.env.
+  POSTGRES_HOST: 127.0.0.1
+  POSTGRES_PORT: ${PARCELA_PORT_POSTGRES}
+  POSTGRES_ADMIN_HOST: 127.0.0.1
+  POSTGRES_ADMIN_PORT: ${PARCELA_PORT_POSTGRES}
+  ELASTICSEARCH_HOST: http://127.0.0.1:${PARCELA_PORT_ELASTICSEARCH}
+  ENVIRONMENT: local
+  NUXT_PUBLIC_ENVIRONMENT: local
+  RUN_MIGRATIONS_ON_BOOT: "false"
+  BASE_URL: ${PARCELA_URL}
+  ALLOWED_WEBSITE_URLS: ${PARCELA_URL}
+  NUXT_BACKEND_INTERNAL_URL: http://127.0.0.1:${PARCELA_SERVICE_BACKEND_PORT}
+  NUXT_BACKEND_HOST_HEADER: ${PARCELA_SERVICE_BACKEND_HOSTNAME}
+
+# `.localhost` may resolve to ::1 first, and Nuxt's rendering forks need the same options.
+x-node: &node
+  NODE_OPTIONS: --use-system-ca --dns-result-order=ipv4first
+
+services:
+  deps:
+    compose:
+      file: backend/docker-compose.yaml
+      services: [postgres, elasticsearch]
+  backend:
+    working_dir: backend
+    command: exec node --import tsx --watch bin/dev.ts
+    env: *node
+    http:
+      subdomain: api
+      healthcheck: /up
+    depends_on: [deps]
+  frontend:
+    working_dir: frontend
+    command: exec node ../node_modules/nuxt/bin/nuxt.mjs dev --host "$HOST" --port "$PORT"
+    env: *node
+    http:
+      healthcheck: /up
+    depends_on: [backend]
+
+hooks:
+  setup:
+    command: >-
+      { test -f backend/.env || cp "$PARCELA_PRIMARY_DIR/backend/.env" backend/.env; } &&
+      { test -f frontend/.env || cp "$PARCELA_PRIMARY_DIR/frontend/.env" frontend/.env; } &&
+      { test -d node_modules || npm ci; } &&
+      npm run db:prepare --workspace backend &&
+      npm run db:seed --workspace backend
+    depends_on: [deps]
+  prestart:
+    command: npm run db:prepare --workspace backend
+    depends_on: [deps]
+
+tasks:
+  validate:
+    command: node --import tsx scripts/parcela-validate.ts
+    timeout_seconds: 1800
+  generate-api:
+    command: npm run generate:api --workspace backend
+    timeout_seconds: 300
+  sdk-sync:
+    command: npm run sdk:sync
+    timeout_seconds: 300

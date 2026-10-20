@@ -22,6 +22,8 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.elasticsearch
+    # One image for every Compose project, so a new worktree does not build its own.
+    image: nadeshiko-elasticsearch:local
     container_name: nadeshiko-elasticsearch
     environment:
       - discovery.type=single-node
