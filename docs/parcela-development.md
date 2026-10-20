@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-- Parcela 0.5 or newer, which has `compose` services.
+- Parcela 0.5.1 or newer.
 - Docker with Compose 2.24.4 or newer.
 - Node.js 24 or newer.
 - `backend/.env` and `frontend/.env` in the main checkout. A new worktree copies them from there.
@@ -36,23 +36,7 @@ parcela down
 
 `down` stops the frontend and backend, then the environment's containers, and keeps the volumes. If Docker is not running, `down` says so and the environment stays interrupted until `parcela down` succeeds.
 
-Nothing deletes an environment's data. To drop a worktree's volumes after removing it:
-
-```sh
-docker compose -p nadeshiko-<environment> down -v   # from backend/
-```
-
-## The main checkout's existing data
-
-Before Parcela, `docker compose up` from `backend/` used the project `backend`, with the volumes `backend_nadeshiko_db` and `backend_nadeshiko_elasticsearch_data`. Under Parcela the main checkout uses `nadeshiko-primary` and starts with empty volumes. To copy the old data once:
-
-```sh
-(cd backend && docker compose -p backend stop)
-COMPOSE_PROJECT_NAME=nadeshiko-primary scripts/parcela-import-volumes
-parcela up
-```
-
-It runs before the first `parcela up`, so it is a script rather than a task. It refuses while either stack runs or if the environment already has volumes. It never changes or removes the old volumes.
+Nothing deletes an environment's data. `parcela rm` removes a stopped environment's containers and network and lists its volumes, to delete with `docker volume rm`.
 
 ## Seed content
 
