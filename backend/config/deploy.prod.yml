@@ -124,18 +124,16 @@ accessories:
   postgres:
     image: postgres:17
     host: nadeshiko
-    # Shared by production and staging: coordinate maintenance because rebooting it interrupts both. The host address
-    # can move; keep the loopback publish because Alloy dials that stable local endpoint.
-    port: "100.117.43.6:5432:5432"
+    # Shared by production and staging: coordinate maintenance because rebooting it interrupts both. Loopback only:
+    # the apps use the Docker network and the Alloy exporter dials 127.0.0.1. A tailnet bind breaks the next start
+    # whenever the host's tailnet address changes, and nothing has dialled it since pgAdmin was retired.
+    port: "127.0.0.1:5432:5432"
     options:
       # OOM restarts Postgres and drops pooled connections; leave headroom for query bursts, not just idle use.
       memory: 1.5g
       # Docker defaults /dev/shm to 64MB; parallel Postgres workers can exhaust it. This bounded increase leaves worker
       # headroom, while the query/index fix remains the primary remedy.
       shm-size: 256m
-      publish:
-        # Publish loopback as well as the tailnet address so the Alloy Postgres exporter survives host-IP changes.
-        - "127.0.0.1:5432:5432"
       # Accessories get no logging defaults from Kamal, so auto_explain output
       # would grow unbounded on the host disk.
       log-driver: json-file
@@ -163,8 +161,8 @@ accessories:
   elasticsearch:
     image: <%= ENV.fetch("ELASTICSEARCH_IMAGE", "ghcr.io/nadeshiko-devs/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116") %>
     host: nadeshiko
-     # Publish a loopback endpoint so exporters do not depend on a changing tailnet address.
-    port: "100.117.43.6:9200:9200"
+    # Loopback only, for the same reasons as Postgres; Kibana was the last tailnet client.
+    port: "127.0.0.1:9200:9200"
     env:
       secret:
         - ELASTICSEARCH_ADMIN_PASSWORD
@@ -188,10 +186,6 @@ accessories:
       # Memory limit: 3.5GB (current ~2.7GB, 800MB headroom for growth)
       # JVM heap fixed at 1GB via ES_JAVA_OPTS; rest is Lucene off-heap
       memory: 3.5g
-      publish:
-         # Publish loopback for the host Alloy exporter; its host-service configuration dials 127.0.0.1 rather than the
-         # moving tailnet address.
-        - "127.0.0.1:9200:9200"
       ulimit:
         - nofile=65536:65536
         - memlock=-1:-1
