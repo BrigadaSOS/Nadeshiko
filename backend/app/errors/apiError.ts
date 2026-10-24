@@ -1,5 +1,3 @@
-const GITHUB_ISSUES_URL = 'https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml';
-
 interface ErrorResponse {
   code: string;
   title: string;
@@ -14,7 +12,7 @@ export abstract class ApiError extends Error {
   abstract readonly code: string;
   abstract readonly title: string;
   abstract readonly status: number;
-  readonly type: string = GITHUB_ISSUES_URL;
+  readonly type: string = 'about:blank';
   instance?: string;
   protected errors?: Record<string, string>;
 
