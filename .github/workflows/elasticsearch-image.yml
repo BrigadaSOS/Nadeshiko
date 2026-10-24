@@ -59,7 +59,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/brigadasos/nadeshiko-elasticsearch:${{ env.ELASTICSEARCH_IMAGE_TAG }}
-            ghcr.io/brigadasos/nadeshiko-elasticsearch:${{ env.ELASTICSEARCH_IMAGE_TAG }}-${{ steps.tag.outputs.source_sha }}
+            ghcr.io/davafons/nadeshiko-elasticsearch:${{ env.ELASTICSEARCH_IMAGE_TAG }}
+            ghcr.io/davafons/nadeshiko-elasticsearch:${{ env.ELASTICSEARCH_IMAGE_TAG }}-${{ steps.tag.outputs.source_sha }}
           cache-from: type=gha,scope=elasticsearch
           cache-to: type=gha,mode=max,scope=elasticsearch
