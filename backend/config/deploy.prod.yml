@@ -126,7 +126,7 @@ accessories:
     host: nadeshiko
     # Shared by production and staging: coordinate maintenance because rebooting it interrupts both. The host address
     # can move; keep the loopback publish because Alloy dials that stable local endpoint.
-    port: "100.127.97.67:5432:5432"
+    port: "100.117.43.6:5432:5432"
     options:
       # OOM restarts Postgres and drops pooled connections; leave headroom for query bursts, not just idle use.
       memory: 1.5g
@@ -164,7 +164,7 @@ accessories:
     image: <%= ENV.fetch("ELASTICSEARCH_IMAGE", "ghcr.io/nadeshiko-devs/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116") %>
     host: nadeshiko
      # Publish a loopback endpoint so exporters do not depend on a changing tailnet address.
-    port: "100.127.97.67:9200:9200"
+    port: "100.117.43.6:9200:9200"
     env:
       secret:
         - ELASTICSEARCH_ADMIN_PASSWORD
