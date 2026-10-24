@@ -1,4 +1,4 @@
-image: davafons/nadeshiko-discord-prod
+image: nadeshiko-devs/nadeshiko-discord-prod
 service: nadeshiko-discord-prod
 
 servers:
