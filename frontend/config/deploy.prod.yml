@@ -1,5 +1,5 @@
 service: nadeshiko-frontend-prod
-image: brigadasos/nadeshiko-frontend-prod
+image: davafons/nadeshiko-frontend-prod
 
 servers:
   web:
