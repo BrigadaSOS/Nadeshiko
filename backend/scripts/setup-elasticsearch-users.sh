@@ -36,10 +36,18 @@ fi
 
 ROLE_NAME="${APP_USER}_role"
 
+# Pass credentials through a curl config file descriptor and bodies through stdin: command-line arguments are
+# readable by every user on the host through ps.
+es_curl() {
+    local creds="${ADMIN_USER}:${ADMIN_PASSWORD}"
+    creds="${creds//\\/\\\\}"
+    curl -s -K <(printf 'user = "%s"\n' "${creds//\"/\\\"}") "$@"
+}
+
 # Wait for Elasticsearch to be ready
 echo "Setting up Elasticsearch user for index: ${INDEX_NAME}"
 echo "Waiting for Elasticsearch at ${ELASTIC_HOST}..."
-until curl -s -u "${ADMIN_USER}:${ADMIN_PASSWORD}" "${ELASTIC_HOST}/_cluster/health" > /dev/null 2>&1; do
+until es_curl "${ELASTIC_HOST}/_cluster/health" > /dev/null 2>&1; do
     echo "Elasticsearch is not ready yet. Retrying in 5 seconds..."
     sleep 5
 done
@@ -48,10 +56,7 @@ echo "Elasticsearch is ready!"
 # Create role
 echo ""
 echo "Creating role: ${ROLE_NAME} (access to ${INDEX_NAME})"
-curl -s -X PUT "${ELASTIC_HOST}/_security/role/${ROLE_NAME}" \
-    -u "${ADMIN_USER}:${ADMIN_PASSWORD}" \
-    -H "Content-Type: application/json" \
-    -d "{
+printf '%s' "{
         \"indices\": [
             {
                 \"names\": [\"${INDEX_NAME}\", \"${INDEX_NAME}_v*\"],
@@ -59,19 +64,16 @@ curl -s -X PUT "${ELASTIC_HOST}/_security/role/${ROLE_NAME}" \
                 \"allow_restricted_indices\": false
             }
         ]
-    }"
+    }" | es_curl -X PUT "${ELASTIC_HOST}/_security/role/${ROLE_NAME}" -H "Content-Type: application/json" --data-binary @-
 echo ""
 
 # Create user
 echo "Creating user: ${APP_USER}"
-curl -s -X PUT "${ELASTIC_HOST}/_security/user/${APP_USER}" \
-    -u "${ADMIN_USER}:${ADMIN_PASSWORD}" \
-    -H "Content-Type: application/json" \
-    -d "{
+printf '%s' "{
         \"password\": \"${APP_PASSWORD}\",
         \"roles\": [\"${ROLE_NAME}\"],
         \"full_name\": \"Nadeshiko App User for ${INDEX_NAME}\"
-    }"
+    }" | es_curl -X PUT "${ELASTIC_HOST}/_security/user/${APP_USER}" -H "Content-Type: application/json" --data-binary @-
 echo ""
 
 echo ""

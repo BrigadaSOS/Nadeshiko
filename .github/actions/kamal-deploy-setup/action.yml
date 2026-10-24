@@ -46,7 +46,7 @@ runs:
     # it fails in seconds with a real error. So connectivity is verified below,
     # against the protocol that has to work, rather than one that only correlates.
     - name: Connect to Tailscale
-      uses: tailscale/github-action@v4
+      uses: tailscale/github-action@99a8333667fff04fdd6cffb46dfd409f8329a7bf # v4
       with:
         oauth-client-id: ${{ inputs.tailscale-client-id }}
         audience: ${{ inputs.tailscale-audience }}
@@ -128,7 +128,7 @@ runs:
         exit 1
 
     - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
+      uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1
       with:
         ruby-version: ${{ inputs.ruby-version }}
 

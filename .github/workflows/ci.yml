@@ -12,7 +12,7 @@ permissions:
   packages: read
 
 env:
-  NODE_VERSION: '24'
+  NODE_VERSION: '24.22.1'
 
 # A newer commit on the same pull request makes the old result obsolete. Stop
 # spending runners on it and surface feedback for the current head sooner.
@@ -29,8 +29,8 @@ jobs:
       discord: ${{ steps.filter.outputs.discord }}
       openapi: ${{ steps.filter.outputs.openapi }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: dorny/paths-filter@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         id: filter
         with:
           filters: |
@@ -107,18 +107,18 @@ jobs:
 
     steps:
       - name: Checkout PR head
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           path: head
 
       - name: Checkout PR base
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           path: base
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -169,7 +169,7 @@ jobs:
       # repo surfaces spec changes; keep it that way, and drop these lines only
       # deliberately.
       - name: Check public API breaking changes
-        uses: oasdiff/oasdiff-action/breaking@v0.1.15
+        uses: oasdiff/oasdiff-action/breaking@9c0494cfee8b8fcc9fb383ed2d5d3fbdae169b93 # v0.1.15
         with:
           base: base/backend/docs/generated/openapi-public.yaml
           revision: head/backend/docs/generated/openapi-public.yaml
@@ -181,7 +181,7 @@ jobs:
       # but should be visible in review.
       - name: Check internal API breaking changes
         continue-on-error: true
-        uses: oasdiff/oasdiff-action/breaking@v0.1.15
+        uses: oasdiff/oasdiff-action/breaking@9c0494cfee8b8fcc9fb383ed2d5d3fbdae169b93 # v0.1.15
         with:
           base: base/backend/docs/generated/openapi.yaml
           revision: head/backend/docs/generated/openapi.yaml
@@ -189,7 +189,7 @@ jobs:
           review: false
 
       - name: Generate public API changelog
-        uses: oasdiff/oasdiff-action/changelog@v0.1.15
+        uses: oasdiff/oasdiff-action/changelog@9c0494cfee8b8fcc9fb383ed2d5d3fbdae169b93 # v0.1.15
         with:
           base: base/backend/docs/generated/openapi-public.yaml
           revision: head/backend/docs/generated/openapi-public.yaml
@@ -201,7 +201,7 @@ jobs:
         run: cat head/backend/docs/generated/openapi-changelog.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload OpenAPI changelog artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: openapi-changelog
           path: head/backend/docs/generated/openapi-changelog.md
