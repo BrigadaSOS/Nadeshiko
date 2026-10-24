@@ -46,7 +46,7 @@ export type Error429 = {
      */
     detail: string;
     /**
-     * A URI reference that identifies the problem type (e.g., GitHub issues link)
+     * A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
      */
     type?: string;
     /**
@@ -82,7 +82,7 @@ export type Error500 = {
      */
     detail: string;
     /**
-     * A URI reference that identifies the problem type (e.g., GitHub issues link)
+     * A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
      */
     type?: string;
     /**
@@ -118,7 +118,7 @@ export type Error400 = {
      */
     detail: string;
     /**
-     * A URI reference that identifies the problem type (e.g., GitHub issues link)
+     * A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
      */
     type?: string;
     /**
@@ -154,7 +154,7 @@ export type Error401 = {
      */
     detail: string;
     /**
-     * A URI reference that identifies the problem type (e.g., GitHub issues link)
+     * A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
      */
     type?: string;
     /**
@@ -190,7 +190,7 @@ export type Error403 = {
      */
     detail: string;
     /**
-     * A URI reference that identifies the problem type (e.g., GitHub issues link)
+     * A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
      */
     type?: string;
     /**
@@ -735,7 +735,7 @@ export type Error503 = {
      */
     detail: string;
     /**
-     * A URI reference that identifies the problem type (e.g., GitHub issues link)
+     * A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
      */
     type?: string;
     /**
@@ -1216,7 +1216,7 @@ export type Error409 = {
      */
     detail: string;
     /**
-     * A URI reference that identifies the problem type (e.g., GitHub issues link)
+     * A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
      */
     type?: string;
     /**
@@ -1252,7 +1252,7 @@ export type Error404 = {
      */
     detail: string;
     /**
-     * A URI reference that identifies the problem type (e.g., GitHub issues link)
+     * A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
      */
     type?: string;
     /**

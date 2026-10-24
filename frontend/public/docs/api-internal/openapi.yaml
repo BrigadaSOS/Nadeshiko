@@ -22,7 +22,7 @@ info:
     ### Quota
     Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
     To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
-  version: 2.3.0
+  version: 2.4.19
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -48,18 +48,113 @@ tags:
       Collection endpoints for managing saved segment collections.
   - name: User
     description: |
-      User endpoints for profile data, excluded media, and activity history.
+      User endpoints for profile data, excluded and starred media, and activity
+      history.
   - name: Activity
     description: |
       Activity endpoints for tracking and querying the authenticated user's activity history.
   - name: Stats
     description: |
       Statistics endpoints for corpus coverage and word frequency data.
+  - name: Roadmap
+    description: Public content queue and feature roadmap.
   - name: Admin
     x-internal: true
     description: |
       Administrative endpoints for system management and automated review.
+  - name: Feedback
+    x-internal: true
+    description: |
+      Free-text feedback from anyone using the site, signed in or not.
+  - name: Email
+    x-internal: true
+    description: |
+      Recipient-facing controls for the mail we send. Reachable without a session
+      because they are used from an email client, not from the site.
 paths:
+  /v1/roadmap:
+    get:
+      tags:
+        - Roadmap
+      x-internal: true
+      operationId: listRoadmap
+      summary: List the public content and feature roadmap
+      description: Returns published roadmap stages only; private proposals and requester identities never appear.
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - patreonUrl
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RoadmapItem'
+                  patreonUrl:
+                    type: string
+                    format: uri
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/roadmap/proposals:
+    post:
+      tags:
+        - Roadmap
+      x-internal: true
+      operationId: createRoadmapProposal
+      summary: Propose content for Nadeshiko
+      description: Creates a private proposal after verifying the signed-in reader's active Nadeshiko Patreon membership.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sourceUrl
+              properties:
+                sourceUrl:
+                  type: string
+                  format: uri
+                  maxLength: 1000
+                  pattern: ^https?://
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 180
+                note:
+                  type: string
+                  maxLength: 2000
+                proposerName:
+                  type: string
+                  maxLength: 80
+                  description: Optional name to show publicly if the proposal is approved.
+      responses:
+        '201':
+          description: Submitted for review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoadmapItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/search:
     post:
       tags:
@@ -111,6 +206,8 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /v1/search/stats:
     post:
       tags:
@@ -150,6 +247,8 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /v1/search/words:
     post:
       tags:
@@ -627,6 +726,62 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/SegmentRevisionListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/media/segments/{segmentPublicId}/revisions/{revisionNumber}/restore:
+    post:
+      operationId: restoreSegmentRevision
+      x-internal: true
+      tags:
+        - Media
+      summary: Restore a segment revision
+      description: |
+        Writes the values captured in the given revision's snapshot back onto the
+        segment, undoing every edit made since.
+
+        The restore is itself an edit: it writes a new revision snapshotting the state
+        it replaced, so restoring is reversible by restoring again. Revision numbers
+        are never rewound — a segment at revision 7 restored to revision 3 lands at
+        revision 8, whose snapshot holds what revision 7 left behind.
+
+        This is the undo path for a bad moderation edit, whether a person or the agent
+        made it.
+      security:
+        - ApiKey:
+            - UPDATE_MEDIA
+      parameters:
+        - name: segmentPublicId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Segment public ID
+          example: V1StGXR8_Z5d
+        - name: revisionNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The revision number to restore this segment to
+          example: 3
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SegmentInternal'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1165,6 +1320,76 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/media/{mediaPublicId}/episodes/{episodeNumber}/segments/moderate:
+    post:
+      operationId: moderateEpisodeSegments
+      x-internal: true
+      tags:
+        - Media
+      summary: Apply a moderation action to every segment in an episode
+      description: |
+        Applies one action across a whole episode. This exists for defects that are
+        properties of the episode rather than of any single line — a subtitle file
+        offset against the audio, or a bad rip that makes every clip unusable.
+
+        Two actions are supported:
+
+        - `shiftTimings` moves every segment's start and end by `offsetMs`, which may
+          be negative. Segments whose start would go below zero are clamped to zero
+          rather than skipped, so the episode stays contiguous.
+        - `setStatus` sets every segment's status, which is how an episode is hidden
+          from search without deleting anything.
+
+        Every affected segment gets its own revision, so this is revertible one segment
+        at a time through the restore endpoint, and shows up per segment in the agent
+        activity feed.
+
+        **Bounded by `maxAffected`.** If the episode has more segments than that, the
+        request is rejected with 400 and nothing is written — no partial application.
+        The cap is what keeps an automated caller's mistake to a size a person can
+        review, so callers are expected to set it deliberately rather than to the
+        largest value they can.
+      security:
+        - ApiKey:
+            - UPDATE_MEDIA
+      parameters:
+        - name: mediaPublicId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Media public ID
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModerateEpisodeSegmentsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffectedCountResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/user/me:
     get:
       tags:
@@ -1191,6 +1416,530 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/api-keys:
+    post:
+      tags:
+        - User
+      operationId: createUserApiKey
+      summary: Create an API key with chosen scopes
+      description: |
+        Creates an API key for the signed-in reader, carrying exactly the scopes
+        asked for.
+
+        Use this rather than the better-auth `/v1/auth/api-key/create` endpoint
+        whenever the key is going anywhere but your own code. That endpoint cannot
+        take a scope list — the underlying plugin treats `permissions` as a
+        server-only field and rejects any request that carries one — so keys made
+        through it get the read-only default instead.
+
+        **Scopes are the whole of a key's authority.** Nothing re-checks the owner's
+        role when the key is used, so a key with `WRITE_PROFILE` can rewrite that
+        account's profile from anywhere it ends up. Grant the narrowest set the
+        consumer needs: a third-party search or dictionary tool wants
+        `["READ_MEDIA"]` and nothing else.
+
+        Session-authenticated only. A key cannot be used to mint another key.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - scopes
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  description: Label shown in the reader's key list. Not secret.
+                  example: Entei (read-only)
+                scopes:
+                  type: array
+                  minItems: 1
+                  maxItems: 12
+                  description: |
+                    Capabilities to grant. Must be non-empty and free of duplicates.
+                  items:
+                    $ref: '#/components/schemas/ApiKeyScope'
+                  example:
+                    - READ_MEDIA
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - key
+                  - scopes
+                  - createdAt
+                properties:
+                  id:
+                    type: string
+                    description: Identifier for the key, for renaming or revoking it later
+                  name:
+                    type: string
+                    description: The label supplied at creation
+                  key:
+                    type: string
+                    description: |
+                      The secret, returned **only here and never again**. It is
+                      stored hashed, so a reader who loses it must create another.
+                    example: nade_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+                  scopes:
+                    type: array
+                    description: The scopes actually granted
+                    items:
+                      $ref: '#/components/schemas/ApiKeyScope'
+                  createdAt:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/connections/shirabe:
+    get:
+      tags:
+        - User
+      x-internal: true
+      operationId: getShirabeConnection
+      summary: Read the linked Shirabe account
+      description: |
+        Whether the signed-in reader has linked a Shirabe account, and what it is
+        shaped like: who they are over there, which dictionaries their stack names,
+        and when we last re-read it.
+
+        Never returns the stored key. Nothing the browser is shown can be used to
+        act on their Shirabe account.
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - connection
+                properties:
+                  connection:
+                    nullable: true
+                    allOf:
+                      - $ref: '#/components/schemas/ShirabeConnection'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - User
+      x-internal: true
+      operationId: startShirabeLink
+      summary: Begin linking a Shirabe account
+      description: |
+        Starts an OAuth 2.0 authorization-code flow (PKCE) against Shirabe and
+        returns where to send the reader. Nothing is stored until they approve.
+
+        The `state` is the pending flow itself, sealed with a server-side key rather
+        than a handle into server memory: the request that starts the link and the
+        one that finishes it are minutes apart and nothing routes them to the same
+        process.
+      security:
+        - SessionCookie: []
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - authorizeUrl
+                  - state
+                properties:
+                  authorizeUrl:
+                    type: string
+                    format: uri
+                    description: Send the reader here. Shirabe asks them to approve, then redirects back.
+                  state:
+                    type: string
+                    description: Opaque. Comes back on the redirect and must be handed to the callback unchanged.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - User
+      x-internal: true
+      operationId: unlinkShirabe
+      summary: Unlink the Shirabe account
+      description: |
+        Forgets the stored key AND asks Shirabe to revoke it, so the reader is not
+        left with a live credential on their Shirabe access list that nothing here
+        can reach again.
+
+        The local link goes either way. If Shirabe cannot be reached, the reader
+        still gets what they asked for here and can revoke the key themselves at
+        `/account/settings#access`.
+      security:
+        - SessionCookie: []
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/connections/shirabe/callback:
+    post:
+      tags:
+        - User
+      x-internal: true
+      operationId: completeShirabeLink
+      summary: Finish linking a Shirabe account
+      description: |
+        Exchanges the one-time code Shirabe redirected back with for a scoped key,
+        reads the reader's dictionary stack, and stores the link.
+
+        The `state` must be the one this session started the flow with. It carries
+        the account it belongs to, and a mismatch is refused: otherwise somebody who
+        completed their own authorization at Shirabe could hand the callback URL to a
+        signed-in victim and attach their account to the victim's.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - state
+              properties:
+                code:
+                  type: string
+                  description: The one-time authorization code from the redirect.
+                state:
+                  type: string
+                  description: The sealed state from the redirect, unchanged.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - connection
+                properties:
+                  connection:
+                    $ref: '#/components/schemas/ShirabeConnection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/connections/shirabe/credential:
+    get:
+      tags:
+        - User
+      x-internal: true
+      x-server-only: true
+      operationId: getShirabeCredential
+      summary: The reader's Shirabe key, for our own server only
+      description: |
+        Hands the stored Shirabe key to our frontend server so a word lookup can be
+        made AS the reader, which is the entire point of linking an account.
+
+        Refused unless the request came through our own Nitro proxy (the shared
+        internal secret). A session alone is not enough, even the reader's own: a key
+        that reaches a browser is a key that has been given away, and this one is a
+        live credential on somebody else's service. The reader has no need for it
+        here — it is already listed, and revocable, on their Shirabe account.
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - token
+                properties:
+                  token:
+                    type: string
+                    description: The reader's Shirabe API key.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/connections/shirabe/resync:
+    post:
+      tags:
+        - User
+      x-internal: true
+      x-server-only: true
+      operationId: resyncShirabeStack
+      summary: Reconcile the stored Shirabe stack against a fingerprint a lookup saw
+      description: |
+        Shirabe echoes the calling key's current stack fingerprint on every word
+        lookup. Our frontend server hands it back here, so a reader who switches a
+        dictionary off over there stops being served their cached definitions for it.
+
+        Cheap by design. When the fingerprint matches what we hold, this only records
+        that the copy was confirmed; only a mismatch costs a round trip to Shirabe.
+
+        Refused unless the request came through our own Nitro proxy (the shared
+        internal secret), like the credential route beside it. Nothing here is a
+        reader-facing action: the browser never sees a fingerprint, and one supplied
+        by a client would be a client choosing when our copy looks stale.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - stackFingerprint
+              properties:
+                stackFingerprint:
+                  type: string
+                  maxLength: 64
+                  description: The fingerprint Shirabe returned on the lookup.
+      responses:
+        '204':
+          description: Reconciled, or nothing to reconcile.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/connections/shirabe/refused:
+    post:
+      tags:
+        - User
+      x-internal: true
+      x-server-only: true
+      operationId: reportShirabeRefusal
+      summary: Report that Shirabe refused a reader's key on a lookup
+      description: |
+        A word lookup is where a dead link is actually discovered: the reader's key
+        is sent, Shirabe refuses it, and the lookup quietly answers from the default
+        dictionaries instead. Without this, that refusal was a log line and nothing
+        else -- the settings page went on naming the account, and every later lookup
+        repeated the same doomed round trip.
+
+        What the status means is Shirabe's own distinction, and the three outcomes
+        are different repairs:
+
+        * `401` - the key is invalid, expired or revoked. The link is over until the
+          reader makes a new one, and it is marked so the settings page can say so.
+        * `403` - the key works but is missing a permission. The stack is re-read so
+          the stored scopes catch up, which surfaces as a re-consent rather than a
+          repair.
+        * anything else - not an answer about the key. Ignored.
+
+        Refused unless the request came through our own Nitro proxy (the shared
+        internal secret), like the credential and resync routes beside it. A client
+        that could post here could disconnect its own reader's link at will.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: integer
+                  minimum: 100
+                  maximum: 599
+                  description: The HTTP status Shirabe answered the lookup with.
+                  example: 401
+      responses:
+        '204':
+          description: Recorded, or nothing worth recording.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/connections/patreon:
+    get:
+      tags:
+        - User
+      x-internal: true
+      operationId: getPatreonConnection
+      summary: Read the linked Patreon account and current membership
+      description: Refreshes and returns the safe, displayable state of the reader's Patreon connection.
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - connection
+                  - patreonUrl
+                properties:
+                  connection:
+                    anyOf:
+                      - $ref: '#/components/schemas/PatreonConnection'
+                      - type: 'null'
+                  patreonUrl:
+                    type: string
+                    format: uri
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - User
+      x-internal: true
+      operationId: startPatreonLink
+      summary: Begin Patreon OAuth linking
+      description: Returns Patreon's authorization URL with sealed state bound to the signed-in reader.
+      security:
+        - SessionCookie: []
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - authorizeUrl
+                  - state
+                properties:
+                  authorizeUrl:
+                    type: string
+                    format: uri
+                  state:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - User
+      x-internal: true
+      operationId: unlinkPatreon
+      summary: Forget the linked Patreon account
+      description: Deletes the local encrypted Patreon credentials and membership snapshot.
+      security:
+        - SessionCookie: []
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/connections/patreon/callback:
+    post:
+      tags:
+        - User
+      x-internal: true
+      operationId: completePatreonLink
+      summary: Complete Patreon OAuth linking
+      description: Exchanges a one-time OAuth code and verifies membership in the configured Nadeshiko campaign.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - state
+              properties:
+                code:
+                  type: string
+                  minLength: 1
+                state:
+                  type: string
+                  minLength: 1
+      responses:
+        '200':
+          description: Linked
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - connection
+                properties:
+                  connection:
+                    $ref: '#/components/schemas/PatreonConnection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/excluded-media:
@@ -1296,6 +2045,249 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/favorite-media:
+    get:
+      tags:
+        - User
+      operationId: listFavoriteMedia
+      summary: List starred media
+      description: |
+        Returns the media the authenticated reader has starred, newest first.
+      security:
+        - ApiKey:
+            - READ_PROFILE
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - favoriteMedia
+                properties:
+                  favoriteMedia:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MediaSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - User
+      operationId: addFavoriteMedia
+      summary: Star media
+      description: |
+        Stars a media title for the authenticated reader. Starred titles sort to the
+        top of the search media filter.
+
+        Refused with `400` past 100 entries: the whole preferences column is
+        rewritten on every change, so the list is deliberately bounded.
+      security:
+        - ApiKey:
+            - WRITE_PROFILE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mediaPublicId
+              properties:
+                mediaPublicId:
+                  type: string
+                  pattern: ^[A-Za-z0-9_-]{12}$
+                  description: Public ID of the media to star
+                  example: V1StGXR8_Z5d
+      responses:
+        '204':
+          description: No Content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/favorite-media/{mediaPublicId}:
+    delete:
+      tags:
+        - User
+      operationId: removeFavoriteMedia
+      summary: Unstar media
+      description: |
+        Removes a media title from the authenticated reader's starred list. The title
+        keeps appearing in the search media filter; it simply stops sorting first.
+      security:
+        - ApiKey:
+            - WRITE_PROFILE
+      parameters:
+        - name: mediaPublicId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[A-Za-z0-9_-]{12}$
+          description: Public ID of the media to unstar
+          example: V1StGXR8_Z5d
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/familiar-media:
+    get:
+      tags:
+        - Activity
+      operationId: listFamiliarMedia
+      summary: List the titles the reader studies most
+      description: |
+        Returns the titles the authenticated reader engages with most, highest score
+        first, for sorting the search media filter and for showing the reader what
+        the tally holds.
+
+        Scored from a monthly per-title tally of Anki exports, plays and shares --
+        NOT from the activity log, which `searchHistory` governs and a nightly job
+        prunes at 90 days. Anki exports weigh heaviest (deliberate mining); plays are
+        scaled logarithmically so one long autoplay session cannot outrank a month of
+        study. Empty when the reader has `familiarMedia.enabled` off.
+      security:
+        - ApiKey:
+            - READ_ACTIVITY
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - familiarMedia
+                properties:
+                  familiarMedia:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - media
+                        - score
+                        - ankiCount
+                        - playCount
+                        - shareCount
+                      properties:
+                        media:
+                          $ref: '#/components/schemas/MediaSummary'
+                        score:
+                          type: number
+                          description: Weighted engagement score; ordering key, not a display value.
+                        ankiCount:
+                          type: integer
+                        playCount:
+                          type: integer
+                        shareCount:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - User
+      x-internal: true
+      operationId: clearFamiliarMedia
+      summary: Forget which titles the reader studies
+      description: |
+        Deletes the authenticated reader's whole media tally.
+
+        Separate from clearing activity history on purpose: the two are stored apart
+        and consented to apart, so neither clear touches the other's rows.
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffectedCountResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/familiar-media/{mediaPublicId}:
+    delete:
+      tags:
+        - User
+      x-internal: true
+      operationId: forgetFamiliarMedia
+      summary: Forget one title from the reader's tally
+      description: |
+        Deletes the authenticated reader's tally for a single title, across every
+        month it was counted in.
+
+        The whole-tally clear is the blunt instrument; this is the one a reader
+        reaches for when a single show is wrong -- a title they watched once for
+        somebody else, or one the tally over-read. Forgetting a title does not stop
+        it being counted again: the next export or share against it starts a fresh
+        tally, which is the honest behaviour for a running count rather than a
+        blocklist.
+
+        Separate from the activity history, like the whole-tally clear: the two are
+        stored apart and consented to apart, so neither touches the other's rows.
+      security:
+        - SessionCookie: []
+      parameters:
+        - name: mediaPublicId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[A-Za-z0-9_-]{12}$
+          description: Public ID of the title to forget
+          example: V1StGXR8_Z5d
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffectedCountResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -1689,6 +2681,277 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/feedback:
+    post:
+      tags:
+        - Feedback
+      x-internal: true
+      operationId: createFeedback
+      summary: Send feedback
+      description: |
+        Records a free-text message about the product and notifies the team.
+
+        Open to anonymous visitors on purpose — the person best placed to report a
+        broken sign-up or a confusing empty state is the one who is not signed in.
+        A session, when there is one, attaches the account and overrides `email`.
+
+        Automated submissions are dropped silently rather than rejected: they get the
+        same `201` as everyone else, and nothing is stored.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFeedbackRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackReceipt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/feedback/token:
+    get:
+      tags:
+        - Feedback
+      x-internal: true
+      operationId: getFeedbackFormToken
+      summary: Issue a feedback form token
+      description: |
+        Called when the feedback panel opens. The token it returns carries the moment
+        it was issued, sealed so the client cannot edit it, and `POST /v1/feedback`
+        requires one: a submission that arrives faster than a person could have typed
+        it, or with no token at all, is treated as automated.
+
+        Deliberately a separate call rather than something embedded in the page: the
+        site's HTML is cached at the edge, so anything baked into it would be shared
+        by every visitor who got that copy and would be stale by an unbounded amount.
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackFormToken'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/email/unsubscribe:
+    post:
+      tags:
+        - Email
+      x-internal: true
+      operationId: unsubscribeFromEmail
+      summary: Turn off lifecycle email
+      description: |
+        Stops the day-7 note, the feedback ask and the monthly recap for the account
+        the token names. Transactional mail — sign-in links, address verification —
+        is unaffected, because a reader must not be able to lock themselves out of
+        their own account by unsubscribing from a newsletter.
+
+        Unauthenticated on purpose. The recipient is reading an email, not a signed-in
+        page, and an opt-out that first demanded a password is the pattern that turns
+        an unsubscribe into a spam complaint. The token carries the account, sealed,
+        so no session is needed and none is trusted.
+
+        THE TOKEN IS A QUERY PARAMETER BECAUSE RFC 8058 LEAVES NO CHOICE. This is the
+        target of `List-Unsubscribe-Post`, and a one-click unsubscribe posts a fixed
+        body — `List-Unsubscribe=One-Click` — to the URI verbatim. Nothing the sender
+        puts in a request body survives that, so anything identifying the recipient
+        has to travel in the URI. Any body sent is ignored rather than rejected, for
+        the same reason.
+
+        Idempotent: mailbox providers fire this with nobody present and may retry.
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 512
+          description: |
+            Opaque token from the unsubscribe link in the email. Carries the account
+            it was issued for, sealed, so it cannot be edited into a token for
+            somebody else. Does not expire — a recap is read when the reader gets
+            round to it, and a link that answers "this expired, sign in instead" is
+            how an opt-out becomes a spam complaint.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnsubscribeReceipt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/email/preferences:
+    get:
+      tags:
+        - Email
+      x-internal: true
+      operationId: getEmailPreferencesByToken
+      summary: Read email preferences from an unsubscribe token
+      description: |
+        What the account the token names currently receives, so the unsubscribe page
+        can show the reader their real settings rather than a guess.
+
+        Unauthenticated on purpose, for the same reason the unsubscribe endpoint is:
+        the recipient is reading an email, not a signed-in page, and a preference
+        screen that first demanded a password is the pattern that turns an opt-out
+        into a spam complaint.
+
+        SAFE TO PREFETCH. Mail scanners fetch every link in a message before the
+        recipient ever sees it, so this reads and never writes — the change happens
+        on the PATCH, which a scanner will not issue.
+
+        Discloses only which categories the account is on, to a holder who already
+        has the token from their own inbox.
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 512
+          description: |
+            Opaque token from the unsubscribe link in the email. Carries the account
+            it was issued for, sealed, so it cannot be edited into a token for
+            somebody else. Does not expire.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - enabled
+                  - categories
+                properties:
+                  enabled:
+                    type: boolean
+                    description: The master switch. False means nothing below is sent.
+                  categories:
+                    type: object
+                    description: |
+                      Each category the reader can hold separately. Absent from
+                      storage means "follow the master", which is resolved here so
+                      the page never has to reason about it.
+                    required:
+                      - recap
+                      - checkins
+                      - updates
+                    properties:
+                      recap:
+                        type: boolean
+                      checkins:
+                        type: boolean
+                      updates:
+                        type: boolean
+                  category:
+                    type: string
+                    nullable: true
+                    enum:
+                      - recap
+                      - checkins
+                      - updates
+                    description: |
+                      Which category the email carrying this token belonged to, when
+                      it named one. The page highlights it, because that is the one
+                      the reader clicked about.
+        '400':
+          description: The token could not be read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error400'
+    patch:
+      tags:
+        - Email
+      x-internal: true
+      operationId: updateEmailPreferencesByToken
+      summary: Change email preferences from an unsubscribe token
+      description: |
+        Writes the categories the reader chose on the unsubscribe page.
+
+        Every field is optional and only what is sent is changed, so the page can
+        submit one checkbox without having to know or restate the rest.
+
+        Turning the master off stops everything, which is what the "stop all of it"
+        control does; turning it on again restores whatever the categories say.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+                  maxLength: 512
+                  description: |
+                    The same token the link carries. In the BODY rather than the
+                    query for this one, unlike the GET: a write does not need to be
+                    reachable from a URL, and keeping it out of the path keeps it out
+                    of proxy access logs and browser history.
+                enabled:
+                  type: boolean
+                recap:
+                  type: boolean
+                checkins:
+                  type: boolean
+                updates:
+                  type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - enabled
+                  - categories
+                properties:
+                  enabled:
+                    type: boolean
+                  categories:
+                    type: object
+                    required:
+                      - recap
+                      - checkins
+                      - updates
+                    properties:
+                      recap:
+                        type: boolean
+                      checkins:
+                        type: boolean
+                      updates:
+                        type: boolean
+        '400':
+          description: The token could not be read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error400'
   /v1/collections:
     get:
       tags:
@@ -2134,6 +3397,8 @@ paths:
         Returns all reports with filtering and cursor pagination.
         Supports filtering by source (USER/AUTO) to separate user reports from auto-check findings.
       security:
+        - ApiKey:
+            - READ_ADMIN
         - SessionCookie:
             - ADMIN
       parameters:
@@ -2180,11 +3445,6 @@ paths:
           schema:
             type: integer
           description: Filter by target segment ID
-        - name: auditRunId
-          in: query
-          schema:
-            type: integer
-          description: Filter by audit run ID
         - name: orphaned
           in: query
           schema:
@@ -2321,6 +3581,8 @@ paths:
         Updates the status and/or admin notes of a report.
         Works for both USER and AUTO reports.
       security:
+        - ApiKey:
+            - UPDATE_MEDIA
         - SessionCookie:
             - ADMIN
       parameters:
@@ -2390,228 +3652,64 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/admin/media/audits:
+  /v1/admin/agent-activity:
     get:
+      operationId: listAgentActivity
+      x-internal: true
       tags:
         - Admin
-      x-internal: true
-      operationId: listAdminMediaAudits
-      summary: List all media audits
+      summary: List edits made by the moderation agent
       description: |
-        Returns all audit definitions with current config, threshold schema, and latest run info.
+        Returns segment revisions written under a service credential, newest first,
+        joined to the segment they changed and the report they answered.
+
+        This is the independent record of what the agent actually did. The agent's own
+        Discord digest reports what it believes it did; this reports what landed in the
+        database. Reading both is how a run that half-failed, or an action the agent
+        did not mention, becomes visible.
+
+        Each entry carries the pre-edit `snapshot`, so a bad edit can be reverted
+        straight from here through the revision restore endpoint without going hunting
+        for the revision number.
       security:
-        - SessionCookie:
-            - ADMIN
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/MediaAudit'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/media/audits/{name}:
-    patch:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: updateAdminMediaAudit
-      summary: Update media audit config
-      description: |
-        Updates the threshold values or enabled status of an audit.
-      security:
+        - ApiKey:
+            - READ_ADMIN
         - SessionCookie:
             - ADMIN
       parameters:
-        - name: name
-          in: path
-          required: true
+        - name: since
+          in: query
           schema:
             type: string
-          description: Audit name identifier
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                threshold:
-                  type: object
-                  description: New threshold values
-                  additionalProperties: true
-                enabled:
-                  type: boolean
-                  description: Enable or disable this audit
+            format: date-time
+          description: Only return activity at or after this timestamp. Defaults to 24 hours ago.
+          example: '2026-08-06T00:00:00Z'
+        - name: reportId
+          in: query
+          schema:
+            type: integer
+          description: Only return edits made in answer to this report
+        - name: take
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+          description: Maximum entries to return
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MediaAudit'
+                $ref: '#/components/schemas/AgentActivityResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/media/audits/{name}/run:
-    post:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: runAdminMediaAudit
-      summary: Run media audit
-      description: |
-        Triggers all enabled audits (or a specific one). Creates MediaAuditRun records and AUTO reports for any findings.
-      security:
-        - SessionCookie:
-            - ADMIN
-      parameters:
-        - name: name
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Audit name to run, or "all" to run all enabled audits
-        - name: category
-          in: query
-          schema:
-            type: string
-            enum:
-              - ANIME
-              - JDRAMA
-          description: Optional category filter
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RunAuditResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/media/audits/runs:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: listAdminMediaAuditRuns
-      summary: List past audit runs
-      description: |
-        Returns past media audit runs with summary stats. Supports filtering by audit name and cursor pagination.
-      security:
-        - SessionCookie:
-            - ADMIN
-      parameters:
-        - name: auditName
-          in: query
-          schema:
-            type: string
-          description: Filter by audit name
-        - name: cursor
-          in: query
-          schema:
-            type: string
-          description: Opaque pagination cursor token
-        - name: take
-          in: query
-          schema:
-            type: integer
-            default: 20
-            maximum: 100
-          description: Number of results per page
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - runs
-                  - pagination
-                properties:
-                  runs:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/MediaAuditRun'
-                  pagination:
-                    $ref: '#/components/schemas/CursorPagination'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/media/audits/runs/{auditRunId}:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: getAdminMediaAuditRun
-      summary: Get audit run details
-      description: |
-        Returns a specific media audit run record with its linked reports.
-      security:
-        - SessionCookie:
-            - ADMIN
-      parameters:
-        - name: auditRunId
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Run ID
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - run
-                  - reports
-                properties:
-                  run:
-                    $ref: '#/components/schemas/MediaAuditRun'
-                  reports:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Report'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -2732,6 +3830,338 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/admin/tiers:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: listTiers
+      summary: List quota tiers
+      description: |
+        Returns every quota tier, in display order. The admin surface needs this to
+        offer a picker; without it a tier change is a slug typed from memory.
+      security:
+        - SessionCookie:
+            - ADMIN
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - tiers
+                properties:
+                  tiers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tier'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/users/{userId}/quota:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminUserQuota
+      summary: Read an account's quota state
+      description: |
+        The tier, the override, the limit those resolve to, and how much of the
+        current period the account has used.
+      security:
+        - SessionCookie:
+            - ADMIN
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Account id
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountQuotaState'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: updateAdminUserQuota
+      summary: Move an account to a tier, or give it an override
+      description: |
+        Replaces the hand-edit against production that raising a quota used to
+        require. Writes an audit log line naming the actor, the account, the before
+        and after values, and the reason given.
+      security:
+        - SessionCookie:
+            - ADMIN
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Account id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccountQuotaRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountQuotaState'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/roadmap:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: listAdminRoadmap
+      summary: List every roadmap item, including pending proposals
+      description: Returns the moderation queue and public items, including requester ids for administrative review.
+      security:
+        - SessionCookie:
+            - ADMIN
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RoadmapItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: createAdminRoadmapItem
+      summary: Add content or a feature to the roadmap
+      description: Creates a team-authored item directly in a public roadmap stage.
+      security:
+        - SessionCookie:
+            - ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoadmapItemWrite'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoadmapItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    components:
+      schemas:
+        RoadmapItemWrite:
+          type: object
+          required:
+            - kind
+            - status
+            - title
+          properties:
+            kind:
+              type: string
+              enum:
+                - CONTENT
+                - FEATURE
+            status:
+              type: string
+              enum:
+                - CONSIDERING
+                - PLANNED
+                - IN_PROGRESS
+                - RELEASED
+            title:
+              type: string
+              minLength: 1
+              maxLength: 180
+            description:
+              type: string
+              maxLength: 2000
+            sourceUrl:
+              type:
+                - string
+                - 'null'
+              format: uri
+              maxLength: 1000
+              pattern: ^https?://
+            coverUrl:
+              type:
+                - string
+                - 'null'
+              format: uri
+              maxLength: 1000
+            targetDate:
+              type:
+                - string
+                - 'null'
+              format: date
+            introducedInVersion:
+              type:
+                - string
+                - 'null'
+              maxLength: 32
+            sortOrder:
+              type: integer
+            proposerName:
+              type:
+                - string
+                - 'null'
+              maxLength: 80
+  /v1/admin/roadmap/{itemId}:
+    patch:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: updateAdminRoadmapItem
+      summary: Approve, reject, edit, or reorder a roadmap item
+      description: Updates one proposal or roadmap item; moving a proposal to a public stage publishes it.
+      security:
+        - SessionCookie:
+            - ADMIN
+      parameters:
+        - in: path
+          name: itemId
+          description: Public UUID of the roadmap item.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                kind:
+                  type: string
+                  enum:
+                    - CONTENT
+                    - FEATURE
+                status:
+                  type: string
+                  enum:
+                    - PROPOSED
+                    - CONSIDERING
+                    - PLANNED
+                    - IN_PROGRESS
+                    - RELEASED
+                    - DECLINED
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 180
+                description:
+                  type: string
+                  maxLength: 2000
+                sourceUrl:
+                  type:
+                    - string
+                    - 'null'
+                  format: uri
+                  maxLength: 1000
+                  pattern: ^https?://
+                coverUrl:
+                  type:
+                    - string
+                    - 'null'
+                  format: uri
+                  maxLength: 1000
+                targetDate:
+                  type:
+                    - string
+                    - 'null'
+                  format: date
+                introducedInVersion:
+                  type:
+                    - string
+                    - 'null'
+                  maxLength: 32
+                sortOrder:
+                  type: integer
+                proposerName:
+                  type:
+                    - string
+                    - 'null'
+                  maxLength: 80
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoadmapItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
     ApiKey:
@@ -2745,6 +4175,293 @@ components:
       name: nadeshiko.session_token
       description: Session authentication via cookie
   schemas:
+    RoadmapItem:
+      type: object
+      required:
+        - id
+        - kind
+        - status
+        - title
+        - description
+        - sourceUrl
+        - coverUrl
+        - targetDate
+        - introducedInVersion
+        - sortOrder
+        - createdAt
+        - proposerName
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum:
+            - CONTENT
+            - FEATURE
+        status:
+          type: string
+          enum:
+            - PROPOSED
+            - CONSIDERING
+            - PLANNED
+            - IN_PROGRESS
+            - RELEASED
+            - DECLINED
+        title:
+          type: string
+          maxLength: 180
+        description:
+          type: string
+          maxLength: 2000
+        sourceUrl:
+          type:
+            - string
+            - 'null'
+          format: uri
+        coverUrl:
+          type:
+            - string
+            - 'null'
+          format: uri
+        targetDate:
+          type:
+            - string
+            - 'null'
+          format: date
+        introducedInVersion:
+          type:
+            - string
+            - 'null'
+          maxLength: 32
+          description: Nadeshiko version that introduced this feature.
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        proposerName:
+          type:
+            - string
+            - 'null'
+          maxLength: 80
+          description: Optional public credit chosen by the proposer or an admin.
+        requesterUserId:
+          type:
+            - integer
+            - 'null'
+          description: Present on admin responses only.
+    Error429:
+      type: object
+      description: Too Many Requests error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - RATE_LIMIT_EXCEEDED
+            - QUOTA_EXCEEDED
+        title:
+          type: string
+          minLength: 1
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          minLength: 1
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          minLength: 1
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
+        instance:
+          type: string
+          minLength: 1
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 429
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
+    Error500:
+      type: object
+      description: Internal Server Error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - INTERNAL_SERVER_EXCEPTION
+        title:
+          type: string
+          minLength: 1
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          minLength: 1
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          minLength: 1
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
+        instance:
+          type: string
+          minLength: 1
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 500
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
+    Error400:
+      type: object
+      description: Bad Request error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - VALIDATION_FAILED
+            - INVALID_JSON
+            - INVALID_REQUEST
+        title:
+          type: string
+          minLength: 1
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          minLength: 1
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          minLength: 1
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
+        instance:
+          type: string
+          minLength: 1
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 400
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
+    Error401:
+      type: object
+      description: Unauthorized error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - AUTH_CREDENTIALS_REQUIRED
+            - AUTH_CREDENTIALS_INVALID
+            - AUTH_CREDENTIALS_EXPIRED
+        title:
+          type: string
+          minLength: 1
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          minLength: 1
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          minLength: 1
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
+        instance:
+          type: string
+          minLength: 1
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 401
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
+    Error403:
+      type: object
+      description: Forbidden error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - ACCESS_DENIED
+            - INSUFFICIENT_PERMISSIONS
+        title:
+          type: string
+          minLength: 1
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          minLength: 1
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          minLength: 1
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
+        instance:
+          type: string
+          minLength: 1
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 403
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
     SearchQuery:
       type: object
       description: What to search for (omit for queryless browse/stats)
@@ -2859,7 +4576,12 @@ components:
                 Exclude segments from these media (with optional episode filter).
                 A `mediaPublicId` that matches no media is ignored, since excluding a media that
                 does not exist excludes nothing.
-              maxItems: 100
+
+                The ceiling is far above `include`'s because the two grow differently: `include`
+                is a caller narrowing a request by hand, while `exclude` carries the reader's
+                whole hidden-media list, which grows with use. At 100 a reader who had hidden
+                more than that got a `400` on every search they made.
+              maxItems: 1000
               items:
                 $ref: '#/components/schemas/MediaFilterItem'
         category:
@@ -2914,7 +4636,8 @@ components:
         languages:
           description: |
             Translation languages to include alongside Japanese in search matching.
-            - Omitted / `null`: match against Japanese and all translation languages (default)
+            - Omitted: match against Japanese and all translation languages (default)
+            - `null`: not accepted; omit this field to use the default
             - `[]`: match against Japanese only
             - `["EN"]` / `["ES"]` / `["EN", "ES"]`: match against Japanese plus the listed translation languages
 
@@ -2966,6 +4689,27 @@ components:
           example: eyJraW...N119
         sort:
           $ref: '#/components/schemas/SearchSort'
+        preferMedia:
+          type: array
+          description: |
+            Public IDs of titles the caller wants first, used **only** to break ties.
+
+            Segments Elasticsearch ranked equally are reordered so the ones from these
+            titles come first; nothing crosses a rank boundary. Which segments land on
+            a page, how many there are and the cursor that walks to the next one are
+            all exactly what they would have been without this field — only the order
+            within an already-tied run changes.
+
+            Sent by the web client for a signed-in reader, from the titles they have
+            favourited and the ones their activity says they know. Ignored unless
+            `sort.mode` is `RELEVANCE`, since every other mode sorts on a key the
+            caller asked for by name. Unknown IDs are ignored rather than rejected.
+          items:
+            type: string
+            pattern: ^[A-Za-z0-9_-]{12}$
+          maxItems: 120
+          example:
+            - V1StGXR8_Z5d
         filters:
           $ref: '#/components/schemas/SearchFilters'
         include:
@@ -2984,10 +4728,6 @@ components:
         - b
         - e
         - p
-        - p1
-        - p2
-        - p4
-        - cf
       properties:
         s:
           type: string
@@ -3013,34 +4753,15 @@ components:
           type: string
           description: Primary part-of-speech tag
           example: 動詞
-        p1:
-          type: string
-          nullable: true
-          minLength: 1
-          description: POS subtype 1 (UniDic pos[1])
-          example: 固有名詞
-        p2:
-          type: string
-          nullable: true
-          minLength: 1
-          description: POS subtype 2 (UniDic pos[2])
-          example: 人名
-        p4:
-          type: string
-          nullable: true
-          minLength: 1
-          description: Conjugation type (UniDic pos[4])
-          example: 五段-カ行
-        cf:
-          type: string
-          nullable: true
-          minLength: 1
-          description: Conjugation form (UniDic pos[5])
-          example: 連用形-一般
         posLabel:
           type: string
           description: The part of speech in words, so a client needs no UniDic table.
           example: Verb
+        pt:
+          type: string
+          description: |
+            The short part-of-speech tag the dictionary lookup ranks by (`verb`, `prt`, `exp`), where `p` is UniDic's Japanese category and `posLabel` is the printable wording. A client resolving a word should send this rather than mapping `p` itself: the mapping is the parser's to make, and a category it grows that a hand-written table lacks would otherwise silently resolve to no tag at all. Empty for punctuation, symbols and whitespace, which are nothing to look up. Absent on anything parsed before it was stored.
+          example: verb
         kind:
           type: string
           description: |
@@ -3054,11 +4775,6 @@ components:
             - expression
             - symbol
           example: inflected
-        wid:
-          type: string
-          description: |
-            Where this word reads about on Shirabe (`/v1/words/{wid}`). Absent for names, numbers, punctuation and anything with no dictionary entry, which means show the word without linking it.
-          example: 開く-ひらく-1202650
         f:
           type: array
           description: |
@@ -3405,6 +5121,16 @@ components:
           minLength: 1
           description: End date of the media (last airing/release)
           example: '2011-04-02'
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            When this entry was last modified. Distinct from the airing dates above,
+            which describe the work; this describes the record, and is what the sitemap
+            publishes as `lastmod` so crawlers can tell a changed title from an
+            untouched one. Null for a row never updated since the column was added.
+          example: '2026-08-14T09:12:44.000Z'
         category:
           $ref: '#/components/schemas/Category'
         segmentCount:
@@ -3492,9 +5218,9 @@ components:
               description: Media objects keyed by publicId. Present only when `include[]=media` is requested.
         pagination:
           $ref: '#/components/schemas/SearchPagination'
-    Error400:
+    Error503:
       type: object
-      description: Bad Request error response
+      description: Service Unavailable error response
       required:
         - code
         - title
@@ -3505,9 +5231,7 @@ components:
           type: string
           description: Specific error code for programmatic handling
           enum:
-            - VALIDATION_FAILED
-            - INVALID_JSON
-            - INVALID_REQUEST
+            - SERVICE_OVERLOADED
         title:
           type: string
           minLength: 1
@@ -3520,7 +5244,7 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -3529,175 +5253,7 @@ components:
           type: integer
           description: The HTTP status code
           enum:
-            - 400
-        errors:
-          type: object
-          additionalProperties:
-            type: string
-          description: Optional map of field names to their error messages (for validation errors)
-    Error401:
-      type: object
-      description: Unauthorized error response
-      required:
-        - code
-        - title
-        - detail
-        - status
-      properties:
-        code:
-          type: string
-          description: Specific error code for programmatic handling
-          enum:
-            - AUTH_CREDENTIALS_REQUIRED
-            - AUTH_CREDENTIALS_INVALID
-            - AUTH_CREDENTIALS_EXPIRED
-        title:
-          type: string
-          minLength: 1
-          description: A short, human-readable summary of the problem
-        detail:
-          type: string
-          minLength: 1
-          description: A human-readable explanation specific to this occurrence
-        type:
-          type: string
-          format: uri
-          minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
-        instance:
-          type: string
-          minLength: 1
-          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
-        status:
-          type: integer
-          description: The HTTP status code
-          enum:
-            - 401
-        errors:
-          type: object
-          additionalProperties:
-            type: string
-          description: Optional map of field names to their error messages (for validation errors)
-    Error403:
-      type: object
-      description: Forbidden error response
-      required:
-        - code
-        - title
-        - detail
-        - status
-      properties:
-        code:
-          type: string
-          description: Specific error code for programmatic handling
-          enum:
-            - ACCESS_DENIED
-            - INSUFFICIENT_PERMISSIONS
-        title:
-          type: string
-          minLength: 1
-          description: A short, human-readable summary of the problem
-        detail:
-          type: string
-          minLength: 1
-          description: A human-readable explanation specific to this occurrence
-        type:
-          type: string
-          format: uri
-          minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
-        instance:
-          type: string
-          minLength: 1
-          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
-        status:
-          type: integer
-          description: The HTTP status code
-          enum:
-            - 403
-        errors:
-          type: object
-          additionalProperties:
-            type: string
-          description: Optional map of field names to their error messages (for validation errors)
-    Error429:
-      type: object
-      description: Too Many Requests error response
-      required:
-        - code
-        - title
-        - detail
-        - status
-      properties:
-        code:
-          type: string
-          description: Specific error code for programmatic handling
-          enum:
-            - RATE_LIMIT_EXCEEDED
-            - QUOTA_EXCEEDED
-        title:
-          type: string
-          minLength: 1
-          description: A short, human-readable summary of the problem
-        detail:
-          type: string
-          minLength: 1
-          description: A human-readable explanation specific to this occurrence
-        type:
-          type: string
-          format: uri
-          minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
-        instance:
-          type: string
-          minLength: 1
-          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
-        status:
-          type: integer
-          description: The HTTP status code
-          enum:
-            - 429
-        errors:
-          type: object
-          additionalProperties:
-            type: string
-          description: Optional map of field names to their error messages (for validation errors)
-    Error500:
-      type: object
-      description: Internal Server Error response
-      required:
-        - code
-        - title
-        - detail
-        - status
-      properties:
-        code:
-          type: string
-          description: Specific error code for programmatic handling
-          enum:
-            - INTERNAL_SERVER_EXCEPTION
-        title:
-          type: string
-          minLength: 1
-          description: A short, human-readable summary of the problem
-        detail:
-          type: string
-          minLength: 1
-          description: A human-readable explanation specific to this occurrence
-        type:
-          type: string
-          format: uri
-          minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
-        instance:
-          type: string
-          minLength: 1
-          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
-        status:
-          type: integer
-          description: The HTTP status code
-          enum:
-            - 500
+            - 503
         errors:
           type: object
           additionalProperties:
@@ -4387,7 +5943,7 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -4428,7 +5984,7 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -4512,6 +6068,15 @@ components:
           minLength: 1
           description: Hash identifier for the segment (from segment JSON)
           example: 0d39e46b14
+        reportId:
+          type: integer
+          description: |
+            The report this edit answers, recorded on the resulting revision.
+
+            Optional, and only meaningful for moderation traffic — it is what lets the
+            agent activity feed show which reported problem an edit was made for. Edits
+            that did not come from a report leave it unset.
+          example: 4821
     SegmentInternal:
       description: |
         Segment with internal fields. For write operations (create, update) all fields are always populated.
@@ -4567,6 +6132,8 @@ components:
         - id
         - revisionNumber
         - snapshot
+        - actor
+        - reportId
         - createdAt
       properties:
         id:
@@ -4578,11 +6145,25 @@ components:
         snapshot:
           type: object
           additionalProperties: true
-          description: Snapshot of editable fields at the time of the revision
+          description: |
+            The segment's editable fields as they were *before* this revision's edit.
+            Restoring a revision writes these values back.
+        actor:
+          type: string
+          enum:
+            - HUMAN
+            - AGENT
+          description: |
+            Whether a person or the moderation agent made the change. Derived from the
+            credential at write time — a service API key is the agent.
+        reportId:
+          type: integer
+          nullable: true
+          description: The report this edit answered, when it answered one
         userName:
           type: string
           nullable: true
-          description: Name of the user who made the change
+          description: Name of the account the change was made under
         createdAt:
           type: string
           format: date-time
@@ -4966,6 +6547,52 @@ components:
           maxItems: 1000
           items:
             $ref: '#/components/schemas/SegmentCreateRequest'
+    ModerateEpisodeSegmentsRequest:
+      type: object
+      required:
+        - action
+        - maxAffected
+      properties:
+        action:
+          type: string
+          enum:
+            - shiftTimings
+            - setStatus
+          description: Which bulk action to apply
+        offsetMs:
+          type: integer
+          description: |
+            Milliseconds to shift every segment by; negative moves clips earlier.
+            Required for `shiftTimings`, ignored otherwise.
+          example: -1200
+        status:
+          $ref: '#/components/schemas/SegmentStatus'
+        maxAffected:
+          type: integer
+          minimum: 1
+          maximum: 5000
+          description: |
+            Refuse the request if the episode has more segments than this.
+
+            There is no safe default, so it is required: the right ceiling depends on
+            whether a person is about to review the result. The request is rejected
+            whole — a cap smaller than the episode changes nothing rather than applying
+            to the first N segments.
+          example: 500
+        reportId:
+          type: integer
+          description: The report this action answers, recorded on every revision it writes
+          example: 4821
+    AffectedCountResponse:
+      type: object
+      description: Number of records affected by a bulk operation
+      required:
+        - count
+      properties:
+        count:
+          type: integer
+          description: Number of records affected
+          example: 42
     UserMe:
       type: object
       required:
@@ -5003,6 +6630,8 @@ components:
             - periodYyyymm
             - periodStart
             - periodEnd
+            - tier
+            - burst
           properties:
             used:
               type: integer
@@ -5034,6 +6663,169 @@ components:
               format: date-time
               description: End of the current month (UTC).
               example: '2026-02-28T23:59:59.999Z'
+            tier:
+              type: object
+              nullable: true
+              description: |
+                The quota tier this account sits on. Null when the account is on none,
+                or when an override is in force and the tier no longer describes the
+                limit.
+              required:
+                - id
+                - displayName
+              properties:
+                id:
+                  type: string
+                  example: plus
+                displayName:
+                  type: string
+                  example: Plus
+            burst:
+              type: object
+              description: |
+                The OTHER limit. Separate from the monthly allowance and enforced per
+                API key over a short window, so a caller can exhaust it with plenty of
+                month left -- which is why both are surfaced together, and why the two
+                429s carry an `X-RateLimit-Reason` telling them apart.
+              required:
+                - max
+                - windowMs
+              properties:
+                max:
+                  type: integer
+                  description: Requests allowed per key within `windowMs`.
+                  example: 150
+                windowMs:
+                  type: integer
+                  description: Length of the burst window, in milliseconds.
+                  example: 60000
+    ApiKeyScope:
+      type: string
+      description: |
+        A capability an API key may carry. A key-authenticated request is checked
+        against this list and nothing else, so a key's scopes are the whole of what it
+        can do — a reader's role is not consulted again at request time.
+
+        The corpus-write scopes (`ADD_MEDIA`, `UPDATE_MEDIA`, `REMOVE_MEDIA`) may only
+        be granted by an admin; asking for one without the role is refused with `403`.
+      enum:
+        - ADD_MEDIA
+        - READ_MEDIA
+        - UPDATE_MEDIA
+        - REMOVE_MEDIA
+        - READ_PROFILE
+        - WRITE_PROFILE
+        - READ_ACTIVITY
+        - WRITE_ACTIVITY
+        - READ_COLLECTIONS
+        - CREATE_COLLECTIONS
+        - UPDATE_COLLECTIONS
+        - DELETE_COLLECTIONS
+        - READ_ADMIN
+      example: READ_MEDIA
+    ShirabeConnection:
+      type: object
+      description: |
+        A reader's linked Shirabe account, as the reader is shown it.
+
+        Never carries the stored tokens: nothing here can be used to act on their
+        Shirabe account.
+      required:
+        - needsUpgrade
+        - missingScopes
+        - disconnected
+        - linkedAt
+        - scopes
+        - dictionaries
+        - stackIsPrivate
+      properties:
+        needsUpgrade:
+          type: boolean
+          description: 'True when the link works but is missing a permission a newer feature needs -- granted before that feature existed. A re-consent, not a repair: what the account was linked for keeps working the whole time, and only the newer feature is unavailable.'
+          example: false
+        missingScopes:
+          type: array
+          description: The permissions a re-consent would add. Empty unless `needsUpgrade`.
+          items:
+            type: string
+          example: []
+        disconnected:
+          type: boolean
+          description: 'True when Shirabe refused this key outright -- the reader revoked it from their Shirabe access list, or it was swept for being idle. The link is over until they make a new one, and their own dictionaries are not being used until they do. Distinct from `needsUpgrade`, which is a link that still works: this one is a repair.'
+          example: false
+        linkedAt:
+          type: string
+          format: date-time
+        shirabeName:
+          type: string
+          nullable: true
+          description: Who they are on Shirabe, for the settings page to name the link.
+          example: Lumi
+        scopes:
+          type: array
+          description: What the reader granted. Today that is READ_ACCOUNT and nothing else.
+          items:
+            type: string
+          example:
+            - READ_ACCOUNT
+        dictionaries:
+          type: array
+          description: 'Their Shirabe dictionary stack: ordered `slug:lang` refs naming which dictionaries resolve, in which languages, in what order. This is what makes a word lookup here answer the way it does over there.'
+          items:
+            type: string
+          example:
+            - sanseido:ja
+            - jmdict:en
+        dictionaryNames:
+          type: object
+          additionalProperties:
+            type: string
+          description: What each dictionary above is CALLED, keyed by slug, as Shirabe names it. A reader's own uploads are filed under content hashes, so a client printing the stack without this prints a list of hashes. Empty for a link made before Shirabe published the names; fall back to the slug.
+          example:
+            jmdict: JMdict
+            yomitan-c89af12122021a8a: 三省堂国語辞典
+        stackIsPrivate:
+          type: boolean
+          description: True when their stack names one of their own uploads, which makes its answers theirs alone and stops a lookup being cached for anyone else.
+          example: false
+        syncedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the stack was last re-read from Shirabe.
+    PatreonConnection:
+      type: object
+      required:
+        - linked
+        - fullName
+        - active
+        - patronStatus
+        - entitledAmountCents
+        - membershipCheckedAt
+        - linkedAt
+      properties:
+        linked:
+          type: boolean
+          const: true
+        fullName:
+          type:
+            - string
+            - 'null'
+        active:
+          type: boolean
+        patronStatus:
+          type:
+            - string
+            - 'null'
+        entitledAmountCents:
+          type: integer
+          minimum: 0
+        membershipCheckedAt:
+          type: string
+          format: date-time
+        linkedAt:
+          type: string
+          format: date-time
     ReportTargetMedia:
       type: object
       required:
@@ -5230,7 +7022,6 @@ components:
         - id
         - source
         - target
-        - auditRunId
         - reason
         - description
         - data
@@ -5248,10 +7039,6 @@ components:
           $ref: '#/components/schemas/ReportSource'
         target:
           $ref: '#/components/schemas/ReportTarget'
-        auditRunId:
-          type: integer
-          nullable: true
-          description: ID of the audit run that created this report (AUTO only)
         reason:
           $ref: '#/components/schemas/ReportReason'
         description:
@@ -5320,6 +7107,31 @@ components:
                 - show
                 - spoiler
                 - hidden
+        translationLanguages:
+          type: array
+          minItems: 1
+          maxItems: 2
+          uniqueItems: true
+          description: |
+            Translation languages the reader wants in dictionary content, in display order. This is the global preference; translationVisibilityPreferences is a search-surface override for showing, spoiling, or hiding a language.
+          items:
+            type: string
+            enum:
+              - EN
+              - ES
+        wordPopup:
+          type: object
+          description: |
+            How the word card behaves when a reader taps a word in a sentence. A group rather than a loose key so the settings that follow it have somewhere to live.
+          properties:
+            definitionSize:
+              type: string
+              enum:
+                - SMALL
+                - MEDIUM
+                - LARGE
+              description: |
+                How large the definitions themselves are printed. The card holds a reader's own monolingual dictionaries now, which is Japanese prose rather than a three-word English gloss, and a size that suited "to die; to pass away" is small for a paragraph of 大辞林. MEDIUM is the default; SMALL is what the card printed before this existed.
         searchHistory:
           type: object
           properties:
@@ -5362,9 +7174,81 @@ components:
                 nullable: true
               serverAddress:
                 type: string
+              openBrowserOnExport:
+                type: boolean
+                description: |
+                  Whether exporting a card brings Anki's card browser to the front.
+
+                  Absent means true, which is what it did before the setting existed.
+                  Undeclared until now: the settings page has offered the switch all
+                  along, but a profile saved with it off came back from the server
+                  without the field at all, so turning it off appeared to save and then
+                  did nothing.
+        defaultSearchCategory:
+          type: string
+          enum:
+            - ALL
+            - ANIME
+            - JDRAMA
+            - YOUTUBE
+          description: |
+            Category tab a search opens on when the URL names none. `ALL` -- the value
+            assumed when unset -- searches every category the user still has visible.
+
+            Spelled out as its own enum rather than a nullable `Category` so that
+            "search everything" is a value the client can send, not a field it has to
+            clear. It mirrors `Category` plus `ALL`.
+
+            A value the user has since hidden (see `hiddenCategories`) is ignored and
+            the search falls back to `ALL`. It is stored rather than rejected, so
+            unhiding the category brings the choice back.
+        mediaCardDefault:
+          type: string
+          enum:
+            - OPEN
+            - CLOSED
+          description: |
+            Whether the title card starts open or closed on a title's own page, and on
+            a search narrowed to one title.
+
+            The card is a disclosure: a single line -- thumbnail, title, sentence and
+            episode counts -- with the alternate names, studio, season, airing status,
+            genres and catalogue links folded underneath it. Anyone can open and close
+            it from the card itself; this only decides which way it starts, and
+            `OPEN` -- assumed when unset -- is that default.
+
+            It exists because the card is context for a page whose subject is the
+            sentence list underneath it. At its old fixed size on a phone it took
+            roughly a third of the viewport, so every visit to a title a reader
+            already knows began with the same scroll past the same card.
+        hiddenCategories:
+          type: array
+          description: |
+            Whole media categories hidden from search results by the user.
+
+            An empty array means nothing is hidden. Hiding *every* category is rejected with
+            `400`: `filters.category` reads an empty list as "no filter", so hiding the last
+            one would silently show everything back instead of nothing.
+          items:
+            $ref: '#/components/schemas/Category'
         hiddenMedia:
           type: array
-          description: Media hidden from search results by the user
+          description: |
+            Media hidden from search results by the user, as IDs.
+
+            Entries used to carry the title's names as well. Nothing read them back --
+            `GET /v1/user/excluded-media` resolves names from the catalogue, where a
+            rename actually lands, and the search filter needs only IDs -- while the
+            whole preferences blob rides `get-session` into the hydration payload of
+            every page the reader loads. At ~141 bytes an entry against the 34 an
+            ID-only one costs, a reader who had hidden 200 titles carried ~21KB of
+            duplicated catalogue on every render.
+
+            Still an object wrapping the ID rather than a bare string. Dropping the
+            optional name fields is a change every previously-valid reader already
+            accepts; replacing the object with a string is not, and old clients
+            reaching for `mediaPublicId` would read the list as empty and show the
+            reader results they had hidden.
           items:
             type: object
             required:
@@ -5373,12 +7257,85 @@ components:
               mediaPublicId:
                 type: string
                 description: Public ID of the hidden media
-              nameEn:
+        favoriteMedia:
+          type: array
+          description: |
+            Media the reader has starred. Starred titles sort to the top of the search
+            media filter; they change the ORDER of that list, never its contents, so a
+            starred title the current query does not match simply is not there.
+
+            Capped at 100 entries, refused with `400` beyond that. The cap is not
+            cosmetic: the whole preferences column is rewritten on every change (see
+            `mutateUserPreferences`), so an unbounded list would make every unrelated
+            preference write more expensive for the rest of the account's life.
+
+            `favoritedAt` is declared here and written by the server, unlike
+            `hiddenMedia`'s `hiddenAt` -- which the client invents and this schema has
+            never described. It is the one thing about a starred title that the
+            catalogue cannot answer, which is why it stayed when the names went -- for
+            the same reason they went from `hiddenMedia`.
+          items:
+            type: object
+            required:
+              - mediaPublicId
+              - favoritedAt
+            properties:
+              mediaPublicId:
                 type: string
-              nameJa:
+                description: Public ID of the starred media
+              favoritedAt:
                 type: string
-              nameRomaji:
-                type: string
+                format: date-time
+                description: When the reader starred it, set by the server.
+        familiarMedia:
+          type: object
+          description: |
+            Whether to keep a monthly tally of which titles the reader studies, used to
+            sort those titles up the search media filter.
+
+            Deliberately NOT `searchHistory`: that preference governs the activity log
+            (queries, timestamps, per-row deletion), this one governs an aggregate
+            count per title per month. A reader can reasonably want the tally without
+            the diary, so the two are stored apart, cleared apart, and expire apart.
+            Existing readers who had `searchHistory` off were seeded to `false` here.
+          properties:
+            enabled:
+              type: boolean
+              description: Whether familiar-media tallying is enabled (default true)
+        productEmails:
+          type: object
+          description: |
+            Whether we may send this account the lifecycle mail — the day-7 note, the
+            feedback ask, the monthly recap. Absent means yes: these are service
+            messages about the functionality the reader uses, so the default is on and
+            the reader turns it off, here or from the link in any of them.
+
+            Does NOT govern transactional mail. Sign-in links and address verification
+            are the account working rather than news about it, and honouring this flag
+            for them would let somebody lock themselves out by unsubscribing.
+          properties:
+            enabled:
+              type: boolean
+              description: |
+                The master switch, and the only thing a `List-Unsubscribe` header with
+                no category sets. Off here stops every category below it.
+            recap:
+              type: boolean
+              description: |
+                The monthly digest of the reader's own activity. Absent means follow
+                `enabled` — never a fresh yes, or a reader who left before this
+                category existed would be re-subscribed by its arrival.
+            checkins:
+              type: boolean
+              description: |
+                The occasional one-off questions: the day-7 note and the win-back.
+                Absent means follow `enabled`.
+            updates:
+              type: boolean
+              description: |
+                Releases and new features, including any request for support that
+                rides in one. Sent through Zoho Campaigns rather than from here, so
+                this governs the audience export. Absent means follow `enabled`.
     ActivityType:
       type: string
       enum:
@@ -5454,16 +7411,12 @@ components:
           type: string
         searchQuery:
           type: string
-    AffectedCountResponse:
-      type: object
-      description: Number of records affected by a bulk operation
-      required:
-        - count
-      properties:
-        count:
-          type: integer
-          description: Number of records affected
-          example: 42
+        autoplay:
+          type: boolean
+          description: |
+            Whether this `SEGMENT_PLAY` was started by autoplay rather than by the
+            reader. Recorded as activity either way; excluded from the familiar-media
+            tally, where a playlist running on its own is not evidence of studying.
     HeatmapDayCounts:
       type: object
       description: Activity counts for a single day, broken down by type. Only types with at least 1 event are present.
@@ -5603,6 +7556,7 @@ components:
         - activity
         - collections
         - reports
+        - mediaAffinity
         - truncated
       properties:
         truncated:
@@ -5610,13 +7564,14 @@ components:
           description: |
             Which sections were cut short. The export is assembled and returned as a single JSON
             body, so each section has a ceiling: 50000 activity entries, 5000 reports, 1000
-            collections, and 50000 collection segment references in total. A `true` here means more
-            data exists than the response carries.
+            collections, 50000 collection segment references in total, and 50000 media affinity
+            rows. A `true` here means more data exists than the response carries.
           required:
             - activity
             - collections
             - collectionSegments
             - reports
+            - mediaAffinity
           properties:
             activity:
               type: boolean
@@ -5625,6 +7580,8 @@ components:
             collectionSegments:
               type: boolean
             reports:
+              type: boolean
+            mediaAffinity:
               type: boolean
         profile:
           type: object
@@ -5657,6 +7614,131 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Report'
+        mediaAffinity:
+          type: array
+          description: |
+            The monthly per-title tally behind familiar-media sorting. Stored apart
+            from `activity` and governed by its own preference, so it is exported as
+            its own section rather than folded into the activity log.
+          items:
+            type: object
+            required:
+              - mediaPublicId
+              - periodYyyymm
+              - ankiCount
+              - playCount
+              - shareCount
+            properties:
+              mediaPublicId:
+                type: string
+              periodYyyymm:
+                type: integer
+                description: Year and month of the tally, as YYYYMM in UTC.
+              ankiCount:
+                type: integer
+              playCount:
+                type: integer
+              shareCount:
+                type: integer
+    CreateFeedbackRequest:
+      type: object
+      required:
+        - body
+        - formToken
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: The message. Free text — no category, no target.
+          example: The audio on the search page stops after the first segment on Firefox.
+        email:
+          type: string
+          format: email
+          maxLength: 320
+          description: |
+            Optional reply address for anonymous senders. Ignored when the request
+            carries a session: the account's own address is used instead, so a signed-in
+            sender cannot attribute a message to somebody else's inbox.
+          example: you@example.com
+        formToken:
+          type: string
+          maxLength: 512
+          description: |
+            Opaque token from `GET /v1/feedback/token`, issued when the panel opened.
+            It carries the issue time, so a submission that arrives implausibly fast
+            after the form appeared can be told from a person typing.
+        nickname:
+          type: string
+          maxLength: 200
+          description: |
+            Honeypot. Not rendered to people; anything in it marks the submission as
+            automated. Present in the contract because it has to be accepted to be
+            ignored.
+        pagePath:
+          type: string
+          maxLength: 2000
+          description: |
+            Same-origin path (and query) the sender was on, e.g. `/search?q=彼女`.
+            Anything that is not a rooted path is dropped rather than rejected.
+          example: /search?q=彼女
+        locale:
+          type: string
+          maxLength: 16
+          description: |
+            The locale the page rendered in, which is not the same question as
+            `Accept-Language`: the site's locale comes from the URL prefix and a stored
+            preference, so a reader on `/es/search` with an English browser is reading
+            Spanish. Falls back to the request header when absent.
+          example: es
+        appVersion:
+          type: string
+          maxLength: 32
+          description: |
+            The frontend build the sender was running. Client-supplied because it is the
+            only side that knows: the browser can be holding a bundle several deploys
+            old, and the API's own version says nothing about it.
+          example: 2.4.0
+        posthogSessionId:
+          type: string
+          maxLength: 64
+          description: PostHog session id, so a report links to its session replay. Blank where posthog is not loaded.
+        posthogDistinctId:
+          type: string
+          maxLength: 128
+          description: PostHog person id.
+    FeedbackReceipt:
+      type: object
+      required:
+        - received
+      properties:
+        received:
+          type: boolean
+          description: |
+            Always `true`. The response is deliberately uniform: a submission dropped
+            as automated answers exactly like one that was stored, so a bot learns
+            nothing from the reply about what tripped it.
+          example: true
+    FeedbackFormToken:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: Opaque, short-lived. Pass back as `formToken` when submitting.
+    UnsubscribeReceipt:
+      type: object
+      required:
+        - unsubscribed
+      properties:
+        unsubscribed:
+          type: boolean
+          description: |
+            Always `true` when the token was readable. A token for an account that has
+            since been deleted also answers `true`: the end state the caller asked for
+            already holds, and there is nothing for them to act on.
+          example: true
     CollectionListResponse:
       type: object
       description: Paginated collection list response
@@ -5850,9 +7932,6 @@ components:
             targetSegmentId:
               type: integer
               description: Filter by target segment ID
-            auditRunId:
-              type: integer
-              description: Filter by audit run ID
             orphaned:
               type: boolean
               description: Only delete reports whose target media no longer exists
@@ -5888,9 +7967,6 @@ components:
             targetSegmentId:
               type: integer
               description: Filter by target segment ID
-            auditRunId:
-              type: integer
-              description: Filter by audit run ID
             orphaned:
               type: boolean
               description: Only update reports whose target media no longer exists
@@ -5904,168 +7980,64 @@ components:
           maxLength: 1000
           description: Admin notes about the report
           example: Confirmed wrong translation, will fix
-    MediaAudit:
+    AgentActivityResponse:
       type: object
       required:
-        - id
-        - name
-        - label
-        - description
-        - targetType
-        - threshold
-        - enabled
-        - thresholdSchema
-        - latestRun
-        - createdAt
-        - updatedAt
+        - entries
       properties:
-        id:
-          type: integer
-          description: Audit ID
-        name:
-          type: string
-          description: Unique audit identifier
-          example: lowSegmentMedia
-        label:
-          type: string
-          description: Human-readable label
-          example: Low Segment Media
-        description:
-          type: string
-          description: What this audit does
-        targetType:
-          type: string
-          enum:
-            - MEDIA
-            - EPISODE
-          description: What level this audit operates on
-        threshold:
-          type: object
-          description: Current threshold configuration
-          additionalProperties: true
-        enabled:
-          type: boolean
-          description: Whether this audit is active
-        thresholdSchema:
-          type: array
-          description: Schema for threshold fields (from registry)
-          items:
-            type: object
-            required:
-              - key
-              - label
-              - type
-              - default
-            properties:
-              key:
-                type: string
-              label:
-                type: string
-              type:
-                type: string
-                enum:
-                  - number
-                  - boolean
-              default:
-                oneOf:
-                  - type: number
-                  - type: boolean
-              min:
-                type: number
-              max:
-                type: number
-        latestRun:
-          type: object
-          nullable: true
-          description: Latest run info for this audit
-          required:
-            - id
-            - resultCount
-            - createdAt
-          properties:
-            id:
-              type: integer
-            resultCount:
-              type: integer
-            createdAt:
-              type: string
-              format: date-time
-        createdAt:
-          type: string
-          format: date-time
-          nullable: true
-        updatedAt:
-          type: string
-          format: date-time
-          nullable: true
-    RunAuditResponse:
-      type: object
-      required:
-        - category
-        - checksRun
-        - totalReports
-      properties:
-        category:
-          type: string
-          nullable: true
-          description: Category filter used
-        checksRun:
+        entries:
           type: array
           items:
             type: object
             required:
-              - auditName
-              - label
-              - resultCount
-              - runId
+              - revisionId
+              - revisionNumber
+              - segmentPublicId
+              - mediaPublicId
+              - episodeNumber
+              - snapshot
+              - current
+              - reportId
+              - actedBy
+              - createdAt
             properties:
-              auditName:
-                type: string
-                description: Audit identifier
-              label:
-                type: string
-                description: Human-readable audit name
-              resultCount:
+              revisionId:
                 type: integer
-                description: Number of reports created
-              runId:
+                description: Revision ID
+              revisionNumber:
                 type: integer
-                description: ID of the created run record
-        totalReports:
-          type: integer
-          description: Total reports created across all audits
-    MediaAuditRun:
-      type: object
-      required:
-        - id
-        - auditName
-        - resultCount
-        - thresholdUsed
-        - createdAt
-      properties:
-        id:
-          type: integer
-          description: Run ID
-        auditName:
-          type: string
-          description: Name of the audit that was run
-          example: lowSegmentMedia
-        category:
-          type: string
-          nullable: true
-          description: Category filter used (ANIME/JDRAMA) or null for all
-        resultCount:
-          type: integer
-          description: Number of reports created in this run
-          example: 12
-        thresholdUsed:
-          type: object
-          description: Snapshot of threshold at run time
-          additionalProperties: true
-        createdAt:
-          type: string
-          format: date-time
-          description: When this run was executed
+                description: The revision number to pass to the restore endpoint to undo this edit
+              segmentPublicId:
+                type: string
+                description: Public ID of the segment that was changed
+              mediaPublicId:
+                type: string
+                description: Public ID of the media the segment belongs to
+              episodeNumber:
+                type: integer
+                description: Episode the segment belongs to
+              snapshot:
+                type: object
+                additionalProperties: true
+                description: The segment's editable fields as they were before this edit
+              current:
+                type: object
+                additionalProperties: true
+                description: |
+                  The same fields as they are now. Paired with `snapshot` this is the
+                  diff, without the caller having to fetch the segment separately.
+              reportId:
+                type: integer
+                nullable: true
+                description: The report this edit answered, when it answered one
+              actedBy:
+                type: string
+                nullable: true
+                description: Account the service credential belongs to
+              createdAt:
+                type: string
+                format: date-time
+                description: When the edit was made
     Announcement:
       type: object
       description: Site-wide announcement banner
@@ -6077,7 +8049,9 @@ components:
         message:
           type: string
           maxLength: 500
-          example: Scheduled maintenance tonight from 2-4 AM UTC.
+          description: |
+            The banner text. Stored and returned verbatim; the web client renders a small inline markdown subset from it -- links, bold, italic, code spans and line breaks -- so `maxLength` counts the markup as well as the words. Anything outside that subset, raw HTML included, is shown as the characters it is made of rather than interpreted. Other clients are free to print it as plain text.
+          example: Scheduled maintenance tonight. See [the status page](/blog).
         type:
           type: string
           enum:
@@ -6150,14 +8124,206 @@ components:
           items:
             type: string
             example: google
+    Tier:
+      type: object
+      required:
+        - id
+        - displayName
+        - monthlyQuotaLimit
+        - sortOrder
+      properties:
+        id:
+          type: string
+          description: Stable slug referenced by an account's `tierId`
+          example: plus
+        displayName:
+          type: string
+          example: Plus
+        monthlyQuotaLimit:
+          type: integer
+          description: API calls allowed per calendar month on this tier
+          example: 25000
+        rateLimitMax:
+          type: integer
+          nullable: true
+          description: |
+            Per-key burst allowance stamped onto keys created while on this tier.
+            Null inherits the deployment-wide default.
+          example: null
+        rateLimitWindowMs:
+          type: integer
+          nullable: true
+          description: Window for `rateLimitMax`, in milliseconds. Null inherits the default.
+          example: null
+        sortOrder:
+          type: integer
+          description: Display order; the id is a slug, not a rank
+          example: 10
+    AccountQuotaState:
+      type: object
+      required:
+        - userId
+        - tierId
+        - quotaOverride
+        - monthlyQuotaLimit
+        - quotaSource
+        - quotaUsed
+        - periodYyyymm
+      properties:
+        userId:
+          type: integer
+          example: 328
+        tierId:
+          type: string
+          nullable: true
+          description: The tier this account sits on, or null if it has none
+          example: plus
+        quotaOverride:
+          type: integer
+          nullable: true
+          description: Per-account limit that wins over the tier when set
+          example: null
+        monthlyQuotaLimit:
+          type: integer
+          description: The limit actually in force, after applying the resolution order
+          example: 25000
+        quotaSource:
+          type: string
+          enum:
+            - override
+            - tier
+            - legacy_column
+            - default
+          description: |
+            Which step of the resolution order produced `monthlyQuotaLimit`.
+            `legacy_column` and `default` mean the tier did not resolve, and are worth
+            investigating rather than displaying.
+          example: tier
+        quotaUsed:
+          type: integer
+          description: Calls billed to this account in the current period
+          example: 4927
+        periodYyyymm:
+          type: integer
+          description: The billing period, as YYYYMM in UTC
+          example: 202608
+    UpdateAccountQuotaRequest:
+      type: object
+      description: |
+        At least one property must be present. Send `quotaOverride: null` to clear an
+        override and fall back to the tier.
+      minProperties: 1
+      properties:
+        tierId:
+          type: string
+          description: Slug of an existing tier
+          example: plus
+        quotaOverride:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: |
+            Per-account monthly limit, taking precedence over the tier. Null clears it.
+          example: 50000
+        reason:
+          type: string
+          maxLength: 500
+          description: |
+            Why the change is being made. Recorded on the audit log line so the number
+            is reviewable later; the old model's whole problem was that a raised limit
+            carried no record of the decision behind it.
+          example: 'Support ticket #412 - open-source dictionary integration'
+    RoadmapItemWrite:
+      type: object
+      required:
+        - kind
+        - status
+        - title
+      properties:
+        kind:
+          type: string
+          enum:
+            - CONTENT
+            - FEATURE
+        status:
+          type: string
+          enum:
+            - CONSIDERING
+            - PLANNED
+            - IN_PROGRESS
+            - RELEASED
+        title:
+          type: string
+          minLength: 1
+          maxLength: 180
+        description:
+          type: string
+          maxLength: 2000
+        sourceUrl:
+          type:
+            - string
+            - 'null'
+          format: uri
+          maxLength: 1000
+          pattern: ^https?://
+        coverUrl:
+          type:
+            - string
+            - 'null'
+          format: uri
+          maxLength: 1000
+        targetDate:
+          type:
+            - string
+            - 'null'
+          format: date
+        introducedInVersion:
+          type:
+            - string
+            - 'null'
+          maxLength: 32
+        sortOrder:
+          type: integer
+        proposerName:
+          type:
+            - string
+            - 'null'
+          maxLength: 80
   examples:
+    RateLimitExceeded:
+      summary: Rate Limit Exceeded
+      value:
+        code: RATE_LIMIT_EXCEEDED
+        title: Rate Limit Exceeded
+        detail: You have made too many requests. Please slow down and try again later.
+        type: about:blank
+        instance: trace-id-placeholder
+        status: 429
+    QuotaExceeded:
+      summary: Quota Exceeded
+      value:
+        code: QUOTA_EXCEEDED
+        title: Quota Exceeded
+        detail: You have exceeded your monthly API quota. Please upgrade your plan or wait until next month.
+        type: about:blank
+        instance: trace-id-placeholder
+        status: 429
+    InternalServerError:
+      summary: Internal Server Error
+      value:
+        code: INTERNAL_SERVER_EXCEPTION
+        title: Internal Server Error
+        detail: An unexpected error occurred on our end. Please try again later. If the problem persists, please report this issue.
+        type: about:blank
+        instance: trace-id-placeholder
+        status: 500
     ValidationFailed:
       summary: Validation Failed
       value:
         code: VALIDATION_FAILED
         title: Validation Failed
         detail: The request data did not pass validation rules. Please check the errors field for details.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 400
         errors:
@@ -6170,7 +8336,7 @@ components:
         code: INVALID_JSON
         title: Invalid JSON
         detail: The request body contains invalid JSON that could not be parsed. Please check the syntax.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 400
     AuthCredentialsRequired:
@@ -6179,7 +8345,7 @@ components:
         code: AUTH_CREDENTIALS_REQUIRED
         title: Authentication Credentials Required
         detail: No API key or session credentials were provided. Please include an Authorization Bearer token or a valid session cookie.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 401
     AuthCredentialsInvalid:
@@ -6188,7 +8354,7 @@ components:
         code: AUTH_CREDENTIALS_INVALID
         title: Invalid Authentication Credentials
         detail: The provided API key or session credentials are invalid. Please check your credentials and try again.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 401
     AuthCredentialsExpired:
@@ -6198,7 +8364,7 @@ components:
         code: AUTH_CREDENTIALS_EXPIRED
         title: Expired Authentication Credentials
         detail: Your credentials are not valid anymore. Please sign in again or create a new API key.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
     InsufficientPermissions:
       summary: Insufficient Permissions
@@ -6206,43 +8372,25 @@ components:
         code: INSUFFICIENT_PERMISSIONS
         title: Insufficient Permissions
         detail: 'Your account lacks the required permissions to perform this action. Required permissions: {permissions}.'
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 403
-    RateLimitExceeded:
-      summary: Rate Limit Exceeded
+    ServiceOverloaded:
+      summary: Service Overloaded
       value:
-        code: RATE_LIMIT_EXCEEDED
-        title: Rate Limit Exceeded
-        detail: You have made too many requests. Please slow down and try again later.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        code: SERVICE_OVERLOADED
+        title: Service Overloaded
+        detail: The service is busy. Please retry in a moment.
+        type: about:blank
         instance: trace-id-placeholder
-        status: 429
-    QuotaExceeded:
-      summary: Quota Exceeded
-      value:
-        code: QUOTA_EXCEEDED
-        title: Quota Exceeded
-        detail: You have exceeded your monthly API quota. Please upgrade your plan or wait until next month.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
-        instance: trace-id-placeholder
-        status: 429
-    InternalServerError:
-      summary: Internal Server Error
-      value:
-        code: INTERNAL_SERVER_EXCEPTION
-        title: Internal Server Error
-        detail: An unexpected error occurred on our end. Please try again later. If the problem persists, please report this issue.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
-        instance: trace-id-placeholder
-        status: 500
+        status: 503
     AccountConflict:
       summary: Account Conflict
       value:
         code: ACCOUNT_CONFLICT
         title: Account Conflict
         detail: An account with this email already exists. Please log in or use a different email.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 409
     DuplicateKey:
@@ -6251,7 +8399,7 @@ components:
         code: DUPLICATE_KEY
         title: Resource already exists
         detail: A resource with this identifier already exists
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 409
     NotFound:
@@ -6260,10 +8408,30 @@ components:
         code: NOT_FOUND
         title: Not Found
         detail: The requested resource could not be found. Please check the URL and try again.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 404
   responses:
+    TooManyRequests:
+      description: Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error429'
+          examples:
+            RateLimitExceeded:
+              $ref: '#/components/examples/RateLimitExceeded'
+            QuotaExceeded:
+              $ref: '#/components/examples/QuotaExceeded'
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error500'
+          examples:
+            InternalServerError:
+              $ref: '#/components/examples/InternalServerError'
     BadRequest:
       description: Bad Request
       content:
@@ -6297,26 +8465,21 @@ components:
           examples:
             InsufficientPermissions:
               $ref: '#/components/examples/InsufficientPermissions'
-    TooManyRequests:
-      description: Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+    ServiceUnavailable:
+      description: Service Unavailable. The server is already running as many requests of this kind as it can and refused this one rather than queue it. Nothing about the caller was counted -- this is not a rate limit -- so there is no budget to stay inside; wait the number of seconds in the `Retry-After` header and send the same request again.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
+            minimum: 1
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error429'
+            $ref: '#/components/schemas/Error503'
           examples:
-            RateLimitExceeded:
-              $ref: '#/components/examples/RateLimitExceeded'
-            QuotaExceeded:
-              $ref: '#/components/examples/QuotaExceeded'
-    InternalServerError:
-      description: Internal Server Error
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error500'
-          examples:
-            InternalServerError:
-              $ref: '#/components/examples/InternalServerError'
+            ServiceOverloaded:
+              $ref: '#/components/examples/ServiceOverloaded'
     Conflict:
       description: Conflict
       content:

@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 
-import { buildSegmentMessage, formatTimestamp, getMediaName, stripAllHtmlTags } from '../../embeds';
+import { buildSegmentMessage, formatTimestamp, getMediaName, inlineUserCode, stripAllHtmlTags } from '../../embeds';
 import { makeSegment, makeMedia } from '../mocks/fixtures';
 
 /** Discord rejects message content longer than this. `buildSegmentMessage` caps at it. */
@@ -165,5 +165,24 @@ describe('stripAllHtmlTags', () => {
 
   test('leaves a bare angle bracket that is not a tag', () => {
     expect(stripAllHtmlTags('5 < 6')).toBe('5 < 6');
+  });
+});
+
+describe('inlineUserCode', () => {
+  test('wraps plain text in a single code span', () => {
+    expect(inlineUserCode('食べる')).toBe('`食べる`');
+  });
+
+  test('a backtick in the text cannot close the span early', () => {
+    // The escape this guards: "x` @everyone `y" used to render @everyone as
+    // live text outside the code span, ready to ping.
+    const quoted = inlineUserCode('x` @everyone <@&123> `y');
+
+    expect(quoted).toBe('`x\u02CB @everyone <@&123> \u02CBy`');
+    expect(quoted.slice(1, -1)).not.toContain('`');
+  });
+
+  test('runs of backticks are neutralised too', () => {
+    expect(inlineUserCode('a``b```c').slice(1, -1)).not.toContain('`');
   });
 });

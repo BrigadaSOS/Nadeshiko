@@ -59,6 +59,11 @@ const REQUEST_BODY = [
   'req.body.code',
   'req.body.otp',
   'req.body.username',
+  // Social sign-in with a provider ID token is a bearer credential; `state` is
+  // the OAuth CSRF binding; `newEmail` is the change-email address.
+  'req.body.idToken',
+  'req.body.state',
+  'req.body.newEmail',
 ];
 
 /** Anything we hand back that would be a credential in someone else's hands. */
@@ -96,3 +101,34 @@ export const REDACT_PATHS: readonly string[] = [
   ...RESPONSE_PII,
   ...BARE,
 ];
+
+/** Query parameters that carry a credential or an address: magic-link and email-preference tokens, OAuth codes. */
+const SENSITIVE_QUERY_PARAMETERS = new Set([
+  'password',
+  'token',
+  'access_token',
+  'refresh_token',
+  'api_key',
+  'apikey',
+  'email',
+  'code',
+]);
+
+/**
+ * A request URL fit for a log line or an error report: path and query kept, credential values replaced.
+ * Mirrors `sanitizeRequestUrl` in `backend/config/log.ts`, which can switch to this copy.
+ */
+export function sanitizeRequestUrl(url: string): string {
+  try {
+    const parsed = new URL(url, 'http://localhost');
+    for (const [name] of parsed.searchParams) {
+      if (SENSITIVE_QUERY_PARAMETERS.has(name.toLowerCase())) {
+        parsed.searchParams.set(name, '[Redacted]');
+      }
+    }
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    // A malformed URL must not make logging leak its unparsed query string.
+    return url.split('?', 1)[0] ?? '';
+  }
+}

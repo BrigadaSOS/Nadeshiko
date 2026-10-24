@@ -174,18 +174,7 @@ lines fine for aggregate questions.
 
 ## Rate-limit operator triage
 
-`http.server.rate_limited` is exported with `scope`, `source`, and `client_ip`.
-The last label is the exact limiter key (IPv6 addresses are grouped to the
-configured `/56`), so an operator can identify the noisy bucket without
-joining against logs:
-
-```promql
-sum by (client_ip, scope) (
-  increase(http_server_rate_limited_total{deployment_environment="production"}[5m])
-)
-```
-
-This is an operator-only view. `client_ip` is real client data and must not be
-shown in public dashboards, user-facing URLs, or embedded in alert messages
-that leave the monitoring system. The existing aggregate rate-limit alerts
-continue to sum across this additional label.
+`http.server.rate_limited` is exported with `scope` and `source` only; client
+addresses are never metric labels (unbounded series, and real client data in a
+widely-read store). To find the noisy bucket, query the `Rate limit exceeded`
+warn line, which carries the limiter's `ip`, `scope` and `path`.

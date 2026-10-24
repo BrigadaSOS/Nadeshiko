@@ -63,6 +63,19 @@ function truncate(text: string, max: number): string {
   return `${text.slice(0, max - ELLIPSIS.length)}${ELLIPSIS}`;
 }
 
+/**
+ * Show user-typed text inside an inline code span.
+ *
+ * A backtick in the text would close the span and let the rest render as live
+ * markdown -- `@everyone`, role mentions, masked links. Discord ignores
+ * backslash escapes inside a code span, so discord.js's `escapeInlineCode`
+ * (which backslash-escapes) still lets the span close; the backtick has to go.
+ * It becomes U+02CB, which reads the same and never delimits code.
+ */
+export function inlineUserCode(text: string): string {
+  return `\`${text.replaceAll('`', '\u02CB')}\``;
+}
+
 export function buildSegmentMessage(
   segment: Segment,
   media: Media | undefined,

@@ -76,7 +76,8 @@ export const requireSessionAuth = async (req: Request, res: Response, next: Next
       throw new AuthCredentialsInvalidError('Invalid session user id.');
     }
 
-    await attachAuthPayloadToRequest(req, userId, AuthType.SESSION);
+    const impersonatedBy = (sessionData.session as { impersonatedBy?: unknown } | undefined)?.impersonatedBy;
+    await attachAuthPayloadToRequest(req, userId, AuthType.SESSION, undefined, impersonatedBy);
     next();
   } catch (error) {
     if (isKnownAuthError(error)) {
@@ -241,6 +242,7 @@ async function attachAuthPayloadToRequest(
   userId: number,
   authType: AuthType,
   apiKey?: { id?: string; kind?: ApiKeyKind; permissions: ApiPermission[] },
+  impersonatedBy?: unknown,
 ): Promise<void> {
   // For API keys, re-read the owner’s current ban state; unlike sessions, a key has no session row to revoke.
   const user = await loadActiveUser(userId, authType === AuthType.API_KEY);
@@ -249,6 +251,7 @@ async function attachAuthPayloadToRequest(
   req.auth = {
     type: authType,
     ...(apiKey ? { apiKey } : {}),
+    ...(impersonatedBy ? { impersonatedBy: String(impersonatedBy) } : {}),
   };
 
   const span = trace.getActiveSpan();
