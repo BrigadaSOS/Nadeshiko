@@ -61,18 +61,21 @@ RUN if [ "$NUXT_PUBLIC_ENVIRONMENT" = "production" ]; then \
 # --import loads OpenTelemetry before Nitro's bundle, so ship its SDK separately.
 FROM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS otel-deps
 WORKDIR /deps
+# Pinned to the lockfile's versions: unpinned, every build resolved whatever was newest, so an upstream release
+# could break the image (api 1.10.0 did, against sdk-trace-node's peer range) or ship code nobody reviewed.
 RUN npm init -y >/dev/null \
-  && npm install --omit=dev --no-audit --no-fund \
-    @opentelemetry/sdk-node \
-    @opentelemetry/sdk-trace-node \
-    @opentelemetry/exporter-trace-otlp-http \
-    @opentelemetry/exporter-metrics-otlp-http \
-    @opentelemetry/resources \
-    @opentelemetry/sdk-metrics \
-    @opentelemetry/instrumentation-http \
-    @opentelemetry/instrumentation-undici \
-    @opentelemetry/instrumentation-runtime-node \
-    @opentelemetry/instrumentation-pino
+  && npm install --omit=dev --no-audit --no-fund --save-exact \
+    @opentelemetry/api@1.9.1 \
+    @opentelemetry/sdk-node@0.222.0 \
+    @opentelemetry/sdk-trace-node@2.11.0 \
+    @opentelemetry/exporter-trace-otlp-http@0.222.0 \
+    @opentelemetry/exporter-metrics-otlp-http@0.222.0 \
+    @opentelemetry/resources@2.11.0 \
+    @opentelemetry/sdk-metrics@2.11.0 \
+    @opentelemetry/instrumentation-http@0.222.0 \
+    @opentelemetry/instrumentation-undici@0.32.0 \
+    @opentelemetry/instrumentation-runtime-node@0.35.0 \
+    @opentelemetry/instrumentation-pino@0.68.0
 
 FROM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205
 WORKDIR /app
