@@ -43,7 +43,7 @@ permissions:
 env:
   NODE_VERSION: '24.22.1'
   # Published by .github/workflows/elasticsearch-image.yml; keep both in sync.
-  ELASTICSEARCH_IMAGE: ghcr.io/brigadasos/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116
+  ELASTICSEARCH_IMAGE: ghcr.io/davafons/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116
 
 jobs:
   lint:
