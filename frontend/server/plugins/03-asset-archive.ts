@@ -15,6 +15,7 @@ import {
   isBuildSegment,
 } from '~~/server/utils/assetArchive';
 import { logger } from '~~/server/utils/logger';
+import { prependRequestHandler } from '~~/server/utils/prependRequestHandler';
 
 // Relative to the production working directory; without a built .output tree the archive stays disabled.
 const BUILD_ASSET_DIR = '.output/public/_nuxt';
@@ -55,7 +56,7 @@ export default defineNitroPlugin(async (nitroApp) => {
     return;
   }
 
-  if (!install(nitroApp, assetArchiveDir, liveAssets)) return;
+  if (!prependRequestHandler(nitroApp, archiveHandler(assetArchiveDir, liveAssets), 'asset archive')) return;
 
   logger.info(
     { assetArchiveDir, liveAssets: liveAssets.size, retentionDays: assetArchiveDays },
@@ -68,41 +69,6 @@ export default defineNitroPlugin(async (nitroApp) => {
     logger.error({ err: error }, 'asset archive: publishing the running build failed');
   });
 });
-
-// Let h3App.use normalize the layer, then prepend it. Unexpected stack shapes disable the archive rather
-// than leave an unreachable handler behind Nitro static serving.
-function install(
-  nitroApp: { h3App?: { use?: unknown; stack?: unknown } },
-  dir: string,
-  liveAssets: ReadonlySet<string>,
-): boolean {
-  const h3App = nitroApp.h3App;
-
-  if (!h3App || typeof h3App.use !== 'function' || !Array.isArray(h3App.stack)) {
-    logger.error('asset archive: cannot reach the request stack, staying off');
-    return false;
-  }
-
-  const stack = h3App.stack as unknown[];
-  const before = stack.length;
-
-  (h3App.use as (handler: unknown) => unknown)(archiveHandler(dir, liveAssets));
-
-  if (stack.length !== before + 1) {
-    logger.error('asset archive: the request stack did not take the handler, staying off');
-    return false;
-  }
-
-  // Move exactly the newly registered layer, preserving all other order; pop could select an unrelated future layer.
-  const [layer] = stack.splice(before, 1);
-  if (!layer) {
-    logger.error('asset archive: could not identify its request handler, staying off');
-    return false;
-  }
-  stack.unshift(layer);
-
-  return true;
-}
 
 function archiveHandler(dir: string, liveAssets: ReadonlySet<string>) {
   return defineEventHandler(async (event) => {

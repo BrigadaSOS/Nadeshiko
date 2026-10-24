@@ -57,15 +57,15 @@ if (!hashes || Object.keys(hashes).length === 0) {
 }
 
 // Nuxt fetches build manifests without integrity attributes and rewrites them after hashing. Exclude only
-// this directory, not arbitrary JSON assets.
-const UNENFORCED = '/_nuxt/builds/';
+// this directory, not arbitrary JSON assets. It sits under the per-build buildAssetsDir: /_nuxt/<build>/builds/.
+const UNENFORCED = /^\/_nuxt\/[0-9a-f-]{36}\/builds\//;
 
 const mismatched = [];
 const missing = [];
 let checked = 0;
 
 for (const [path, declared] of Object.entries(hashes)) {
-  if (path.startsWith(UNENFORCED)) continue;
+  if (UNENFORCED.test(path)) continue;
 
   const [algorithm, expected] = declared.split('-');
   const file = join(PUBLIC_DIR, path.replace(/^\//, ''));

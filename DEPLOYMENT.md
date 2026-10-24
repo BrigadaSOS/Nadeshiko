@@ -1169,11 +1169,24 @@ Neither guard makes the change safe. **If you ever need a build setting that
 rewrites output after hashing, it has to ride a release where every chunk name
 changes anyway** — otherwise it is this outage, deferred.
 
-`/_nuxt/builds/latest.json` is deliberately **not** covered: it is Nuxt's record
-of which build is current, and serving a superseded copy of the file whose job is
-to announce that the build changed is the one thing this must never do. It is
-also the reason `/_nuxt/builds/**` carries `no-cache` in `routeRules` rather than
-the year the surrounding `/_nuxt/**` rule gives everything else.
+Build manifests are deliberately **not** archived. Nuxt writes them under
+`buildAssetsDir`, so they live at `/_nuxt/<build>/builds/latest.json` and
+`/_nuxt/<build>/builds/meta/<build>.json`, not `/_nuxt/builds/`. `latest.json`
+is Nuxt's record of which build is current, and an open tab polls it every five
+minutes (`checkOutdatedBuildInterval`) — but at *its own* build's URL. Left
+alone, that URL reports the tab's own build until the deploy and 404s after it,
+so the check never fires and old tabs keep the old client until a chunk fails.
+`server/plugins/03-latest-build-manifest.ts` therefore answers
+`/_nuxt/<any build>/builds/latest.json` with the running build's file and
+`no-cache`; the next client-side navigation after a deploy then reloads onto the
+new build. An old build's `meta/<build>.json` may 404 after a deploy; Nuxt's
+check tolerates that, and route rules are compiled into the client bundle.
+
+To confirm on prod, swap any UUID into the path and expect the live id back:
+
+```bash
+curl -s https://nadeshiko.co/_nuxt/00000000-0000-0000-0000-000000000000/builds/latest.json
+```
 
 ### Purging HTML on deploy
 

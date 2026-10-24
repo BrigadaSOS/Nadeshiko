@@ -7,6 +7,7 @@ import {
   assetContentType,
   assetHasExpired,
   isArchivableAsset,
+  isLatestManifestPath,
 } from '~~/server/utils/assetArchive';
 
 const RETENTION_MS = assetArchiveRetentionMs(ASSET_ARCHIVE_RETENTION_DAYS);
@@ -135,5 +136,26 @@ describe('assetContentType', () => {
 
   it.each(['mystery.bin', 'noextension'])('falls back to a download for %s', (name) => {
     expect(assetContentType(name)).toBe('application/octet-stream');
+  });
+});
+
+describe('isLatestManifestPath', () => {
+  // Nuxt polls latest.json under buildAssetsDir, so every build a tab could have loaded asks at its own URL.
+  it.each([
+    ['the running build', `/_nuxt/${BUILD}/builds/latest.json`],
+    ['a superseded build', '/_nuxt/1a2b3c4d-0bb6-48ef-b756-7858e8a1aba7/builds/latest.json'],
+  ])('matches %s', (_label, path) => {
+    expect(isLatestManifestPath(path)).toBe(true);
+  });
+
+  it.each([
+    ['the root path Nuxt never emits here', '/_nuxt/builds/latest.json'],
+    ['a build-addressed meta file', `/_nuxt/${BUILD}/builds/meta/${BUILD}.json`],
+    ['a segment that is not a build id', '/_nuxt/assets/builds/latest.json'],
+    ['an extra segment', `/_nuxt/${BUILD}/x/builds/latest.json`],
+    ['a traversal attempt', `/_nuxt/../${BUILD}/builds/latest.json`],
+    ['a different prefix', `/assets/${BUILD}/builds/latest.json`],
+  ])('declines %s', (_label, path) => {
+    expect(isLatestManifestPath(path)).toBe(false);
   });
 });
