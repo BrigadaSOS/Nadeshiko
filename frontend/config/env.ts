@@ -40,6 +40,8 @@ const envSchema = z.object({
   NUXT_RATE_LIMIT_V1_API_MAX: z.coerce.number().int().positive().default(120),
   // Separate low budget for unauthenticated feedback writes, which each queue an email.
   NUXT_RATE_LIMIT_V1_FEEDBACK_MAX: z.coerce.number().int().positive().default(5),
+  // Word-card lookups by readers; hovering through a long page stays well below this.
+  NUXT_RATE_LIMIT_SHIRABE_MAX: z.coerce.number().int().positive().default(120),
   NUXT_RATE_LIMIT_HTML_MAX: z.coerce.number().int().positive().default(60),
   // Per-process SSR admission cap: excess gets 503. Workers cannot share event-loop
   // capacity; see server/middleware/99-ssr-admission.ts for default sizing.

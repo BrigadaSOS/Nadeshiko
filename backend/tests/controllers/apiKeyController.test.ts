@@ -2,7 +2,9 @@ import { request } from '../helpers/http';
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { setupTestSuite, createTestApp, signInAs, TestDataSource } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
-import { ApiPermission } from '@app/models';
+import { ApiPermission, AuthType } from '@app/models';
+import { InsufficientPermissionsError } from '@app/errors';
+import { createUserApiKey } from '@app/controllers/apiKeyController';
 
 setupTestSuite();
 
@@ -125,5 +127,29 @@ describe('POST /v1/user/api-keys', () => {
 
       expect(res.status).toBe(400);
     });
+  });
+
+  it('refuses to mint a key from an impersonated session', async () => {
+    const name = 'minted-while-impersonating';
+    const req = {
+      user: fixtures.users.regular,
+      auth: { type: AuthType.SESSION, impersonatedBy: String(fixtures.users.kevin.id) },
+    };
+
+    await expect(
+      createUserApiKey(
+        { body: { name, scopes: [ApiPermission.READ_MEDIA] } } as any,
+        {} as any,
+        req as any,
+        {} as any,
+        (() => {}) as any,
+      ),
+    ).rejects.toBeInstanceOf(InsufficientPermissionsError);
+
+    const rows: { count: string }[] = await TestDataSource.query(
+      `SELECT COUNT(*) as count FROM "apikey" WHERE "name" = $1`,
+      [name],
+    );
+    expect(Number(rows[0]?.count)).toBe(0);
   });
 });

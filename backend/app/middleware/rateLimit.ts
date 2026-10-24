@@ -48,7 +48,7 @@ export type RateLimitScope = (typeof RATE_LIMIT_SCOPES)[number];
 const RATE_LIMIT_SOURCES = ['internal', 'external'] as const;
 
 const rateLimitedCount = getMeter().createCounter('http.server.rate_limited', {
-  description: 'Requests rejected by the per-IP rate limiter, by caller class and limiter key',
+  description: 'Requests rejected by the per-IP rate limiter, by caller class',
   unit: '{request}',
 });
 
@@ -100,9 +100,8 @@ function buildHandler(scope: RateLimitScope, detail: string): RequestHandler {
       'Rate limit exceeded',
     );
 
-    // Keep normalized `client_ip` only on the operator metric, not response headers; aggregate alert labels remain
-    // `scope` and `source`.
-    rateLimitedCount.add(1, { scope, source, client_ip: clientKey(req) });
+    // No address label: the noisy bucket is in the warn line above, and an address per series is unbounded.
+    rateLimitedCount.add(1, { scope, source });
 
     // express-rate-limit augments the request with timing info for this hit.
     const resetTime = (req as Request & { rateLimit?: { resetTime?: Date } }).rateLimit?.resetTime;

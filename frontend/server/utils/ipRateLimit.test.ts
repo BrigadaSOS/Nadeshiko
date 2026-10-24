@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { ipRateLimit, perWorkerMax, _resetIpRateLimitForTests } from './ipRateLimit';
+import {
+  ipRateLimit,
+  perWorkerMax,
+  rateLimitSubject,
+  _ipRateLimitBucketCountForTests,
+  _resetIpRateLimitForTests,
+} from './ipRateLimit';
 
 function fakeEvent(headers: Record<string, string | undefined>, ip = '1.2.3.4') {
   return {
@@ -84,6 +90,47 @@ describe('ipRateLimit', () => {
     for (let i = 0; i < 3; i++) await ipRateLimit(a, { windowMs: 60_000, max: 3, route: '/v1/auth' });
     // Different route = different bucket
     expect(await ipRateLimit(a, { windowMs: 60_000, max: 3, route: '/v1/search' })).toBeNull();
+  });
+
+  it('shares one bucket across an IPv6 /56, so rotating addresses inside it does not reset the limit', async () => {
+    _resetIpRateLimitForTests();
+    const opts = { windowMs: 60_000, max: 3 };
+    const at = (ip: string) => fakeEvent({ 'cf-connecting-ip': ip });
+
+    await ipRateLimit(at('2001:db8:aa:bb00::1'), opts);
+    await ipRateLimit(at('2001:db8:aa:bb12:1:2:3:4'), opts);
+    await ipRateLimit(at('2001:db8:aa:bbff:ffff::9'), opts);
+
+    expect(await ipRateLimit(at('2001:0db8:00aa:bb77::abcd'), opts)).not.toBeNull();
+    // The neighbouring /56 is somebody else.
+    expect(await ipRateLimit(at('2001:db8:aa:bc00::1'), opts)).toBeNull();
+  });
+
+  it('keys IPv6 by /56 and unwraps IPv4-mapped addresses, like the backend ipKeyGenerator', () => {
+    expect(rateLimitSubject('2001:db8:aa:bb12:1:2:3:4')).toBe('2001:db8:aa:bb00::/56');
+    expect(rateLimitSubject('2001:db8::1')).toBe('2001:db8:0:0::/56');
+    expect(rateLimitSubject('::ffff:203.0.113.7')).toBe('203.0.113.7');
+    expect(rateLimitSubject('::ffff:cb00:7107')).toBe('203.0.113.7');
+    expect(rateLimitSubject('203.0.113.7')).toBe('203.0.113.7');
+    expect(rateLimitSubject('fe80::1%eth0')).toBe('fe80:0:0:0::/56');
+    expect(rateLimitSubject('unknown')).toBe('unknown');
+  });
+
+  it('caps the bucket map instead of growing with every new address', async () => {
+    _resetIpRateLimitForTests();
+    const opts = { windowMs: 60_000, max: 3 };
+    for (let i = 0; i < 50_100; i++) {
+      await ipRateLimit(fakeEvent({ 'cf-connecting-ip': `10.${(i >> 16) & 255}.${(i >> 8) & 255}.${i & 255}` }), opts);
+    }
+    expect(_ipRateLimitBucketCountForTests()).toBeLessThanOrEqual(50_000);
+  });
+
+  it('drops expired buckets as new ones arrive', async () => {
+    _resetIpRateLimitForTests();
+    await ipRateLimit(fakeEvent({ 'cf-connecting-ip': '198.51.100.1' }), { windowMs: 20, max: 3 });
+    await new Promise((r) => setTimeout(r, 30));
+    await ipRateLimit(fakeEvent({ 'cf-connecting-ip': '198.51.100.2' }), { windowMs: 20, max: 3 });
+    expect(_ipRateLimitBucketCountForTests()).toBe(1);
   });
 
   it('window expires and bucket resets', async () => {

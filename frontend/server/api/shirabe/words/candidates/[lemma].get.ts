@@ -1,4 +1,5 @@
-import { createError, getQuery, getRouterParam, setResponseHeader } from 'h3';
+import { createError, getQuery, getRouterParam, type H3Event, setResponseHeader } from 'h3';
+import { stableCacheKey } from '~~/server/utils/cacheKey';
 import { logger } from '~~/server/utils/logger';
 import { callShirabe, describeFailure } from '~~/server/utils/shirabeCall';
 import {
@@ -49,9 +50,11 @@ interface IdentifyResponse {
   stackFingerprint?: string | null;
 }
 
-const handler = defineEventHandler(async (event) => {
+// Everything the answer depends on. The cache key is built from this alone, so parameters the handler never
+// reads (including the browser's `stack` key) cannot split shared entries.
+function lookupInput(event: H3Event): { lemma: string; locale: string; token: Record<string, string> } | null {
   const lemma = getRouterParam(event, 'lemma');
-  if (!lemma) throw createError({ statusCode: 400, statusMessage: 'lemma is required' });
+  if (!lemma) return null;
 
   const query = getQuery(event);
   const requested = String(query.locale ?? '');
@@ -64,6 +67,20 @@ const handler = defineEventHandler(async (event) => {
     const value = String(query[key] ?? '').trim();
     if (value) token[key] = value;
   }
+  return { lemma, locale, token };
+}
+
+function lookupCacheKey(event: H3Event): string {
+  const input = lookupInput(event);
+  if (!input) return 'missing-lemma';
+  const { locale, token } = input;
+  return stableCacheKey(locale, token.lemma ?? '', token.surface ?? '', token.reading ?? '', token.pos ?? '');
+}
+
+const handler = defineEventHandler(async (event) => {
+  const input = lookupInput(event);
+  if (!input) throw createError({ statusCode: 400, statusMessage: 'lemma is required' });
+  const { lemma, locale, token } = input;
 
   // Fetch a linked reader's key only on a cache miss.
   const reader = await readerStack(event);
@@ -162,4 +179,5 @@ export default defineCachedEventHandler(handler, {
   swr: true,
   maxAge: CACHE_SECONDS,
   shouldBypassCache: readerHasOwnStack,
+  getKey: lookupCacheKey,
 });

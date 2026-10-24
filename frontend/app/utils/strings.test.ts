@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { firstNonBlank } from './strings';
+import { firstNonBlank, httpUrl } from './strings';
 
 describe('firstNonBlank', () => {
   it('returns the first value that says something', () => {
@@ -23,4 +23,18 @@ describe('firstNonBlank', () => {
   it('returns a surviving value unchanged', () => {
     expect(firstNonBlank('  Padded Title  ')).toBe('  Padded Title  ');
   });
+});
+
+describe('httpUrl', () => {
+  it('keeps absolute http and https links', () => {
+    expect(httpUrl('https://anilist.co/anime/1')).toBe('https://anilist.co/anime/1');
+    expect(httpUrl('http://example.com')).toBe('http://example.com');
+  });
+
+  it.each(['javascript:alert(1)', ' JavaScript:alert(1)', 'data:text/html,<script>x</script>', '/relative', '', null])(
+    'refuses %s',
+    (value) => {
+      expect(httpUrl(value)).toBeNull();
+    },
+  );
 });

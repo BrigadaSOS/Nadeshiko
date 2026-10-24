@@ -14,7 +14,7 @@ post:
           type: object
           required: [sourceUrl]
           properties:
-            sourceUrl: { type: string, format: uri, maxLength: 1000 }
+            sourceUrl: { type: string, format: uri, maxLength: 1000, pattern: "^https?://" }
             title: { type: string, minLength: 1, maxLength: 180 }
             note: { type: string, maxLength: 2000 }
             proposerName: { type: string, maxLength: 80, description: Optional name to show publicly if the proposal is approved. }

@@ -90,6 +90,41 @@ describe('invalidateAuthCachesAfterMutation', () => {
     expect(invalidateApiKeyCacheSpy).not.toHaveBeenCalled();
   });
 
+  it.each(['/v1/auth/admin/set-role', '/v1/auth/admin/ban-user', '/v1/auth/admin/update-user'])(
+    'invalidates the target user, not the admin, after %s',
+    async (path) => {
+      const req = createRequest({ method: 'POST', path, originalUrl: path, headers: {}, body: { userId: '77' } });
+      const { res, emitFinish } = createResponse(200);
+      const next = vi.fn() as unknown as NextFunction;
+
+      await invalidateAuthCachesAfterMutation(req, res, next);
+      emitFinish();
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(mockGetSession).not.toHaveBeenCalled();
+      expect(invalidateUserCacheSpy).toHaveBeenCalledExactlyOnceWith(77);
+      expect(invalidateApiKeyCacheSpy).toHaveBeenCalledExactlyOnceWith(77);
+    },
+  );
+
+  it('does not invalidate the target when the admin mutation is refused', async () => {
+    const req = createRequest({
+      method: 'POST',
+      path: '/v1/auth/admin/set-role',
+      originalUrl: '/v1/auth/admin/set-role',
+      headers: {},
+      body: { userId: '77', role: 'USER' },
+    });
+    const { res, emitFinish } = createResponse(403);
+    const next = vi.fn() as unknown as NextFunction;
+
+    await invalidateAuthCachesAfterMutation(req, res, next);
+    emitFinish();
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(invalidateUserCacheSpy).not.toHaveBeenCalled();
+  });
+
   it('does not invalidate when no session user is available', async () => {
     mockGetSession.mockResolvedValue(null);
 

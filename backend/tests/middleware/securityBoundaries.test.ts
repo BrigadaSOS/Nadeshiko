@@ -270,12 +270,12 @@ describe('corpus write routes', () => {
     expect(res.status).not.toBe(403);
   });
 
-  it('still allows a non-admin API key holding the required scope', async () => {
+  it('allows a service key holding the required scope regardless of its owner role', async () => {
     authState = {
       user: fixtures.users.regular,
       type: AuthType.API_KEY,
       apiKey: {
-        kind: ApiKeyKind.USER,
+        kind: ApiKeyKind.SERVICE,
         permissions: [ApiPermission.ADD_MEDIA],
       },
     };
@@ -284,6 +284,49 @@ describe('corpus write routes', () => {
     expect(res.status).not.toBe(401);
     expect(res.status).not.toBe(403);
   });
+
+  it('allows a user key holding the required scope while its owner is still admin', async () => {
+    authState = {
+      user: fixtures.users.kevin,
+      type: AuthType.API_KEY,
+      apiKey: {
+        kind: ApiKeyKind.USER,
+        permissions: [ApiPermission.UPDATE_MEDIA],
+      },
+    };
+
+    const res = await request(app)
+      .patch('/v1/media/TestMedia001')
+      .set('Authorization', 'Bearer fake_for_routing')
+      .send({});
+    expect(res.status).not.toBe(401);
+    expect(res.status).not.toBe(403);
+  });
+
+  // A key minted while its owner was admin keeps its stored scopes; the owner's current role is what must gate it.
+  const demotedKeyRoutes = [
+    { method: 'patch' as const, path: '/v1/media/TestMedia001', permission: ApiPermission.UPDATE_MEDIA },
+    { method: 'delete' as const, path: '/v1/media/TestMedia001', permission: ApiPermission.REMOVE_MEDIA },
+    { method: 'post' as const, path: '/v1/media', permission: ApiPermission.ADD_MEDIA },
+    { method: 'get' as const, path: '/v1/admin/reports', permission: ApiPermission.READ_ADMIN },
+  ];
+
+  for (const route of demotedKeyRoutes) {
+    it(`rejects a demoted owner's user key on ${route.method.toUpperCase()} ${route.path}`, async () => {
+      authState = {
+        user: fixtures.users.regular,
+        type: AuthType.API_KEY,
+        apiKey: {
+          kind: ApiKeyKind.USER,
+          permissions: [route.permission],
+        },
+      };
+
+      const res = await request(app)[route.method](route.path).set('Authorization', 'Bearer fake_for_routing').send({});
+      expect(res.status).toBe(403);
+      expect(res.body.code).toBe('INSUFFICIENT_PERMISSIONS');
+    });
+  }
 
   it('still rejects an API key missing the required scope', async () => {
     authState = {
@@ -399,6 +442,38 @@ describe('cross-user collection isolation', () => {
     const res = await request(app).get(`/v1/collections/${collection.publicId}`);
     expect(res.status).toBe(200);
   });
+
+  it("lets an admin session read another user's private collection", async () => {
+    const collection = await createCollectionAs(fixtures.users.regular);
+
+    authState = { user: fixtures.users.kevin, type: AuthType.SESSION };
+
+    const res = await request(app).get(`/v1/collections/${collection.publicId}`);
+    expect(res.status).toBe(200);
+  });
+
+  for (const kind of [ApiKeyKind.USER, ApiKeyKind.SERVICE]) {
+    it(`gives an admin-owned ${kind} key no access to another user's private collection`, async () => {
+      const collection = await createCollectionAs(fixtures.users.regular);
+
+      authState = {
+        user: fixtures.users.kevin,
+        type: AuthType.API_KEY,
+        apiKey: { kind, permissions: [ApiPermission.READ_COLLECTIONS, ApiPermission.UPDATE_COLLECTIONS] },
+      };
+
+      const read = await request(app)
+        .get(`/v1/collections/${collection.publicId}`)
+        .set('Authorization', 'Bearer fake_for_routing');
+      expect(read.status).toBe(403);
+
+      const update = await request(app)
+        .patch(`/v1/collections/${collection.publicId}`)
+        .set('Authorization', 'Bearer fake_for_routing')
+        .send({ name: 'Hijacked' });
+      expect(update.status).toBe(403);
+    });
+  }
 });
 
 describe('admin role boundary', () => {

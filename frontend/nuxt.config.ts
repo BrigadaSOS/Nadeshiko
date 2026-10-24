@@ -480,17 +480,10 @@ export default defineNuxtConfig({
     // Do not add shared HTML caching without auditing SSR personalization and nonce handling.
     // The root locale router is per-user and must never be shared-cached.
     '/': { headers: { 'Cache-Control': 'private, no-store' } },
-    // Shirabe definitions are cached inside the handler, not by a path-only route rule: linked readers have
-    // private dictionaries and must bypass shared entries (see words/candidates/[lemma].get.ts).
-    // Announcement/home responses are visitor-independent. Nitro swr overwrites Cache-Control, so custom
-    // headers here would not reach clients; ETag/Last-Modified still allow browser revalidation.
-    // Keep announcements at one minute so maintenance notices appear promptly.
-    '/api/announcement': { swr: 60 },
-    // The home grid ignores hidden-media preferences, so it is safe to share; five minutes suits import-driven updates.
-    '/api/home/recent-media': { swr: 300 },
-    // Cache visitor-independent slug resolution for a day; new titles use the slug index miss path rather than
-    // waiting for expiry (server/utils/mediaSlugIndex.ts).
-    '/api/media/by-slug/**': { swr: 86400 },
+    // Shared /api responses (announcement, home grid, media by slug, Shirabe definitions) are cached inside their
+    // handlers with explicit keys, not by swr route rules: a route rule keys on the full URL, so every junk query
+    // string would mint a cache entry. Their swr options still overwrite Cache-Control, so custom headers here would
+    // not reach clients; ETag/Last-Modified still allow browser revalidation.
     ...(isDev && {
       '/**': {
         headers: { 'X-Robots-Tag': 'noindex, nofollow' },
@@ -524,11 +517,6 @@ export default defineNuxtConfig({
     '/favicon.ico': {
       headers: {
         'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
-      },
-    },
-    '/github-c80c5ec0.png': {
-      headers: {
-        'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
     '/patreon-0c68395a.png': {

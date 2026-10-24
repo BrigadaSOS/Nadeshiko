@@ -10,6 +10,7 @@ import {
   enrichSessionUser,
   extractBearerToken,
   getTrustedOrigins,
+  rejectImpersonatedApiKeyCreation,
   resolveDefaultApiPermissions,
   resolveGrantableApiPermissions,
   sendWelcomeEmailAfterUserCreate,
@@ -207,6 +208,35 @@ describe('buildAuthOptions', () => {
     expect(options.trustedOrigins).toBeUndefined();
     expect((options as any).advanced.useSecureCookies).toBe(false);
     expect((options as any).advanced.defaultCookieAttributes.secure).toBe(false);
+  });
+
+  it('uses secure cookies whenever the served origin is https, whatever the environment is called', () => {
+    // Staging serves https with ENVIRONMENT=development.
+    const options = buildAuthOptions({
+      configValues: makeConfig({ BASE_URL: 'https://staging.nadeshiko.test', ENVIRONMENT: 'development' }),
+      production: false,
+    }) as any;
+
+    expect(options.advanced.useSecureCookies).toBe(true);
+    expect(options.advanced.defaultCookieAttributes.secure).toBe(true);
+  });
+
+  it('disables every email-OTP route except the sign-in the frontend uses', () => {
+    const disabled = buildAuthOptions({ configValues: makeConfig(), production: false }).disabledPaths ?? [];
+
+    expect(disabled).not.toContain('/sign-in/email-otp');
+    for (const path of [
+      '/email-otp/send-verification-otp',
+      '/email-otp/check-verification-otp',
+      '/email-otp/verify-email',
+      '/email-otp/request-password-reset',
+      '/email-otp/reset-password',
+      '/email-otp/request-email-change',
+      '/email-otp/change-email',
+      '/forget-password/email-otp',
+    ]) {
+      expect(disabled).toContain(path);
+    }
   });
 
   it('maps trusted origins and secure cookie attributes in production', async () => {
@@ -423,5 +453,30 @@ describe('session duration regression tests', () => {
     // This prevents accidental misconfiguration that would be a security risk
     const NINETY_DAYS_IN_SECONDS = 90 * 24 * 60 * 60;
     expect(session?.expiresIn).toBeLessThanOrEqual(NINETY_DAYS_IN_SECONDS);
+  });
+});
+
+describe('rejectImpersonatedApiKeyCreation', () => {
+  const contextWith = (impersonatedBy: string | null) =>
+    ({ session: { user: { id: '42' }, session: { userId: '42', impersonatedBy } } }) as any;
+
+  it('refuses /api-key/create from an impersonated session', async () => {
+    await expect(
+      rejectImpersonatedApiKeyCreation({ path: '/api-key/create', context: contextWith('1') }),
+    ).rejects.toMatchObject({ body: { code: 'IMPERSONATION_FORBIDDEN' } });
+  });
+
+  it('lets the reader create their own key and leaves other routes alone', async () => {
+    await expect(
+      rejectImpersonatedApiKeyCreation({ path: '/api-key/create', context: contextWith(null) }),
+    ).resolves.toBeUndefined();
+    await expect(
+      rejectImpersonatedApiKeyCreation({ path: '/api-key/list', context: contextWith('1') }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('is wired as a before hook', () => {
+    const options = buildAuthOptions({ configValues: makeConfig(), production: false });
+    expect(options.hooks?.before).toBeTypeOf('function');
   });
 });
