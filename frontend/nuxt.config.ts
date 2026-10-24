@@ -454,7 +454,8 @@ export default defineNuxtConfig({
     },
   },
   // Check for deploys every five minutes instead of an hour to shrink the stale-tab import window.
-  // This only reduces the race; per-build asset URLs and the archive below preserve old bytes.
+  // This only reduces the race; per-build asset URLs and the archive below preserve old bytes. The poll only
+  // works because 03-latest-build-manifest.ts answers every build's latest.json with the running build's.
   experimental: {
     checkOutdatedBuildInterval: 5 * 60 * 1000,
   },
@@ -497,18 +498,9 @@ export default defineNuxtConfig({
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
-    // latest.json tells open tabs a deploy happened and must revalidate. Build-id-addressed metadata remains
-    // immutable. Nitro merges these rules by specificity, not declaration order.
-    '/_nuxt/builds/meta/**': {
-      headers: {
-        'Cache-Control': 'public, max-age=31536000, immutable',
-      },
-    },
-    '/_nuxt/builds/**': {
-      headers: {
-        'Cache-Control': 'no-cache',
-      },
-    },
+    // Build manifests live under buildAssetsDir (/_nuxt/<build>/builds/), not /_nuxt/builds/. Their meta is
+    // build-addressed and safely immutable; latest.json is answered for every build, no-cache, by
+    // server/plugins/03-latest-build-manifest.ts so open tabs can see a newer deploy.
     '/assets/**': {
       headers: {
         'Cache-Control': 'public, max-age=31536000, immutable',

@@ -22,11 +22,22 @@ const ASSET_PREFIX = '/_nuxt/';
 // are allowed because Vite uses them for dynamic-route chunks.
 const ASSET_NAME = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
 
-// Require a UUID build segment so Nuxt's builds/** manifests cannot address the archive.
+// Require a UUID build segment, matching app.buildAssetsDir (/_nuxt/<build>/).
 const BUILD_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export function isBuildSegment(segment: string): boolean {
   return BUILD_SEGMENT.test(segment);
+}
+
+const LATEST_MANIFEST_SUFFIX = '/builds/latest.json';
+
+// Nuxt polls latest.json under buildAssetsDir, so a tab asks /_nuxt/<its own build>/builds/latest.json and can
+// never see a newer build there. Match that URL for any build so it can be answered with the running build's.
+export function isLatestManifestPath(pathname: string): boolean {
+  if (!pathname.startsWith(ASSET_PREFIX) || !pathname.endsWith(LATEST_MANIFEST_SUFFIX)) return false;
+
+  const build = pathname.slice(ASSET_PREFIX.length, pathname.length - LATEST_MANIFEST_SUFFIX.length);
+  return BUILD_SEGMENT.test(build);
 }
 
 // Accept exactly <build>/<name>, never nested paths or app manifests: a stale latest.json would hide build changes.
