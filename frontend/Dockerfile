@@ -2,7 +2,7 @@
 
 # Build from the repository root for workspace manifests, lockfile and SDK sources:
 #   docker build -f frontend/Dockerfile .
-FROM node:24-slim AS deps
+FROM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS deps
 WORKDIR /build
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 # npm ci needs every workspace manifest to reconcile the root lockfile.
@@ -59,7 +59,7 @@ RUN if [ "$NUXT_PUBLIC_ENVIRONMENT" = "production" ]; then \
   fi
 
 # --import loads OpenTelemetry before Nitro's bundle, so ship its SDK separately.
-FROM node:24-slim AS otel-deps
+FROM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS otel-deps
 WORKDIR /deps
 RUN npm init -y >/dev/null \
   && npm install --omit=dev --no-audit --no-fund \
@@ -74,7 +74,7 @@ RUN npm init -y >/dev/null \
     @opentelemetry/instrumentation-runtime-node \
     @opentelemetry/instrumentation-pino
 
-FROM node:24-slim
+FROM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205
 WORKDIR /app
 COPY --from=build /build/frontend/.output ./.output
 RUN rm -rf .output/server/node_modules/@opentelemetry/api
