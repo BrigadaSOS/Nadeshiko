@@ -26,7 +26,7 @@ import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
 import { config } from '@config/config';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { getAdminUsersWithProviders } from '@app/controllers/adminDashboardController';
-import { handleZeptomailWebhook, WEBHOOK_ZEPTOMAIL_PATH } from '@app/controllers/webhooks/zeptomailController';
+import { handleSesWebhook, WEBHOOK_SES_PATH } from '@app/controllers/webhooks/sesController';
 import { listTiers, getAdminUserQuota, updateAdminUserQuota } from '@app/controllers/adminQuotaController';
 import { getAnnouncement, updateAnnouncement } from '@app/controllers/announcementController';
 import { listAgentActivity } from '@app/controllers/agentActivityController';
@@ -448,7 +448,7 @@ router.use('/', EmailRoutes);
 // egress addresses.
 router.get(EMAIL_LINK_PATH, noCache, setRouteTemplate(EMAIL_LINK_PATH), handleEmailLinkClick);
 
-router.post(WEBHOOK_ZEPTOMAIL_PATH, noCache, setRouteTemplate(WEBHOOK_ZEPTOMAIL_PATH), handleZeptomailWebhook);
+router.post(WEBHOOK_SES_PATH, noCache, setRouteTemplate(WEBHOOK_SES_PATH), handleSesWebhook);
 
 export function mountRoutes(app: Application): Application {
   app.get('/up', noCache, healthCheck);

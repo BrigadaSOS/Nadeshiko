@@ -5,8 +5,8 @@ import { AppDataSource } from '@config/database';
 import { logger } from '@config/log';
 import { User } from '@app/models';
 
-/** Exports a release-announcement CSV for Zoho Campaigns; it never sends mail because ZeptoMail is
- * transactional-only. Apply both local lifecycle opt-out and suppression-list exclusions here, and omit deactivated
+/** Exports a release-announcement CSV for a bulk-mail tool; it never sends mail, keeping announcements off the
+ * transactional SES sender. Apply both local lifecycle opt-out and suppression-list exclusions here, and omit deactivated
  * accounts. Usage: `npm run email:audience -w backend -- [path.csv]`. */
 function toCsvField(value: string): string {
   // Quote anything that could be read as structure, and double any quote inside

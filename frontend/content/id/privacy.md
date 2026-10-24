@@ -7,7 +7,7 @@ description: "Baca kebijakan privasi Nadeshiko untuk memahami cara kami mengumpu
 
 > **Catatan terjemahan:** Terjemahan ini disediakan untuk memudahkan pemahaman dan belum ditinjau oleh tenaga profesional di bidang hukum. Jika terdapat perbedaan atau persoalan penafsiran, [versi bahasa Inggris](/en/privacy) menjadi acuan yang berlaku.
 
-**Terakhir diperbarui: 20 Agustus 2026**
+**Terakhir diperbarui: 24 Oktober 2026**
 
 Kebijakan Privasi ini menjelaskan kebijakan dan prosedur kami terkait pengumpulan, penggunaan, dan pengungkapan informasi Anda saat Anda menggunakan layanan kami, serta memberi tahu Anda tentang hak privasi Anda dan perlindungan yang diberikan oleh hukum.
 
@@ -63,7 +63,7 @@ Kami dapat membagikan informasi pribadi Anda dalam situasi berikut:
 - **Dengan penyedia layanan**: kami menggunakan sejumlah kecil penyedia yang memproses data atas nama kami, berdasarkan kontrak dan hanya sesuai instruksi kami:
   - **Hetzner** — menyediakan hosting untuk server yang menjalankan layanan
   - **Cloudflare** — pengiriman konten, DNS, penyimpanan media, dan perlindungan terhadap penyalahgunaan
-  - **Zoho (ZeptoMail dan Zoho Campaigns)** — mengirim email yang dijelaskan di atas
+  - **Amazon Web Services (Amazon SES)** — mengirim email yang dijelaskan di atas
   - **PostHog** — mengukur cara situs digunakan
 
 **Kami tidak menjual data pribadi Anda. Selain kepada penyedia layanan yang tercantum di atas, kami tidak membagikannya kepada pihak ketiga.**

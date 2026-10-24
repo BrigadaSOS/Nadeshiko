@@ -4,7 +4,7 @@ description: "Read Nadeshiko's privacy policy to understand how we collect, use,
 ---
 
 # Privacy Policy
-**Last updated: August 20, 2026**
+**Last updated: October 24, 2026**
 
 This Privacy Policy describes our policies and procedures on the collection, use, and disclosure of your information when you use our service and tells you about your privacy rights and how the law protects you.
 
@@ -56,7 +56,7 @@ We may share your personal information in the following situations:
 - **With service providers**: we use a small number of providers who process data on our behalf, under contract and only on our instructions:
   - **Hetzner** — hosting the servers the service runs on
   - **Cloudflare** — content delivery, DNS, media storage, and protection against abuse
-  - **Zoho (ZeptoMail and Zoho Campaigns)** — sending the emails described above
+  - **Amazon Web Services (Amazon SES)** — sending the emails described above
   - **PostHog** — measuring how the site is used
 
 **We do not sell your personal data. Apart from the service providers listed above, we do not share it with third parties.**
