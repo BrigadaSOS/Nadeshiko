@@ -621,6 +621,16 @@ useHead(() => ({
   color: #e1e4e8;
 }
 
+.content-markdown :deep(.about-contributor-card img) {
+  margin: 0;
+}
+
+.content-markdown :deep(.about-contributor-card p) {
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 0;
+}
+
 .content-markdown :deep(.grid) {
   gap: 1.5rem;
 }
