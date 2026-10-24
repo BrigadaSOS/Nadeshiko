@@ -2,7 +2,7 @@
 
 # Build from the repository root for workspace manifests, lockfile and SDK sources:
 #   docker build -f frontend/Dockerfile .
-FROM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS deps
+FROM node:26.12.0-slim@sha256:e556a144463cc8dc53afe8de6d2fa0db5c132fd39ffa232c17641bd40df2bf11 AS deps
 WORKDIR /build
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 # npm ci needs every workspace manifest to reconcile the root lockfile.
@@ -59,7 +59,7 @@ RUN if [ "$NUXT_PUBLIC_ENVIRONMENT" = "production" ]; then \
   fi
 
 # --import loads OpenTelemetry before Nitro's bundle, so ship its SDK separately.
-FROM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS otel-deps
+FROM node:26.12.0-slim@sha256:e556a144463cc8dc53afe8de6d2fa0db5c132fd39ffa232c17641bd40df2bf11 AS otel-deps
 WORKDIR /deps
 # Pinned to the lockfile's versions: unpinned, every build resolved whatever was newest, so an upstream release
 # could break the image (api 1.10.0 did, against sdk-trace-node's peer range) or ship code nobody reviewed.
@@ -77,7 +77,7 @@ RUN npm init -y >/dev/null \
     @opentelemetry/instrumentation-runtime-node@0.35.0 \
     @opentelemetry/instrumentation-pino@0.68.0
 
-FROM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205
+FROM node:26.12.0-slim@sha256:e556a144463cc8dc53afe8de6d2fa0db5c132fd39ffa232c17641bd40df2bf11
 WORKDIR /app
 COPY --from=build /build/frontend/.output ./.output
 RUN rm -rf .output/server/node_modules/@opentelemetry/api
