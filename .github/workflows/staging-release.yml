@@ -177,7 +177,7 @@ jobs:
           push: true
           # Kamal deploys this immutable revision with VERSION=$GITHUB_SHA.
           # Do not advance :latest before checks and staging E2E have passed.
-          tags: ghcr.io/davafons/nadeshiko-backend-stg:${{ env.RELEASE_SHA }}
+          tags: ghcr.io/nadeshiko-devs/nadeshiko-backend-stg:${{ env.RELEASE_SHA }}
           labels: service=nadeshiko-backend-stg
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
@@ -211,7 +211,7 @@ jobs:
           context: .
           file: frontend/Dockerfile
           push: true
-          tags: ghcr.io/davafons/nadeshiko-frontend-stg:${{ env.RELEASE_SHA }}
+          tags: ghcr.io/nadeshiko-devs/nadeshiko-frontend-stg:${{ env.RELEASE_SHA }}
           labels: service=nadeshiko-frontend-stg
           build-args: NUXT_PUBLIC_ENVIRONMENT=development
           cache-from: type=gha,scope=frontend
