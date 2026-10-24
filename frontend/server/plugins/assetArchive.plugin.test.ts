@@ -128,8 +128,10 @@ beforeEach(() => {
 
 afterEach(() => {
   process.chdir(originalCwd);
-  rmSync(workDir, { recursive: true, force: true });
-  rmSync(archiveDir, { recursive: true, force: true });
+  // The plugin publishes in the background, so a copy can still be landing while a test tears down; retry the
+  // removal rather than fail on ENOTEMPTY.
+  rmSync(workDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 20 });
+  rmSync(archiveDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 20 });
 });
 
 describe('staying off', () => {
