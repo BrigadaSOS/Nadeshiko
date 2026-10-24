@@ -60,7 +60,7 @@ function getClient(): SESv2Client {
 
 /** SES tag values allow only `[A-Za-z0-9_-]`, so `kind:campaign` travels as two tags and is rebuilt from the event. */
 export function referenceToTags(clientReference: string): MessageTag[] {
-  const [kind, ...rest] = clientReference.split(':');
+  const [kind = '', ...rest] = clientReference.split(':');
   const tags: MessageTag[] = [{ Name: 'kind', Value: sanitizeTag(kind) }];
   const campaign = rest.join(':');
   if (campaign) tags.push({ Name: 'campaign', Value: sanitizeTag(campaign) });
