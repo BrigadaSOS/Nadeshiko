@@ -8,20 +8,20 @@ const meter = getMeter();
 /** Count handoffs as the denominator for delivery rates; zero means no denominator exists, not a successful
  * zero-rate observation. */
 const emailSent = meter.createCounter('email.sent', {
-  description: 'Messages handed to the SMTP relay, by kind',
+  description: 'Messages handed to SES, by kind',
   unit: '{message}',
 });
 
-/** Events ZeptoMail sent back: hard_bounce, soft_bounce, complaint, open, click. */
+/** Events SES sent back: hard_bounce, soft_bounce, complaint, and recorded-only reject/rendering_failure. */
 const emailEvents = meter.createCounter('email.events', {
-  description: 'Delivery events received from ZeptoMail, by event',
+  description: 'Delivery events received from SES, by event',
   unit: '{event}',
 });
 
 /** A handoff refusal is relay-level, not recipient-level; do not suppress every address when a provider-wide 5xx
  * names none. */
 const emailDeliveryErrors = meter.createCounter('email.delivery_errors', {
-  description: 'Messages the SMTP relay refused at handoff, by error type',
+  description: 'Messages SES refused at handoff, by error type',
   unit: '{message}',
 });
 
@@ -35,7 +35,7 @@ const emailBlocked = meter.createCounter('email.blocked', {
 /** Count rejected webhooks separately; an authentication/key problem must not look like an absence of provider
  * bounces. */
 const emailWebhookRejected = meter.createCounter('email.webhook_rejected', {
-  description: 'ZeptoMail webhook deliveries refused, by reason',
+  description: 'SES webhook deliveries refused, by reason',
   unit: '{request}',
 });
 

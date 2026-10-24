@@ -7,7 +7,7 @@ description: "Leia a política de privacidade do Nadeshiko para entender como co
 
 > Esta tradução é fornecida para facilitar a leitura. A versão original em inglês prevalece em caso de conflito ou divergência de interpretação. Esta tradução não foi revisada por um profissional do direito.
 
-**Última atualização: 20 de agosto de 2026**
+**Última atualização: 24 de outubro de 2026**
 
 Esta Política de Privacidade descreve nossas políticas e procedimentos para a coleta, o uso e a divulgação das suas informações quando você utiliza nosso serviço. Ela também informa sobre seus direitos de privacidade e como a lei protege você.
 
@@ -62,7 +62,7 @@ Podemos compartilhar suas informações pessoais nas seguintes situações:
 - **Com prestadores de serviços**: usamos um pequeno número de prestadores que processam dados em nosso nome, mediante contrato e somente de acordo com nossas instruções:
   - **Hetzner** — hospedagem dos servidores em que o serviço funciona
   - **Cloudflare** — distribuição de conteúdo, DNS, armazenamento de mídia e proteção contra abusos
-  - **Zoho (ZeptoMail e Zoho Campaigns)** — envio dos e-mails descritos acima
+  - **Amazon Web Services (Amazon SES)** — envio dos e-mails descritos acima
   - **PostHog** — medição de como o site é utilizado
 
 **Não vendemos seus dados pessoais. Além dos prestadores de serviços listados acima, não os compartilhamos com terceiros.**

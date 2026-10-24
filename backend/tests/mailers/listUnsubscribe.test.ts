@@ -52,7 +52,7 @@ describe('List-Unsubscribe', () => {
   it('still carries the kind for bounce attribution', async () => {
     await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind: 'welcome' });
 
-    expect(headersOf()['X-TM-CLIENT-REF']).toBe('welcome');
+    expect(headersOf()['X-Nadeshiko-Client-Ref']).toBe('welcome');
   });
 });
 

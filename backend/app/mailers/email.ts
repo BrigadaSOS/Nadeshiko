@@ -13,7 +13,7 @@ import {
 } from './emailTemplates';
 import { createLetterOpenerTransport, getPreviewUrl, LETTER_OPENER_DIR } from './letterOpener';
 import { htmlToPlainText } from './plainText';
-import { sendViaZeptomailApi, type ZeptomailMessage } from './zeptomailSend';
+import { sendViaSes, type OutboundMessage } from './sesSend';
 import { sendEmailJob } from '@app/workers/emailQueue';
 import { getTracer } from '@config/telemetry';
 import { recordError } from '@lib/errorFingerprint';
@@ -59,7 +59,7 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
 
   // Outside local there is no nodemailer transport at all any more -- see
   // `deliver`. Reaching here means a caller asked for one where none exists.
-  throw new Error('No local mail transport outside development: deployed environments send over the ZeptoMail API.');
+  throw new Error('No local mail transport outside development: deployed environments send over the SES API.');
 }
 
 /** Local opens mail in a browser; everywhere else it goes over the wire. */
@@ -68,10 +68,10 @@ function usesLetterOpener(): boolean {
 }
 
 /** Choose delivery by environment, not relay configuration: local previews use letter-opener; deployed sends use
- * ZeptoMail HTTP. */
-async function deliver(message: ZeptomailMessage): Promise<string | null> {
+ * SES. */
+async function deliver(message: OutboundMessage): Promise<string | null> {
   if (!usesLetterOpener()) {
-    await sendViaZeptomailApi(message);
+    await sendViaSes(message);
     return null;
   }
 
@@ -84,7 +84,7 @@ async function deliver(message: ZeptomailMessage): Promise<string | null> {
     html: message.html,
     text: message.text,
     headers: {
-      'X-TM-CLIENT-REF': message.clientReference,
+      'X-Nadeshiko-Client-Ref': message.clientReference,
       ...(message.unsubscribeUrl
         ? {
             'List-Unsubscribe': `<${message.unsubscribeUrl}>`,
@@ -159,7 +159,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
 
   return tracer.startActiveSpan(`email.send ${options.kind}`, async (span) => {
     span.setAttribute('email.kind', options.kind);
-    span.setAttribute('messaging.system', usesLetterOpener() ? 'letter-opener' : 'zeptomail-api');
+    span.setAttribute('messaging.system', usesLetterOpener() ? 'letter-opener' : 'aws-ses');
 
     try {
       // Derive plaintext centrally so every email has an accessible, deliverable alternative without a second copy of
@@ -176,8 +176,6 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
         replyTo: options.replyTo,
         clientReference,
         unsubscribeUrl: options.unsubscribeUrl,
-        // Decide lifecycle-versus-transactional behavior here; the transport should not duplicate the kind policy.
-        lifecycle: isLifecycleKind(options.kind),
       });
 
       recordEmailSent(options.kind);

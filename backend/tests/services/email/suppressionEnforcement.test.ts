@@ -5,7 +5,7 @@ import { setupTestSuite } from '../../helpers/setup';
 import { EmailSuppression, User } from '@app/models';
 import { sendEmail, sendMagicLinkEmail, resetTransporterForTests } from '@app/mailers/email';
 import { suppress } from '@app/services/email/suppression';
-import { recordZeptomailPayload } from '@app/services/email/zeptomailEvent';
+import { recordSesEvent } from '@app/services/email/sesEvent';
 
 setupTestSuite();
 
@@ -64,10 +64,10 @@ describe('the suppression check in sendEmail', () => {
     expect(sendMail).not.toHaveBeenCalled();
   });
 
-  it('tags the message with X-TM-CLIENT-REF so a bounce can name the mail that caused it', async () => {
+  it('tags the message with X-Nadeshiko-Client-Ref so a bounce can name the mail that caused it', async () => {
     await sendEmail({ to: 'fine@example.com', subject: 'Hi', html: '<p>hi</p>', kind: 'magic-link' });
 
-    expect(sendMail.mock.calls[0][0].headers).toEqual({ 'X-TM-CLIENT-REF': 'magic-link' });
+    expect(sendMail.mock.calls[0][0].headers).toEqual({ 'X-Nadeshiko-Client-Ref': 'magic-link' });
   });
 });
 
@@ -82,16 +82,14 @@ describe('a hard bounce and the account behind it', () => {
       }),
     );
 
-    await recordZeptomailPayload({
-      event_name: ['hardbounce'],
-      webhook_request_id: 'wh-verified',
-      event_message: [
-        {
-          email_info: { to: [{ email_address: { address: 'bouncer@example.com' } }] },
-          event_data: [{ details: [{ bounced_recipient: 'bouncer@example.com', reason: '550' }] }],
-        },
-      ],
-    });
+    await recordSesEvent(
+      {
+        eventType: 'Bounce',
+        mail: { destination: ['bouncer@example.com'] },
+        bounce: { bounceType: 'Permanent', bouncedRecipients: [{ emailAddress: 'bouncer@example.com' }] },
+      },
+      'sns-verified',
+    );
 
     const reloaded = await User.findOneByOrFail({ id: user.id });
     expect(reloaded.isVerified).toBe(false);
