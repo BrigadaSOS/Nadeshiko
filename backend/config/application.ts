@@ -12,7 +12,7 @@ import { globalRateLimit } from '@app/middleware/rateLimit';
 import { trafficClassification, trafficAttributesFor } from '@app/middleware/trafficClassification';
 import { mountRoutes as defaultMountRoutes } from '@config/routes';
 import { getMeter } from '@config/telemetry';
-import { WEBHOOK_ZEPTOMAIL_PATH } from '@app/controllers/webhooks/paths';
+import { WEBHOOK_SES_PATH } from '@app/controllers/webhooks/paths';
 
 const JSON_BODY_LIMIT = '10mb';
 
@@ -80,10 +80,9 @@ function configureMiddleware(
   // Capture response bodies BEFORE logging (must be before httpLogger)
   app.use(responseBodyLogger);
 
-  // Read the ZeptoMail webhook as exact text before JSON parsing because signatures cover either form-encoded or JSON
-  // bytes. Do not enable a raw-body verifier here: it would log sensitive payloads; verified events belong in
-  // `EmailEvent`.
-  app.use(WEBHOOK_ZEPTOMAIL_PATH, express.text({ type: '*/*', limit: WEBHOOK_BODY_LIMIT }));
+  // SNS posts the SES webhook as JSON labelled `text/plain`, so read it as text before the JSON parser would skip it.
+  // Do not enable a raw-body verifier here: it would log sensitive payloads; verified events belong in `EmailEvent`.
+  app.use(WEBHOOK_SES_PATH, express.text({ type: '*/*', limit: WEBHOOK_BODY_LIMIT }));
 
   // Parse incoming request bodies BEFORE httpLogger so req.rawBody is available for logging
   app.use(express.json({ limit: JSON_BODY_LIMIT, verify: rawBodySaver as any }));

@@ -61,6 +61,7 @@
     "node": "^24.22.1 || >=26.12.1"
   },
   "dependencies": {
+    "@aws-sdk/client-sesv2": "^3.1156.0",
     "@better-auth/api-key": "^1.7.4",
     "@brigadasos/nadeshiko-shared": "*",
     "@elastic/elasticsearch": "^9.5.1",
@@ -77,6 +78,7 @@
     "@opentelemetry/resources": "^2.11.0",
     "@opentelemetry/sdk-metrics": "^2.11.0",
     "@opentelemetry/sdk-node": "^0.222.0",
+    "@smithy/node-http-handler": "^4.12.1",
     "better-auth": "^1.7.4",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

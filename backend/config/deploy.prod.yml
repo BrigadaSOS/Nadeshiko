@@ -62,15 +62,11 @@ env:
 
     - MAIL_FROM_EMAIL
     - MAIL_FROM_NAME
-    - SMTP_PASSWORD
-    # ZeptoMail webhook secret: invalid/missing signatures return 503 instead of accepting forged bounces that could
-    # suppress an address and block magic-link sign-in.
-    - ZEPTOMAIL_WEBHOOK_SECRET
-    # Lifting a suppression has two halves: our row and ZeptoMail's own list.
-    # These are the second half, scoped to delete-only.
-    - ZOHO_CLIENT_ID
-    - ZOHO_CLIENT_SECRET
-    - ZOHO_REFRESH_TOKEN
+    - SES_AWS_ACCESS_KEY_ID
+    - SES_AWS_SECRET_ACCESS_KEY
+    # SNS authenticates to /v1/webhooks/ses with this as its basic-auth password; unset refuses every delivery rather
+    # than accept forged bounces that could suppress an address and block magic-link sign-in.
+    - SES_WEBHOOK_SECRET
 
     - E2E_USER_PASSWORD
 
@@ -82,13 +78,13 @@ env:
     BASE_URL: https://nadeshiko.co
     PATREON_CAMPAIGN_URL: https://www.patreon.com/c/BrigadaSOS
 
-    # ZeptoMail is the only transport; the retired SES branch and its static AWS credentials are gone.
-    SMTP_ADDRESS: smtp.zeptomail.jp
-    SMTP_PORT: "587"
-    SMTP_USER_NAME: emailapikey
+    # Amazon SES is the only transport. The configuration set publishes this environment's bounces and complaints to
+    # the SNS topic below, which delivers them to /v1/webhooks/ses (nadeshiko-infra/terraform/aws-ses.tf).
+    SES_CONFIGURATION_SET: nadeshiko-prod
+    SES_SNS_TOPIC_ARN: arn:aws:sns:eu-north-1:853812853385:nadeshiko-ses-events-prod
 
     # Feedback notifications are optional: the row is stored even when the destination is unset. The configured alias is
-    # forwarded by the external Cloudflare worker; Reply-To preserves the reader address.
+    # forwarded by Cloudflare Email Routing's catch-all; Reply-To preserves the reader address.
     FEEDBACK_NOTIFICATION_TO: support@nadeshiko.co
 
     # Keep ONLY_TO unset in production; preview with email:test before enabling real sends. Disabling stops future sends

@@ -136,34 +136,20 @@ const envSchema = z.object({
   // everyone only after the master switch is enabled.
   LIFECYCLE_EMAILS_ONLY_TO: optionalString,
 
-  // Use ZeptoMail HTTP API rather than synchronous SMTP; retain legacy token names for SSM compatibility, with
-  // `ZEPTOMAIL_SEND_TOKEN` taking precedence.
-  SMTP_ADDRESS: optionalString,
-  SMTP_PORT: optionalString,
-  SMTP_USER_NAME: optionalString,
-  SMTP_PASSWORD: optionalString,
+  // Amazon SES (eu-north-1) is the only deployed transport. The key belongs to an IAM user scoped to the nadeshiko.co
+  // identity and the two envelope senders; local and test runs leave all of these unset and use letter-opener.
+  SES_AWS_REGION: z.string().default('eu-north-1'),
+  SES_AWS_ACCESS_KEY_ID: optionalString,
+  SES_AWS_SECRET_ACCESS_KEY: optionalString,
+  // Every send names this environment's configuration set; without it SES publishes no events and bounces never
+  // reach the suppression list.
+  SES_CONFIGURATION_SET: optionalString,
 
-  // Set only if the Send Mail Token ever stops doubling as the API key, so that
-  // becomes a configuration change rather than a deploy of the mailer.
-  ZEPTOMAIL_SEND_TOKEN: optionalString,
-
-  // An optional second ZeptoMail agent isolates lifecycle policy from sign-in mail; unset preserves current behavior,
-  // but domain-level DKIM reputation remains shared until lifecycle mail moves domains.
-  ZEPTOMAIL_LIFECYCLE_SEND_TOKEN: optionalString,
-
-  // Without the webhook secret, reject all ZeptoMail callbacks rather than trust forged bounces; local/test runs
-  // intentionally leave it unset.
-  ZEPTOMAIL_WEBHOOK_SECRET: optionalString,
-
-  // Zoho OAuth clears the provider’s suppression list during a lift; absent credentials still support clearing the
-  // local half and reporting the provider half was not changed.
-  ZOHO_CLIENT_ID: optionalString,
-  ZOHO_CLIENT_SECRET: optionalString,
-  ZOHO_REFRESH_TOKEN: optionalString,
-  // Zoho's hosts are per data centre and must match the region the Agent and the
-  // OAuth client were registered in. Ours is Japan, like the SMTP relay.
-  ZOHO_ACCOUNTS_HOST: z.string().default('accounts.zoho.jp'),
-  ZEPTOMAIL_API_HOST: z.string().default('api.zeptomail.jp'),
+  // SNS delivers SES events to /v1/webhooks/ses with this secret as basic-auth password. Unset fails closed: a forged
+  // hard bounce would lock a reader out of magic-link sign-in.
+  SES_WEBHOOK_SECRET: optionalString,
+  // Only events from this topic are accepted, so another environment's topic cannot write into this database.
+  SES_SNS_TOPIC_ARN: optionalString,
 
   // Where the feedback widget's messages land. Optional, and unset means the
   // notification is skipped, not that the feature is off: the row is stored
