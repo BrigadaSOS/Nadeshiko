@@ -110,7 +110,7 @@ describe('error-handler logging boundary', () => {
       code: 'INTERNAL_SERVER_EXCEPTION',
       title: 'Internal Server Error',
       detail: 'An unexpected error occurred. Please try again later.',
-      type: 'https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml',
+      type: 'about:blank',
       status: 500,
       instance: 'request-123',
     });

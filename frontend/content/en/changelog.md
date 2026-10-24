@@ -7,7 +7,7 @@ description: "What shipped in each version of Nadeshiko, newest first."
 
 What's new in Nadeshiko, newest first. The version in the footer is the release you are on, and it brings you here.
 
-We only list what you can see. Work behind a lab or a feature flag stays off this page until it is on for everyone, and dependency bumps, refactors and CI never appear at all. For the commit-level history, see the [releases on GitHub](https://github.com/BrigadaSOS/Nadeshiko/releases).
+We only list what you can see. Work behind a lab or a feature flag stays off this page until it is on for everyone, and dependency bumps, refactors and CI never appear at all.
 
 ## Unreleased
 
