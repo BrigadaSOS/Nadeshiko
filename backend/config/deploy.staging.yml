@@ -1,5 +1,5 @@
 service: nadeshiko-backend-stg
-image: brigadasos/nadeshiko-backend-stg
+image: davafons/nadeshiko-backend-stg
 
 servers:
   web:

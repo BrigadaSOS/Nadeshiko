@@ -1,4 +1,4 @@
-image: brigadasos/nadeshiko-backend-prod
+image: davafons/nadeshiko-backend-prod
 service: nadeshiko-backend-prod
 
 servers:
@@ -161,7 +161,7 @@ accessories:
       - nadeshiko-postgres-data:/var/lib/postgresql/data
 
   elasticsearch:
-    image: <%= ENV.fetch("ELASTICSEARCH_IMAGE", "ghcr.io/brigadasos/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116") %>
+    image: <%= ENV.fetch("ELASTICSEARCH_IMAGE", "ghcr.io/davafons/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116") %>
     host: nadeshiko
      # Publish a loopback endpoint so exporters do not depend on a changing tailnet address.
     port: "100.127.97.67:9200:9200"
