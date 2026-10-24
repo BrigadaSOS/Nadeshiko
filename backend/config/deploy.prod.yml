@@ -1,4 +1,4 @@
-image: nadeshiko-devs/nadeshiko-backend-prod
+image: brigadasos/nadeshiko-backend-prod
 service: nadeshiko-backend-prod
 
 servers:
@@ -159,7 +159,7 @@ accessories:
       - nadeshiko-postgres-data:/var/lib/postgresql/data
 
   elasticsearch:
-    image: <%= ENV.fetch("ELASTICSEARCH_IMAGE", "ghcr.io/nadeshiko-devs/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116") %>
+    image: <%= ENV.fetch("ELASTICSEARCH_IMAGE", "ghcr.io/brigadasos/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116") %>
     host: nadeshiko
     # Loopback only, for the same reasons as Postgres; Kibana was the last tailnet client.
     port: "127.0.0.1:9200:9200"
