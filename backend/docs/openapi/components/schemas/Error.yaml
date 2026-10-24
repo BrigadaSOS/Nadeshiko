@@ -23,7 +23,7 @@ properties:
     type: string
     format: uri
     minLength: 1
-    description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+    description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
   instance:
     type: string
     minLength: 1
