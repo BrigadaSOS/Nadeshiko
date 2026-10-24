@@ -3,6 +3,8 @@ import * as schemas from 'generated/schemas';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { assertMatchesSchema } from '../helpers/openapiContract';
+import { ApiKeyKind, AuthType } from '@app/models/ApiPermission';
+import { UserRoleType } from '@app/models/User';
 import type { MediaOutput } from 'generated/outputTypes';
 
 let mockSearch: Mock<typeof SegmentDocument.search>;
@@ -138,6 +140,7 @@ describe('search controller', () => {
       {
         body: { query: { exactMatch: false }, filters: { status: ['ACTIVE'], category: ['ANIME'] }, include: [] },
       } as any,
+      { user: { id: 1001, preferences: {} } } as any,
     );
 
     expect(res.status).toBe(200);
@@ -168,6 +171,7 @@ describe('search controller', () => {
           filters: { status: ['ACTIVE'], category: ['ANIME'] },
         },
       } as any,
+      { user: { id: 1001, preferences: {} } } as any,
     );
 
     expect(res.status).toBe(200);
@@ -178,5 +182,60 @@ describe('search controller', () => {
       true,
       expect.objectContaining({ status: ['ACTIVE'], category: ['ANIME'] }),
     );
+  });
+});
+
+describe('segment status clamping', () => {
+  const emptySearch = {
+    segments: [],
+    includes: { media: {} },
+    pagination: { hasMore: false, cursor: null, estimatedTotalHits: 0, estimatedTotalHitsRelation: 'EXACT' },
+  };
+  const adminSession = { user: { id: 1, role: UserRoleType.ADMIN }, auth: { type: AuthType.SESSION } };
+  const callers = {
+    // The frontend proxy searches on behalf of every visitor with its master key.
+    'a service key': {
+      user: { id: 2, role: UserRoleType.USER },
+      auth: { type: AuthType.API_KEY, apiKey: { kind: ApiKeyKind.SERVICE, permissions: [] } },
+    },
+    'an admin-owned API key': {
+      user: { id: 1, role: UserRoleType.ADMIN },
+      auth: { type: AuthType.API_KEY, apiKey: { kind: ApiKeyKind.USER, permissions: [] } },
+    },
+    'a non-admin session': { user: { id: 3, role: UserRoleType.USER }, auth: { type: AuthType.SESSION } },
+  };
+
+  for (const [label, req] of Object.entries(callers)) {
+    it(`forces ACTIVE for ${label} asking for hidden and deleted segments`, async () => {
+      mockSearch.mockResolvedValue(emptySearch as any);
+
+      await invoke(
+        search as any,
+        { body: { filters: { status: ['HIDDEN', 'DELETED'], category: ['ANIME'] }, include: [], take: 10 } },
+        req,
+      );
+
+      expect(mockSearch.mock.calls[0]![0].filters).toMatchObject({ status: ['ACTIVE'], category: ['ANIME'] });
+    });
+  }
+
+  it('lets an admin session search hidden segments', async () => {
+    mockSearchStats.mockResolvedValue({ media: [], categories: [], includes: { media: {} } } as any);
+
+    await invoke(getSearchStats as any, { body: { filters: { status: ['HIDDEN'] }, include: [] } }, adminSession);
+
+    expect(mockSearchStats.mock.calls[0]![0].filters).toMatchObject({ status: ['HIDDEN'] });
+  });
+
+  it('scopes an unfiltered word search to ACTIVE rather than every status', async () => {
+    mockWordsMatched.mockResolvedValue({ results: [], includes: { media: {} } } as any);
+
+    await invoke(
+      searchWords as any,
+      { body: { query: { words: ['猫'], exactMatch: true }, include: [] } },
+      callers['a service key'],
+    );
+
+    expect(mockWordsMatched).toHaveBeenCalledWith(['猫'], true, { status: ['ACTIVE'] });
   });
 });

@@ -5,7 +5,7 @@ import {
   type Message,
 } from 'discord.js';
 import { search, fetchRandom, getSearchStats, parseCategory, type Category, type SearchResponse } from '../api';
-import type { DisplayOptions } from '../embeds';
+import { inlineUserCode, type DisplayOptions } from '../embeds';
 import {
   renderSegmentReply,
   updateSegmentReply,
@@ -153,7 +153,7 @@ export async function executeSearch(
       } else {
         const url = searchUrl({ query: searchQuery });
         await interaction.editReply({
-          content: `No results found for \`${searchQuery}\` -- [Search on Nadeshiko](<${url}>)`,
+          content: `No results found for ${inlineUserCode(searchQuery)} -- [Search on Nadeshiko](<${url}>)`,
         });
       }
       return;

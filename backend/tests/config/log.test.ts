@@ -111,6 +111,30 @@ describe('buildHttpLoggerOptions', () => {
     expect(entry.res.headers['set-cookie']).toBe('[Redacted]');
   });
 
+  it('redacts social ID tokens, OAuth state and change-email addresses from request bodies', () => {
+    const lines: string[] = [];
+    const log = pino({ redact: [...REDACT_PATHS] }, { write: (line) => lines.push(line) });
+    const req = {
+      method: 'POST',
+      url: '/v1/auth/sign-in/social',
+      headers: {},
+      rawBody: JSON.stringify({
+        provider: 'google',
+        idToken: { token: 'private-id-token', nonce: 'private-nonce' },
+        state: 'private-state',
+        newEmail: 'private-new@example.com',
+      }),
+    };
+    log.info({ req: options.serializers.req(req as any) });
+
+    expect(lines[0]).not.toContain('private-');
+    const entry = JSON.parse(lines[0]!);
+    expect(entry.req.body.provider).toBe('google');
+    expect(entry.req.body.idToken).toBe('[Redacted]');
+    expect(entry.req.body.state).toBe('[Redacted]');
+    expect(entry.req.body.newEmail).toBe('[Redacted]');
+  });
+
   it('serializes request with requestId and parsed raw body', () => {
     const req = {
       method: 'POST',

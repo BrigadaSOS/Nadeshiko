@@ -1,3 +1,4 @@
+import { sanitizeRequestUrl } from '@brigadasos/nadeshiko-shared/logRedaction';
 import { metrics } from '@opentelemetry/api';
 import { getCookie } from 'h3';
 import { PostHog } from 'posthog-node';
@@ -166,7 +167,8 @@ export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('afterResponse', (event) => {
     const req = event.node.req;
     const res = event.node.res;
-    const url = req.url || 'unknown';
+    // Magic-link, OAuth and email-preference URLs carry their credential in the query string.
+    const url = req.url ? sanitizeRequestUrl(req.url) : 'unknown';
     const method = req.method || 'UNKNOWN';
     const statusCode = res.statusCode;
     const duration = Date.now() - (event.context.startTime || Date.now());
@@ -194,7 +196,9 @@ export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('error', (error, ctx) => {
     const event = ctx?.event;
     const context = event?.context;
-    const url = event?.node?.req?.url || 'unknown';
+    // Sanitized once here because it reaches the log line and PostHog's `http.url` alike.
+    const rawUrl = event?.node?.req?.url;
+    const url = rawUrl ? sanitizeRequestUrl(rawUrl) : 'unknown';
     const method = event?.node?.req?.method || 'UNKNOWN';
     const errorType = error.constructor?.name || 'Error';
     const { fingerprint, group } = computeFingerprint(error, errorType);

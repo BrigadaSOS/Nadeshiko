@@ -200,3 +200,32 @@ describe('the admin roadmap', () => {
     expect(missing.status).toBe(404);
   });
 });
+
+describe('roadmap source URLs', () => {
+  // The source link is rendered as an anchor on the public roadmap, so a script URL would run in readers' browsers.
+  const scriptUrl = 'javascript:alert(document.cookie)';
+
+  it('refuses a non-http source on a public proposal', async () => {
+    const res = await request(app).post('/v1/roadmap/proposals').send({ sourceUrl: scriptUrl });
+    expect(res.status).toBe(400);
+  });
+
+  it('refuses a non-http source when an admin creates or edits an item', async () => {
+    const created = await request(app)
+      .post('/v1/admin/roadmap')
+      .send({ kind: 'CONTENT', status: 'PLANNED', title: 'Script', sourceUrl: scriptUrl });
+    expect(created.status).toBe(400);
+
+    const item = await RoadmapItem.save(
+      RoadmapItem.create({
+        kind: RoadmapItemKind.FEATURE,
+        status: RoadmapItemStatus.PLANNED,
+        title: 'Existing',
+        description: '',
+      }),
+    );
+    const updated = await request(app).patch(`/v1/admin/roadmap/${item.id}`).send({ sourceUrl: scriptUrl });
+    expect(updated.status).toBe(400);
+    expect(await RoadmapItem.findOneByOrFail({ id: item.id })).toMatchObject({ sourceUrl: null });
+  });
+});

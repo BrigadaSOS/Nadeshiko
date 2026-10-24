@@ -10,10 +10,11 @@ import {
   type ModalSubmitInteraction,
   type StringSelectMenuInteraction,
   type Client,
+  escapeMarkdown,
 } from 'discord.js';
 import { search, getSearchStats, parseSortMode } from './api';
 import type { Category, SearchResponse, SearchStatsResponse, SortMode } from './api';
-import { buildSegmentMessage, getMediaName, type DisplayOptions } from './embeds';
+import { buildSegmentMessage, getMediaName, inlineUserCode, type DisplayOptions } from './embeds';
 import { buildSearchSelectComponents, loadVideoFiles } from './segmentReply';
 import { findMediaByPublicId } from './mediaCache';
 import { BOT_CONFIG } from './config';
@@ -328,7 +329,7 @@ export async function handleModalSubmit(
   });
 
   if (searchResult.segments.length === 0) {
-    const parts = [`No results found for \`${searchQuery}\``];
+    const parts = [`No results found for ${inlineUserCode(searchQuery)}`];
     if (state.mediaName) parts.push(`in **${state.mediaName}**`);
     if (episodes?.length) parts.push(`(episode ${episodes.join(', ')})`);
     await modalInteraction.followUp({ content: `${parts.join(' ')}.` });
@@ -360,7 +361,7 @@ export async function renderSearchResult(
   const totalPages = Math.ceil(total / BOT_CONFIG.maxSearchResults);
   const pageLabel = totalPages > 1 ? ` [Page ${state.currentPage + 1} of ${totalPages}]` : '';
   const isWildcard = !state.lastQuery;
-  const queryLabel = isWildcard ? '' : ` for \`${state.lastQuery}\``;
+  const queryLabel = isWildcard ? '' : ` for ${inlineUserCode(state.lastQuery)}`;
   const eps = state.lastSearchOptions.episodes;
   const episodeLabel = eps?.length ? ` Ep. ${eps.join(', ')}` : '';
   const mediaLabel = state.mediaName ? ` in **${state.mediaName}${episodeLabel}**` : '';
@@ -467,7 +468,7 @@ export async function renderFilterMediaPage(
     .join('\n');
 
   const pageLabel = totalPages > 1 ? ` [Page ${mediaPage + 1} of ${totalPages}]` : '';
-  const filterLabel = filterState.nameFilter ? ` - filtering by "${filterState.nameFilter}"` : '';
+  const filterLabel = filterState.nameFilter ? ` - filtering by "${escapeMarkdown(filterState.nameFilter)}"` : '';
   const header = `🎬 **Filter by media**${pageLabel}${filterLabel}\n\n${list}`;
 
   const options = pageMedia.map((m, i) => {
