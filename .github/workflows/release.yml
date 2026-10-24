@@ -105,7 +105,7 @@ jobs:
           context: .
           file: backend/Dockerfile
           push: true
-          tags: ghcr.io/nadeshiko-devs/nadeshiko-backend-prod:${{ env.RELEASE_SHA }}
+          tags: ghcr.io/brigadasos/nadeshiko-backend-prod:${{ env.RELEASE_SHA }}
           labels: service=nadeshiko-backend-prod
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
@@ -135,7 +135,7 @@ jobs:
           context: .
           file: frontend/Dockerfile
           push: true
-          tags: ghcr.io/nadeshiko-devs/nadeshiko-frontend-prod:${{ env.RELEASE_SHA }}
+          tags: ghcr.io/brigadasos/nadeshiko-frontend-prod:${{ env.RELEASE_SHA }}
           labels: service=nadeshiko-frontend-prod
           build-args: |
             NUXT_PUBLIC_ENVIRONMENT=production
@@ -542,11 +542,11 @@ jobs:
         run: |
           set -euo pipefail
           docker buildx imagetools create \
-            --tag ghcr.io/nadeshiko-devs/nadeshiko-backend-prod:latest \
-            "ghcr.io/nadeshiko-devs/nadeshiko-backend-prod:${RELEASE_SHA}"
+            --tag ghcr.io/brigadasos/nadeshiko-backend-prod:latest \
+            "ghcr.io/brigadasos/nadeshiko-backend-prod:${RELEASE_SHA}"
           docker buildx imagetools create \
-            --tag ghcr.io/nadeshiko-devs/nadeshiko-frontend-prod:latest \
-            "ghcr.io/nadeshiko-devs/nadeshiko-frontend-prod:${RELEASE_SHA}"
+            --tag ghcr.io/brigadasos/nadeshiko-frontend-prod:latest \
+            "ghcr.io/brigadasos/nadeshiko-frontend-prod:${RELEASE_SHA}"
 
   # Kamal retains old containers specifically for this path. A smoke failure
   # means the just-switched stack is not fit to serve; restore both components
