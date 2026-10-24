@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { mdiArrowDown, mdiArrowUp } from '@mdi/js';
 import { handleApiError } from '~/utils/apiError';
+import { httpUrl } from '~/utils/strings';
 
 type Kind = 'CONTENT' | 'FEATURE';
 type Status = 'PROPOSED' | 'CONSIDERING' | 'PLANNED' | 'IN_PROGRESS' | 'RELEASED' | 'DECLINED';
@@ -222,7 +223,7 @@ async function create() {
       <article v-for="item in visibleItems" :key="item.id" class="nd-settings-card">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-2"><span class="text-xs font-semibold text-white/55">{{ item.status.replace('_', ' ') }}</span><span v-if="item.requesterUserId" class="text-xs text-white/35">Proposed by user #{{ item.requesterUserId }}</span></div>
-          <a v-if="item.sourceUrl" :href="item.sourceUrl" target="_blank" rel="noopener" class="text-xs text-red-300 hover:text-red-200">Open submitted link ↗</a>
+          <a v-if="httpUrl(item.sourceUrl)" :href="httpUrl(item.sourceUrl) ?? undefined" target="_blank" rel="noopener" class="text-xs text-red-300 hover:text-red-200">Open submitted link ↗</a>
         </div>
         <div class="grid gap-3 md:grid-cols-2">
           <input v-model="item.title" maxlength="180" class="nd-input md:col-span-2" aria-label="Title">

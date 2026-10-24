@@ -7,7 +7,10 @@ import { createRequire } from 'module';
 import { trace, context } from '@opentelemetry/api';
 import { config } from '@config/config';
 import { hashUserId } from '@lib/userLogHash';
-import { REDACT_PATHS } from '@brigadasos/nadeshiko-shared/logRedaction';
+import {
+  REDACT_PATHS,
+  sanitizeRequestUrl as sanitizeSharedRequestUrl,
+} from '@brigadasos/nadeshiko-shared/logRedaction';
 
 const normalizedEnvironment = (config.ENVIRONMENT || '').trim().toLowerCase();
 const isDevelopment = normalizedEnvironment === 'local' || normalizedEnvironment === 'development';
@@ -130,36 +133,13 @@ function unwrapResponse(res: PinoResponse): Partial<Response> & { statusCode: nu
   return (res.raw ?? res) as Partial<Response> & { statusCode: number };
 }
 
-const SENSITIVE_QUERY_PARAMETERS = new Set([
-  'password',
-  'token',
-  'access_token',
-  'refresh_token',
-  'api_key',
-  'apikey',
-  'email',
-  'code',
-]);
-
-/** Log useful path/query context without allowing URL credentials into log fields. */
+/** Log useful path/query context without allowing URL credentials into log fields; the parameter list is shared with
+ * the frontend so the two cannot drift. */
 export function sanitizeRequestUrl(url: string): string;
 export function sanitizeRequestUrl(url: undefined): undefined;
 export function sanitizeRequestUrl(url: string | undefined): string | undefined;
 export function sanitizeRequestUrl(url: string | undefined): string | undefined {
-  if (!url) return url;
-
-  try {
-    const parsed = new URL(url, 'http://localhost');
-    for (const [name] of parsed.searchParams) {
-      if (SENSITIVE_QUERY_PARAMETERS.has(name.toLowerCase())) {
-        parsed.searchParams.set(name, '[Redacted]');
-      }
-    }
-    return `${parsed.pathname}${parsed.search}`;
-  } catch {
-    // A malformed URL must not make logging leak its unparsed query string.
-    return url.split('?', 1)[0];
-  }
+  return url ? sanitizeSharedRequestUrl(url) : url;
 }
 
 export function buildHttpLoggerOptions(currentLogger = logger) {

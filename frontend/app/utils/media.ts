@@ -353,11 +353,10 @@ export function mediaSameAsUrls(
   return urls;
 }
 
-const stripHTMLTags = (html: string): string => {
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  return div.textContent || div.innerText || '';
-};
+// Parse into an inert document: corpus text assigned to a live element's innerHTML would fetch and run
+// handlers such as `<img onerror>` even though the element is never attached.
+const stripHTMLTags = (html: string): string =>
+  new DOMParser().parseFromString(html, 'text/html').body.textContent ?? '';
 
 /** Copies `item` with its HTML stripped, toasting either outcome. */
 export async function copyToClipboard(item: string): Promise<boolean> {

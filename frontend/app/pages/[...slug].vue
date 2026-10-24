@@ -621,25 +621,6 @@ useHead(() => ({
   color: #e1e4e8;
 }
 
-.content-markdown :deep(.about-contributor-card img) {
-  margin: 0;
-}
-
-.content-markdown :deep(.about-contributor-card p) {
-  font-size: 1rem;
-  line-height: 1.5;
-  margin-bottom: 0;
-}
-
-/* Contributor card: stacked layout when 3 cols are narrow (768px-949px) */
-@media (min-width: 768px) and (max-width: 949px) {
-  .content-markdown :deep(.about-contributor-card > .flex) {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-}
-
 .content-markdown :deep(.grid) {
   gap: 1.5rem;
 }

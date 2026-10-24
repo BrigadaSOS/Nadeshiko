@@ -1,11 +1,23 @@
 import { Media } from '@app/models';
 import { InvalidRequestError } from '@app/errors';
 import type { t_MediaFilterItem, t_SearchFilters } from 'generated/models';
+import type { Request } from 'express';
+import { isSessionAdmin } from '@app/middleware/authorization';
 
 type MediaInfoMap = Awaited<ReturnType<typeof Media.getMediaInfoMap>>['results'];
 
 /** How many unresolved identifiers an error message names before it trails off. */
 const MAX_REPORTED_UNKNOWN_MEDIA = 5;
+
+/** Hidden and deleted segments are moderation state, visible only to an admin at a browser. Every other caller,
+ * including the frontend proxy's master key and admin-owned keys, gets live segments whatever it asked for. */
+export function clampSegmentStatus<TFilters extends t_SearchFilters>(
+  filters: TFilters | undefined,
+  req: Pick<Request, 'auth' | 'user'>,
+): TFilters | undefined {
+  if (isSessionAdmin(req)) return filters;
+  return { ...filters, status: ['ACTIVE'] } as TFilters;
+}
 
 /** Resolve public ids into a copy, leaving the request body intact for callers that need the original filter. */
 export async function resolveMediaFilterIds<TFilters extends t_SearchFilters>(

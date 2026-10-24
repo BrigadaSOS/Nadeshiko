@@ -170,6 +170,14 @@ describe('/search flow', () => {
     expect(step.content).toContain('xyznotfound');
   });
 
+  test('a backtick in a no-result query cannot break out of the code span', async () => {
+    mockSearch.mockResolvedValue(makeSearchResponse([], {}));
+
+    const step = await flow.executeCommand(execute, { query: 'x` @everyone `y' });
+
+    expect(step.content).toContain('No results found for `x\u02CB @everyone \u02CBy`');
+  });
+
   test('full flow: random -> search modal -> filter media -> refine search', async () => {
     // Step 1: random mode
     const randomSeg = makeSegment({

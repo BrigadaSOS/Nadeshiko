@@ -14,6 +14,16 @@ const AUTH_MUTATION_ROUTES = new Set<string>([
   '/v1/auth/delete-user',
 ]);
 
+/** Admin mutations act on `body.userId`, not the caller: a demoted or banned user must not keep the cached role or
+ * ban state on their live session for the cache TTL. */
+const ADMIN_TARGET_MUTATION_ROUTES = new Set<string>([
+  '/v1/auth/admin/set-role',
+  '/v1/auth/admin/ban-user',
+  '/v1/auth/admin/unban-user',
+  '/v1/auth/admin/update-user',
+  '/v1/auth/admin/remove-user',
+]);
+
 function normalizePath(pathname: string): string {
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
 }
@@ -41,8 +51,37 @@ async function resolveAuthenticatedUserId(headers: NodeJS.Dict<string | string[]
   }
 }
 
+function resolveAdminTargetUserId(method: string, pathname: string, body: unknown): number | null {
+  if (method.toUpperCase() !== 'POST' || !ADMIN_TARGET_MUTATION_ROUTES.has(normalizePath(pathname))) {
+    return null;
+  }
+
+  const userId = Number((body as { userId?: unknown } | undefined)?.userId);
+  return Number.isInteger(userId) && userId > 0 ? userId : null;
+}
+
+function invalidateOnSuccess(res: Parameters<RequestHandler>[1], userId: number): void {
+  res.on('finish', () => {
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      return;
+    }
+
+    invalidateUserCache(userId);
+    invalidateApiKeyCacheForUser(userId);
+  });
+}
+
 export const invalidateAuthCachesAfterMutation: RequestHandler = async (req, res, next) => {
   const pathname = req.path || req.originalUrl.split('?')[0] || '';
+
+  // The admin plugin authorizes the caller; a 2xx is the proof the target changed.
+  const targetUserId = resolveAdminTargetUserId(req.method, pathname, req.body);
+  if (targetUserId) {
+    invalidateOnSuccess(res, targetUserId);
+    next();
+    return;
+  }
+
   if (!shouldTrackAuthMutation(req.method, pathname)) {
     next();
     return;
@@ -54,14 +93,6 @@ export const invalidateAuthCachesAfterMutation: RequestHandler = async (req, res
     return;
   }
 
-  res.on('finish', () => {
-    if (res.statusCode < 200 || res.statusCode >= 300) {
-      return;
-    }
-
-    invalidateUserCache(userId);
-    invalidateApiKeyCacheForUser(userId);
-  });
-
+  invalidateOnSuccess(res, userId);
   next();
 };

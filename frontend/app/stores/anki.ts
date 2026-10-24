@@ -117,7 +117,7 @@ interface NotesInfoResponse {
 }
 
 import type { SearchResult } from '~/types/search';
-import type { MinedWord } from '~/utils/ankiWord';
+import { escapeHtml, type MinedWord } from '~/utils/ankiWord';
 import { deckNotesQuery, mostCommonModel } from '~/utils/ankiMining';
 import { defineStore } from 'pinia';
 import { tokensToAnkiFurigana } from '~/utils/tokenEnrichment';
@@ -774,28 +774,35 @@ export const ankiStore = defineStore('anki', {
           /** A word-level value: absent unless the word card supplied one, and
            *  never written by the paths that have no word. */
           const word = (value: string | undefined) => (withWordFields ? value || undefined : undefined);
+          /** MinedWord's plain-text fields, which reach an HTML field unescaped otherwise. */
+          const plain = (value: string | undefined) => (value === undefined ? undefined : escapeHtml(value));
 
           switch (key) {
             case 'empty':
               return '';
+            // Anki renders fields as HTML, so plain corpus text and titles are escaped here; fields that
+            // already carry markup (definitions, pitch, info, highlight) were escaped where they were built.
             case 'sentence-jp':
-              return `<div>${sentence.segment.textJa.content}</div>`;
+              return `<div>${escapeHtml(sentence.segment.textJa.content)}</div>`;
             /*
              * Sentence furigana comes from the line's tokens and is not gated by wordFields,
              * including on context-only exports.
              */
             case 'sentence-furigana':
-              return tokensToAnkiFurigana(sentence.segment.textJa.content, sentence.segment.textJa.tokens ?? []);
+              // Escape after: token offsets index the raw text, and the notation adds only brackets and spaces.
+              return escapeHtml(
+                tokensToAnkiFurigana(sentence.segment.textJa.content, sentence.segment.textJa.tokens ?? []),
+              );
             case 'sentence-es': {
               const text = sentence.segment.textEs.content;
-              return text ? `<div>${text}</div>` : undefined;
+              return text ? `<div>${escapeHtml(text)}</div>` : undefined;
             }
             case 'sentence-en': {
               const text = sentence.segment.textEn.content;
-              return text ? `<div>${text}</div>` : undefined;
+              return text ? `<div>${escapeHtml(text)}</div>` : undefined;
             }
             case 'image':
-              return imageResult?.result ? `<img src="${imageResult.result}">` : undefined;
+              return imageResult?.result ? `<img src="${escapeHtml(imageResult.result)}">` : undefined;
             case 'sentence-audio':
               return audioResult?.result ? `[sound:${audioResult.result}]` : undefined;
             case 'word-audio':
@@ -805,16 +812,16 @@ export const ankiStore = defineStore('anki', {
               const episodePart = isMovie ? 'Movie' : `Episode ${sentence.segment.episode}`;
               const sentenceUrl = `${window.location.origin}${buildSentencePath(sentence.segment.publicId)}`;
               return (
-                `<hr><small>${mediaName(sentence.media)}・${episodePart}, Timestamp: ${formatMs(sentence.segment.startTimeMs)}` +
-                `<br><a href="${sentenceUrl}">View on Nadeshiko</a></small>`
+                `<hr><small>${escapeHtml(mediaName(sentence.media))}・${episodePart}, Timestamp: ${formatMs(sentence.segment.startTimeMs)}` +
+                `<br><a href="${escapeHtml(sentenceUrl)}">View on Nadeshiko</a></small>`
               );
             }
             case 'word':
-              return word(minedWord?.word);
+              return word(plain(minedWord?.word));
             case 'word-reading':
-              return word(minedWord?.reading);
+              return word(plain(minedWord?.reading));
             case 'word-furigana':
-              return word(minedWord?.furigana);
+              return word(plain(minedWord?.furigana));
             case 'definition':
               return word(minedWord?.definition);
             /**
@@ -826,13 +833,13 @@ export const ankiStore = defineStore('anki', {
             case 'word-pitch':
               return word(minedWord?.pitch);
             case 'word-pitch-num':
-              return word(minedWord?.pitchPositions);
+              return word(plain(minedWord?.pitchPositions));
             case 'word-frequency':
-              return word(minedWord?.frequency);
+              return word(plain(minedWord?.frequency));
             case 'word-jlpt':
-              return word(minedWord?.jlpt);
+              return word(plain(minedWord?.jlpt));
             case 'word-pitch-categories':
-              return word(minedWord?.pitchCategories);
+              return word(plain(minedWord?.pitchCategories));
             case 'word-info':
               return word(minedWord?.info);
             /**

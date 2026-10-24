@@ -1,2 +1,5 @@
 node_modules/
 .env
+
+# Runtime state: src/settings.ts creates the database on first start.
+data/*.db*

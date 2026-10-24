@@ -16,6 +16,7 @@ import {
   mdiYoutube,
 } from '@mdi/js';
 import { handleApiError } from '~/utils/apiError';
+import { httpUrl } from '~/utils/strings';
 import { DEFAULT_OG_IMAGE_PATH } from '~/utils/metaTags';
 
 type Status = 'PROPOSED' | 'CONSIDERING' | 'PLANNED' | 'IN_PROGRESS' | 'RELEASED' | 'DECLINED';
@@ -303,7 +304,7 @@ function featureDate(item: RoadmapItem) {
               <div class="flex min-h-full min-w-0 flex-col p-5">
                 <h2 class="text-xl font-bold leading-tight">{{ item.title }}</h2>
                 <p class="mt-3 flex items-center gap-1.5 text-sm text-white/50"><UiBaseIcon :path="mdiPatreon" size="15" />{{ t('roadmap.proposedBy', { name: t('roadmap.patronCommunity') }) }}</p>
-                <a v-if="item.sourceUrl" :href="item.sourceUrl" target="_blank" rel="noopener noreferrer" class="mt-auto inline-flex items-center gap-1 pt-4 text-xs font-semibold text-red-300 hover:text-red-200">
+                <a v-if="httpUrl(item.sourceUrl)" :href="httpUrl(item.sourceUrl) ?? undefined" target="_blank" rel="noopener noreferrer" class="mt-auto inline-flex items-center gap-1 pt-4 text-xs font-semibold text-red-300 hover:text-red-200">
                   {{ t('roadmap.viewSource') }} <UiBaseIcon :path="mdiArrowRight" size="14" />
                 </a>
               </div>
@@ -324,7 +325,7 @@ function featureDate(item: RoadmapItem) {
             <article class="feature-roadmap-content relative">
               <h2 class="flex items-center gap-2 text-xl font-bold"><UiBaseIcon :path="featureIcon(item)" size="21" class="shrink-0 text-white/55" />{{ featureTitle(item) }}</h2>
               <p v-if="item.description" class="mt-2 max-w-2xl leading-relaxed text-white/55">{{ featureDescription(item) }}</p>
-              <a v-if="item.sourceUrl" :href="item.sourceUrl" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-red-300 hover:text-red-200">{{ t('roadmap.viewSource') }} <UiBaseIcon :path="mdiArrowRight" size="14" /></a>
+              <a v-if="httpUrl(item.sourceUrl)" :href="httpUrl(item.sourceUrl) ?? undefined" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-red-300 hover:text-red-200">{{ t('roadmap.viewSource') }} <UiBaseIcon :path="mdiArrowRight" size="14" /></a>
             </article>
           </li>
           <li v-if="!featureItems.length" class="rounded-lg border border-dashed border-white/10 p-8 text-center text-sm text-white/35">{{ t('roadmap.emptyFeatures') }}</li>

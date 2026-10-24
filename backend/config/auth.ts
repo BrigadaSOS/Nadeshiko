@@ -16,7 +16,7 @@ import {
   LOGIN_CODE_TTL_MS,
   generateLoginCode,
 } from '@app/services/auth/loginCode';
-import { APIError } from 'better-auth/api';
+import { APIError, createAuthMiddleware, getSessionFromCtx } from 'better-auth/api';
 import { isSuppressed } from '@app/services/email/suppression';
 import { countryFromAuthContext } from '@app/services/auth/requestCountry';
 import { recordLastSeen, resolveUserId, shouldRecordLastSeen } from '@app/services/auth/lastSeen';
@@ -48,6 +48,16 @@ const DISABLED_PATHS = [
   '/sign-up/email',
   '/reset-password',
   '/forget-password',
+  // The email-OTP plugin is here only for `/sign-in/email-otp`; codes are minted in-process via `auth.api`, which
+  // `disabledPaths` does not gate. Over HTTP, sending one would overwrite the code already in a reader's inbox.
+  '/email-otp/send-verification-otp',
+  '/email-otp/check-verification-otp',
+  '/email-otp/verify-email',
+  '/email-otp/request-password-reset',
+  '/email-otp/reset-password',
+  '/email-otp/request-email-change',
+  '/email-otp/change-email',
+  '/forget-password/email-otp',
 ];
 
 // The old per-user cooldown was replaced by per-address limiting because it could silently return without sending and
@@ -90,6 +100,23 @@ async function requireRecentDeleteAuthentication(request?: Request): Promise<voi
     throw new APIError('BAD_REQUEST', {
       code: 'SESSION_EXPIRED',
       message: 'Recent authentication is required to delete an account.',
+    });
+  }
+}
+
+/** A key minted under impersonation would outlive the 30-minute impersonation session and carry the admin's access
+ * into the user's account indefinitely; `/v1/user/api-keys` makes the same check on `req.auth`. */
+export async function rejectImpersonatedApiKeyCreation(ctx: {
+  path?: string;
+  context: Parameters<typeof getSessionFromCtx>[0]['context'];
+}): Promise<void> {
+  if (ctx.path !== '/api-key/create') return;
+
+  const session = await getSessionFromCtx(ctx as Parameters<typeof getSessionFromCtx>[0]);
+  if ((session?.session as { impersonatedBy?: unknown } | undefined)?.impersonatedBy) {
+    throw new APIError('FORBIDDEN', {
+      code: 'IMPERSONATION_FORBIDDEN',
+      message: 'API keys cannot be created while impersonating a user.',
     });
   }
 }
@@ -186,6 +213,14 @@ export function buildSocialProviders(configValues: AppConfig): Record<string, Re
   return socialProviders;
 }
 
+function isHttpsUrl(url: string): boolean {
+  try {
+    return new URL(url).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function extractBearerToken(authorization: string | undefined | null): string | null {
   if (!authorization?.startsWith('Bearer ')) {
     return null;
@@ -199,8 +234,8 @@ export function extractBearerToken(authorization: string | undefined | null): st
  * third-party tools, and existing key rows retain their stored permissions. */
 const DEFAULT_API_PERMISSIONS = [ApiPermission.READ_MEDIA];
 
-/** This is the server-side ceiling for permissions a user may grant a key; API-key auth bypasses the session-admin
- * check, so corpus-write scopes must be constrained here. */
+/** This is the server-side ceiling for permissions a user may grant a key; `enforceSessionAdmin` also re-checks the
+ * owner's current role for user keys, but a key must never carry a scope its owner could not use. */
 const USER_GRANTABLE_API_PERMISSIONS = [
   ApiPermission.READ_MEDIA,
   ApiPermission.READ_PROFILE,
@@ -341,6 +376,8 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
   const configValues = dependencies.configValues || config;
   const databasePool = dependencies.databasePool || pool;
   const isProduction = dependencies.production ?? isProdEnvironment(configValues.ENVIRONMENT);
+  // Key on the served scheme, not the environment name: staging runs ENVIRONMENT=development behind https.
+  const secureCookies = isProduction || isHttpsUrl(configValues.BASE_URL);
   const findUserById = dependencies.findUserById || defaultFindUserById;
   const sendWelcomeEmailFn = dependencies.sendWelcomeEmailFn || sendWelcomeEmail;
   const sendVerifyNewEmailFn = dependencies.sendVerifyNewEmailFn || sendVerifyNewEmail;
@@ -359,6 +396,9 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
     database: databasePool,
     trustedOrigins: trustedOrigins.length > 0 ? trustedOrigins : undefined,
     disabledPaths: DISABLED_PATHS,
+    hooks: {
+      before: createAuthMiddleware(rejectImpersonatedApiKeyCreation),
+    },
     emailVerification: {
       sendVerificationEmail: async ({ user, url }) => {
         await sendVerifyNewEmailFn(user.email, url);
@@ -608,10 +648,10 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
         generateId: 'serial',
       },
       cookiePrefix: 'nadeshiko',
-      useSecureCookies: isProduction,
+      useSecureCookies: secureCookies,
       defaultCookieAttributes: {
         sameSite: 'lax',
-        secure: isProduction,
+        secure: secureCookies,
       },
     },
   } as BetterAuthOptions;

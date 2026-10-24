@@ -19,17 +19,16 @@ import {
   CollectionVisibility,
   Media,
   Segment,
-  UserRoleType,
 } from '@app/models';
 import type { CategoryOutput, MediaOutput } from 'generated/outputTypes';
-import type { User } from '@app/models/User';
 import { toCollectionDTO } from './mappers/collectionMapper';
 import { toSearchResponseDTO } from './mappers/searchMapper';
 import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { SegmentResponse } from '@app/services/search/segmentDocument/SegmentResponse';
 import { AccessDeniedError, InvalidRequestError } from '@app/errors';
 import { assertUser } from '@app/middleware/authentication';
-import { resolveMediaFilterIds } from './searchFilters';
+import { isSessionAdmin } from '@app/middleware/authorization';
+import { clampSegmentStatus, resolveMediaFilterIds } from './searchFilters';
 import type { Request } from 'express';
 
 export const listCollections: ListCollections = async ({ query }, respond, req) => {
@@ -199,7 +198,7 @@ export const removeSegmentFromCollection: RemoveSegmentFromCollection = async ({
 export const searchCollectionSegments: SearchCollectionSegments = async ({ params, body }, respond, req) => {
   const collection = await loadReadableCollection(req, params.collectionPublicId);
 
-  const filters = await resolveMediaFilterIds(body.filters);
+  const filters = await resolveMediaFilterIds(clampSegmentStatus(body.filters, req));
 
   const segmentIds = await fetchCollectionSegmentIds(collection.id);
   const results = await SegmentDocument.searchInIds(segmentIds, { ...body, filters }, 'strict');
@@ -269,14 +268,12 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
   return respond.with200().body({ media, categories, includes: { media: includedMedia } });
 };
 
-const isAdmin = (user: Pick<User, 'role'>): boolean => user.role === UserRoleType.ADMIN;
-
 /** Fetch and authorize together so mutating handlers cannot forget the ownership check. */
 async function loadOwnedCollection(req: Request, collectionPublicId: string): Promise<Collection> {
   const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { publicId: collectionPublicId } });
 
-  if (collection.userId !== user.id && !isAdmin(user)) {
+  if (collection.userId !== user.id && !isSessionAdmin(req)) {
     throw new AccessDeniedError('You do not have permission to modify this collection.');
   }
 
@@ -309,7 +306,7 @@ async function loadReadableCollection(req: Request, collectionPublicId: string):
   const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { publicId: collectionPublicId } });
 
-  if (collection.visibility === CollectionVisibility.PUBLIC || collection.userId === user.id || isAdmin(user)) {
+  if (collection.visibility === CollectionVisibility.PUBLIC || collection.userId === user.id || isSessionAdmin(req)) {
     return collection;
   }
 

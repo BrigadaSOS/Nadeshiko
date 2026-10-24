@@ -1,4 +1,5 @@
-import { ApiPermission } from '@app/models/ApiPermission';
+import { ApiPermission, AuthType } from '@app/models/ApiPermission';
+import { UserRoleType } from '@app/models/User';
 import { InsufficientPermissionsError } from '@app/errors';
 import { Request, Response, NextFunction } from 'express';
 
@@ -16,3 +17,9 @@ export const requirePermissions = (...requiredPermissions: ApiPermission[]) => {
     next();
   };
 };
+
+/** Admin overrides in handlers are for people at a browser: an API key, even one an admin owns, is a bearer credential
+ * that may sit in a third-party tool, so it gets owner-level access only. */
+export function isSessionAdmin(req: Pick<Request, 'auth' | 'user'>): boolean {
+  return req.auth?.type === AuthType.SESSION && req.user?.role === UserRoleType.ADMIN;
+}

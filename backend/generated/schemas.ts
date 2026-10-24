@@ -358,7 +358,7 @@ export const s_RoadmapItemWrite = z.object({
   status: z.enum(['CONSIDERING', 'PLANNED', 'IN_PROGRESS', 'RELEASED']),
   title: z.string().min(1).max(180),
   description: z.string().max(2000).optional(),
-  sourceUrl: z.string().max(1000).nullable().optional(),
+  sourceUrl: z.string().max(1000).regex(new RegExp('^https?://')).nullable().optional(),
   coverUrl: z.string().max(1000).nullable().optional(),
   targetDate: z.iso.date().nullable().optional(),
   introducedInVersion: z.string().max(32).nullable().optional(),
@@ -1010,7 +1010,7 @@ export const s_UserExportResponse = z.object({
 });
 
 export const s_CreateRoadmapProposalRequestBody = z.object({
-  sourceUrl: z.string().max(1000),
+  sourceUrl: z.string().max(1000).regex(new RegExp('^https?://')),
   title: z.string().min(1).max(180).optional(),
   note: z.string().max(2000).optional(),
   proposerName: z.string().max(80).optional(),
@@ -1050,7 +1050,7 @@ export const s_UpdateAdminRoadmapItemRequestBody = z.object({
   status: z.enum(['PROPOSED', 'CONSIDERING', 'PLANNED', 'IN_PROGRESS', 'RELEASED', 'DECLINED']).optional(),
   title: z.string().min(1).max(180).optional(),
   description: z.string().max(2000).optional(),
-  sourceUrl: z.string().max(1000).nullable().optional(),
+  sourceUrl: z.string().max(1000).regex(new RegExp('^https?://')).nullable().optional(),
   coverUrl: z.string().max(1000).nullable().optional(),
   targetDate: z.iso.date().nullable().optional(),
   introducedInVersion: z.string().max(32).nullable().optional(),

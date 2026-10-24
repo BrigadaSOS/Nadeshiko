@@ -110,7 +110,7 @@ describe('the rate-limit metric contract', () => {
     expect(internalScopes).toEqual([...rateLimit.RATE_LIMIT_SCOPES].sort());
   });
 
-  it('records the exact IPv6 /56 limiter key for operator-only triage', async () => {
+  it('labels rejections by scope and source only, never by client address', async () => {
     const app = buildApplication({
       mountRoutes: (application) => {
         application.get('/metric-rate-limit-probe', (_req, res) => res.json({ ok: true }));
@@ -126,13 +126,11 @@ describe('the rate-limit metric contract', () => {
 
       const points = pointsFor(await collect(), 'http.server.rate_limited');
       const rejected = points.find(
-        (point) =>
-          point.attributes.scope === 'global' &&
-          point.attributes.source === 'external' &&
-          point.attributes.client_ip === '2001:db8:abcd:1200::/56',
+        (point) => point.attributes.scope === 'global' && point.attributes.source === 'external',
       );
 
       expect(rejected?.value).toBeGreaterThan(0);
+      expect(points.every((point) => !('client_ip' in point.attributes))).toBe(true);
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }

@@ -550,6 +550,12 @@ describe('renderFilterMediaPage', () => {
     expect(optionValues(await render())[0]).toBe('__all__');
   });
 
+  test('echoes the name filter with its markdown escaped', async () => {
+    const sent = await render({ nameFilter: '**bold** ||spoiler||' });
+
+    expect(sent.content).toContain('filtering by "\\*\\*bold\\*\\* \\|\\|spoiler\\|\\|"');
+  });
+
   test('shows pagination controls only when there is more than one page', async () => {
     const manyPages = await render();
     const onePage = await render({ allMedia: many.slice(0, 5), filteredMedia: many.slice(0, 5) });

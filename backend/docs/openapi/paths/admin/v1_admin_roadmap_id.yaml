@@ -24,7 +24,7 @@ patch:
             status: { type: string, enum: [PROPOSED, CONSIDERING, PLANNED, IN_PROGRESS, RELEASED, DECLINED] }
             title: { type: string, minLength: 1, maxLength: 180 }
             description: { type: string, maxLength: 2000 }
-            sourceUrl: { type: [string, "null"], format: uri, maxLength: 1000 }
+            sourceUrl: { type: [string, "null"], format: uri, maxLength: 1000, pattern: "^https?://" }
             coverUrl: { type: [string, "null"], format: uri, maxLength: 1000 }
             targetDate: { type: [string, "null"], format: date }
             introducedInVersion: { type: [string, "null"], maxLength: 32 }

@@ -8,6 +8,8 @@ declare module 'express-serve-static-core' {
     user?: User;
     auth?: {
       type: AuthType;
+      /** Session auth only: the admin user id when this session is an impersonation. */
+      impersonatedBy?: string;
       apiKey?: {
         id?: string;
         kind?: ApiKeyKind;

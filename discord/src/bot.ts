@@ -50,8 +50,11 @@ async function main() {
     await registerCommands(allCommands);
   }
 
+  // Replies echo user-typed queries, so no content may ping anyone: not
+  // @everyone, not a role, not the invoker. Nothing the bot says needs to.
   const client = new Client({
     intents: [GatewayIntentBits.Guilds],
+    allowedMentions: { parse: [], repliedUser: false },
   });
 
   client.once(Events.ClientReady, createReadyHandler(INVITE_PERMISSIONS));

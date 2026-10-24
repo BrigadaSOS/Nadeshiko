@@ -41,8 +41,12 @@ vi.mock('h3', async (importOriginal) => {
 });
 
 vi.stubGlobal('defineEventHandler', (handler: unknown) => handler);
-// The cache wrapper is Nitro's; what is under test is the handler it wraps.
-vi.stubGlobal('defineCachedEventHandler', (handler: unknown) => handler);
+// The cache wrapper is Nitro's; what is under test is the handler it wraps and the key it is given.
+let cacheOptions: { getKey: (event: FakeEvent) => string } | undefined;
+vi.stubGlobal('defineCachedEventHandler', (handler: unknown, options: typeof cacheOptions) => {
+  cacheOptions = options;
+  return handler;
+});
 
 const candidate = (over: Record<string, unknown> = {}) => ({
   id: 'jmdict:1',
@@ -421,5 +425,30 @@ describe('when the dictionary itself fails', () => {
       'cache-control': 'no-store',
       'retry-after': '5',
     });
+  });
+});
+
+describe('the shared cache key', () => {
+  async function keyFor(lemma: string, query: Record<string, unknown>) {
+    handler ??= ((await import('./[lemma].get')) as unknown as { default: typeof handler }).default;
+    return cacheOptions!.getKey({ params: { lemma }, query, headers: {} });
+  }
+
+  test('ignores query parameters the lookup never reads', async () => {
+    const plain = await keyFor('兄', { locale: 'en', reading: 'あに' });
+
+    expect(await keyFor('兄', { locale: 'en', reading: 'あに', junk: '1', stack: 'abc' })).toBe(plain);
+    // An unsupported locale is answered in English, so it is the English entry.
+    expect(await keyFor('兄', { locale: 'xx', reading: 'あに ' })).toBe(plain);
+  });
+
+  test('separates every input that changes the answer', async () => {
+    const base = await keyFor('兄', { locale: 'en' });
+
+    expect(await keyFor('姉', { locale: 'en' })).not.toBe(base);
+    expect(await keyFor('兄', { locale: 'es' })).not.toBe(base);
+    expect(await keyFor('兄', { locale: 'en', reading: 'けい' })).not.toBe(base);
+    expect(await keyFor('兄', { locale: 'en', pos: 'n' })).not.toBe(base);
+    expect(await keyFor('兄', { locale: 'en', surface: '兄さん' })).not.toBe(base);
   });
 });

@@ -1,9 +1,10 @@
 import cluster from 'node:cluster';
+import { isIPv4, isIPv6 } from 'node:net';
 import type { H3Event } from 'h3';
 import { createError, setResponseHeader } from 'h3';
 import { getClientIp } from './clientIp';
 
-type Bucket = { count: number; windowStart: number };
+type Bucket = { count: number; windowStart: number; windowMs: number };
 
 export interface IpRateLimitOptions {
   windowMs: number;
@@ -26,23 +27,63 @@ export function perWorkerMax(max: number): number {
 }
 
 const buckets = new Map<string, Bucket>();
+// Memory ceiling. Past it the oldest live buckets are dropped, which only resets a count; reaching it needs this
+// many distinct IPv4 addresses or /56 prefixes inside one window.
+const MAX_BUCKETS = 50_000;
 
 function getOrCreate(key: string, windowMs: number, now: number): Bucket {
   const existing = buckets.get(key);
   if (existing && now - existing.windowStart < windowMs) return existing;
-  const fresh: Bucket = { count: 0, windowStart: now };
+  // Re-insert so Map order follows window start: expired buckets collect at the front and eviction stops at the
+  // first live one instead of scanning every key.
+  buckets.delete(key);
+  const fresh: Bucket = { count: 0, windowStart: now, windowMs };
   buckets.set(key, fresh);
-  // Opportunistic cleanup so the Map doesn't grow unbounded.
-  if (buckets.size > 10_000) {
-    for (const [k, b] of [...buckets]) {
-      if (now - b.windowStart >= windowMs * 2) buckets.delete(k);
-    }
+  for (const [k, b] of buckets) {
+    if (buckets.size <= MAX_BUCKETS && now - b.windowStart < b.windowMs) break;
+    buckets.delete(k);
   }
   return fresh;
 }
 
+const IPV6_SUBNET_BITS = 56;
+
+function ipv6Groups(ip: string): number[] | null {
+  let address = ip;
+  // An embedded dotted quad occupies the last two groups.
+  const dotted = /(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(address);
+  if (dotted) {
+    const [a, b, c, d] = dotted.slice(1).map(Number) as [number, number, number, number];
+    address = `${address.slice(0, dotted.index)}${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
+  }
+  const [head = '', tail] = address.split('::');
+  const parse = (part: string) => (part ? part.split(':').map((g) => Number.parseInt(g, 16)) : []);
+  const left = parse(head);
+  const right = tail === undefined ? [] : parse(tail);
+  const groups = tail === undefined ? left : [...left, ...Array(8 - left.length - right.length).fill(0), ...right];
+  return groups.length === 8 && groups.every((g) => Number.isInteger(g) && g >= 0 && g <= 0xffff) ? groups : null;
+}
+
+// Mirror the backend's express-rate-limit ipKeyGenerator(ip, 56): one IPv6 customer usually holds at least a /64,
+// so per-address buckets are free to rotate. IPv4-mapped addresses count as their IPv4 address.
+export function rateLimitSubject(ip: string): string {
+  const bare = ip.replace(/^\[|\]$/g, '').split('%', 1)[0] ?? '';
+  if (isIPv4(bare) || !isIPv6(bare)) return ip;
+  const groups = ipv6Groups(bare);
+  if (!groups) return ip;
+
+  const [g0, g1, g2, g3, g4, g5, g6 = 0, g7 = 0] = groups;
+  const v4 = `${g6 >> 8}.${g6 & 0xff}.${g7 >> 8}.${g7 & 0xff}`;
+  if (!g0 && !g1 && !g2 && !g3 && !g4 && g5 === 0xffff) return v4;
+  // Deprecated IPv4-compatible notation (::1.2.3.4); `::` and `::1` share the range, so the dotted form decides.
+  if (bare.includes('.') && !g0 && !g1 && !g2 && !g3 && !g4 && !g5) return v4;
+
+  const prefix = [g0, g1, g2, (g3 ?? 0) & 0xff00].map((g) => (g ?? 0).toString(16)).join(':');
+  return `${prefix}::/${IPV6_SUBNET_BITS}`;
+}
+
 function clientKey(event: H3Event): string {
-  return getClientIp(event);
+  return rateLimitSubject(getClientIp(event));
 }
 
 function safeSetHeader(event: H3Event, name: string, value: string): void {
@@ -85,4 +126,9 @@ export async function ipRateLimit(
 // Test-only -- DO NOT call from prod code
 export function _resetIpRateLimitForTests(): void {
   buckets.clear();
+}
+
+// Test-only -- DO NOT call from prod code
+export function _ipRateLimitBucketCountForTests(): number {
+  return buckets.size;
 }

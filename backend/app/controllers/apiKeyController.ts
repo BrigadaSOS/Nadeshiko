@@ -22,6 +22,11 @@ type CreateApiKey = (args: {
 export const createUserApiKey: CreateUserApiKey = async ({ body }, respond, req) => {
   const user = assertUser(req);
 
+  // A key outlives the impersonation session that minted it, so it would hand the admin lasting access as this user.
+  if (req.auth?.impersonatedBy) {
+    throw new InsufficientPermissionsError('API keys cannot be created while impersonating a user.');
+  }
+
   const name = body.name.trim();
   if (name.length === 0) {
     throw new InvalidRequestError('API key name cannot be blank.');

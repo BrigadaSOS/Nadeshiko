@@ -866,6 +866,62 @@ describe('addResultToAnki: which fields get written', () => {
     expect(written).toEqual({ W: '食べる', R: 'たべる', F: '食[た]べる' });
   });
 
+  test('escapes corpus text and titles, which Anki would otherwise render as HTML', async () => {
+    const hostile = {
+      segment: {
+        ...segment,
+        textJa: { content: '<img src=x onerror=alert(1)>食べ&たい', tokens: [] },
+        textEn: { content: 'I <b>want</b>' },
+        textEs: { content: '"comer"' },
+      },
+      media: { ...mediaEntry, nameEn: '<script>x</script>', nameRomaji: '<script>x</script>' },
+      blobAudio: null,
+      blobAudioUrl: null,
+    };
+    const fields = ['{sentence-jp}', '{sentence-en}', '{sentence-es}', '{sentence-furigana}', '{sentence-info}'];
+    const store = withProfile(
+      makeProfile({
+        fields: fields.map((value, i) => ({ key: `F${i}`, value })),
+        openBrowserOnExport: false,
+      } as never),
+    );
+    queueFetch(ankiOk([12]), ankiOk([{ noteId: 12, fields: {}, modelName: 'Lapis' }]), ankiOk(null));
+
+    await store.addResultToAnki(asResult(hostile), {});
+
+    const written = ankiCall('updateNoteFields')!.params.note.fields as Record<string, string>;
+    expect(written.F0).toBe('<div>&lt;img src=x onerror=alert(1)&gt;食べ&amp;たい</div>');
+    expect(written.F1).toBe('<div>I &lt;b&gt;want&lt;/b&gt;</div>');
+    expect(written.F2).toBe('<div>&quot;comer&quot;</div>');
+    expect(written.F3).toBe('&lt;img src=x onerror=alert(1)&gt;食べ&amp;たい');
+    expect(written.F4).toContain('&lt;script&gt;x&lt;/script&gt;');
+    expect(written.F4).not.toContain('<script>');
+  });
+
+  test('escapes plain word fields but keeps the markup of fields built as HTML', async () => {
+    const hostileWord = {
+      ...(minedWord as object),
+      word: '<i>食べる</i>',
+      reading: 'た&べる',
+      furigana: '<u>食</u>[た]べる',
+      jlpt: '<N5>',
+    } as never;
+
+    const written = await exportWith(
+      { W: '{word}', R: '{word-reading}', F: '{word-furigana}', J: '{word-jlpt}', M: '{content_jp_highlight}' },
+      { word: hostileWord },
+    );
+
+    expect(written).toEqual({
+      W: '&lt;i&gt;食べる&lt;/i&gt;',
+      R: 'た&amp;べる',
+      F: '&lt;u&gt;食&lt;/u&gt;[た]べる',
+      J: '&lt;N5&gt;',
+      // Already escaped where it was built; escaping again would show the reader `&lt;b&gt;`.
+      M: '<b>食べ</b>たい',
+    });
+  });
+
   test('the sentence info block links back to the sentence on the site', async () => {
     const written = await exportWith({ Info: '{sentence-info}' });
 

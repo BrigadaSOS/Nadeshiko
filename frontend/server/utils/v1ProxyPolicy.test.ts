@@ -6,7 +6,7 @@ const { ipRateLimit } = vi.hoisted(() => ({ ipRateLimit: vi.fn() }));
 vi.mock('~~/config/env', () => ({ env }));
 vi.mock('~~/server/utils/ipRateLimit', () => ({ ipRateLimit }));
 
-const { enforceIpRateLimit, v1ApiLimit } = await import('./v1ProxyPolicy');
+const { enforceIpRateLimit, hasDotSegment, v1ApiLimit } = await import('./v1ProxyPolicy');
 
 const SECRET = 'PxK2s9Qw4mVb7Ld1Rt6Yz0Nh3Jf8Ac5';
 const eventWith = (header?: string) =>
@@ -59,4 +59,20 @@ describe('enforceIpRateLimit', () => {
 
     await expect(enforceIpRateLimit(eventWith(undefined), v1ApiLimit)).rejects.toBe(tooMany);
   });
+});
+
+describe('hasDotSegment', () => {
+  it.each(['/v1/../x', '/v1/%2e%2e/x', '/v1/.%2E/x', '/v1/%2E/x', '/v1/a/..%2fb', '/v1/a/%2e%2e%5cb'])(
+    'flags %s',
+    (path) => {
+      expect(hasDotSegment(path)).toBe(true);
+    },
+  );
+
+  it.each(['/v1/search', '/v1/media/k-on..', '/v1/media/.hidden', '/v1/search?next=../x', '/v1/bad/%zz'])(
+    'leaves %s alone',
+    (path) => {
+      expect(hasDotSegment(path)).toBe(false);
+    },
+  );
 });

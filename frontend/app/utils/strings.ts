@@ -9,3 +9,17 @@
  */
 export const firstNonBlank = (...values: Array<string | null | undefined>): string | undefined =>
   values.find((value) => value !== null && value !== undefined && value.trim() !== '') ?? undefined;
+
+/**
+ * `value` when it is an absolute http(s) URL, otherwise `null`. Submitted links reach `href`, where a
+ * `javascript:` URL would run in the viewer's session -- including an admin's.
+ */
+export function httpUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const { protocol } = new URL(value);
+    return protocol === 'http:' || protocol === 'https:' ? value : null;
+  } catch {
+    return null;
+  }
+}

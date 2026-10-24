@@ -470,6 +470,34 @@ describe('credentials in the error log', () => {
   });
 });
 
+describe('credentials in the request URL', () => {
+  const SECRET_URL = '/en/auth/verify?token=magic-secret&code=oauth-secret&next=%2Fen%2Fsettings';
+
+  test('the response log line keeps the path and ordinary query but not the token or code', async () => {
+    const fire = await loadPlugin();
+    const event = makeEvent({ url: SECRET_URL, status: 500 });
+
+    await fire('request', event);
+    await fire('afterResponse', event);
+
+    const line = logLines.at(-1)!;
+    expect(JSON.stringify(line)).not.toMatch(/magic-secret|oauth-secret/);
+    expect(line.payload.url).toContain('/en/auth/verify');
+    expect(line.payload.url).toContain('next=');
+  });
+
+  test('neither the error log nor PostHog’s http.url carries them', async () => {
+    const fire = await loadPlugin();
+
+    await fire('error', httpError(500), { event: makeEvent({ url: SECRET_URL }), tags: ['request'] });
+
+    const logged = logLines.find((l) => l.payload.type === 'error')!;
+    expect(JSON.stringify(logged)).not.toMatch(/magic-secret|oauth-secret/);
+    expect(captureException.mock.calls[0][2]['http.url']).not.toMatch(/magic-secret|oauth-secret/);
+    expect(captureException.mock.calls[0][2]['http.url']).toContain('token=%5BRedacted%5D');
+  });
+});
+
 describe('shutdown', () => {
   test('flushes on close, because an unflushed batch is the report you wanted', async () => {
     // Nitro flushes nothing on its own, and the interesting bursts arrive

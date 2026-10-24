@@ -56,6 +56,8 @@ tags:
   - name: Stats
     description: |
       Statistics endpoints for corpus coverage and word frequency data.
+  - name: Roadmap
+    description: Public content queue and feature roadmap.
 paths:
   /v1/search:
     post:
@@ -1402,6 +1404,65 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/admin/roadmap:
+    components:
+      schemas:
+        RoadmapItemWrite:
+          type: object
+          required:
+            - kind
+            - status
+            - title
+          properties:
+            kind:
+              type: string
+              enum:
+                - CONTENT
+                - FEATURE
+            status:
+              type: string
+              enum:
+                - CONSIDERING
+                - PLANNED
+                - IN_PROGRESS
+                - RELEASED
+            title:
+              type: string
+              minLength: 1
+              maxLength: 180
+            description:
+              type: string
+              maxLength: 2000
+            sourceUrl:
+              type:
+                - string
+                - 'null'
+              format: uri
+              maxLength: 1000
+              pattern: ^https?://
+            coverUrl:
+              type:
+                - string
+                - 'null'
+              format: uri
+              maxLength: 1000
+            targetDate:
+              type:
+                - string
+                - 'null'
+              format: date
+            introducedInVersion:
+              type:
+                - string
+                - 'null'
+              maxLength: 32
+            sortOrder:
+              type: integer
+            proposerName:
+              type:
+                - string
+                - 'null'
+              maxLength: 80
 components:
   securitySchemes:
     ApiKey:
@@ -1589,7 +1650,8 @@ components:
         languages:
           description: |
             Translation languages to include alongside Japanese in search matching.
-            - Omitted / `null`: match against Japanese and all translation languages (default)
+            - Omitted: match against Japanese and all translation languages (default)
+            - `null`: not accepted; omit this field to use the default
             - `[]`: match against Japanese only
             - `["EN"]` / `["ES"]` / `["EN", "ES"]`: match against Japanese plus the listed translation languages
 
@@ -2198,7 +2260,7 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -2241,7 +2303,7 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -2283,7 +2345,7 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -2325,7 +2387,7 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -2366,7 +2428,7 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -2407,7 +2469,7 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -2910,7 +2972,7 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -3376,7 +3438,7 @@ components:
         code: VALIDATION_FAILED
         title: Validation Failed
         detail: The request data did not pass validation rules. Please check the errors field for details.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 400
         errors:
@@ -3389,7 +3451,7 @@ components:
         code: INVALID_JSON
         title: Invalid JSON
         detail: The request body contains invalid JSON that could not be parsed. Please check the syntax.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 400
     AuthCredentialsRequired:
@@ -3398,7 +3460,7 @@ components:
         code: AUTH_CREDENTIALS_REQUIRED
         title: Authentication Credentials Required
         detail: No API key or session credentials were provided. Please include an Authorization Bearer token or a valid session cookie.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 401
     AuthCredentialsInvalid:
@@ -3407,7 +3469,7 @@ components:
         code: AUTH_CREDENTIALS_INVALID
         title: Invalid Authentication Credentials
         detail: The provided API key or session credentials are invalid. Please check your credentials and try again.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 401
     AuthCredentialsExpired:
@@ -3417,7 +3479,7 @@ components:
         code: AUTH_CREDENTIALS_EXPIRED
         title: Expired Authentication Credentials
         detail: Your credentials are not valid anymore. Please sign in again or create a new API key.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
     InsufficientPermissions:
       summary: Insufficient Permissions
@@ -3425,7 +3487,7 @@ components:
         code: INSUFFICIENT_PERMISSIONS
         title: Insufficient Permissions
         detail: 'Your account lacks the required permissions to perform this action. Required permissions: {permissions}.'
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 403
     RateLimitExceeded:
@@ -3434,7 +3496,7 @@ components:
         code: RATE_LIMIT_EXCEEDED
         title: Rate Limit Exceeded
         detail: You have made too many requests. Please slow down and try again later.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 429
     QuotaExceeded:
@@ -3443,7 +3505,7 @@ components:
         code: QUOTA_EXCEEDED
         title: Quota Exceeded
         detail: You have exceeded your monthly API quota. Please upgrade your plan or wait until next month.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 429
     InternalServerError:
@@ -3452,7 +3514,7 @@ components:
         code: INTERNAL_SERVER_EXCEPTION
         title: Internal Server Error
         detail: An unexpected error occurred on our end. Please try again later. If the problem persists, please report this issue.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 500
     ServiceOverloaded:
@@ -3461,7 +3523,7 @@ components:
         code: SERVICE_OVERLOADED
         title: Service Overloaded
         detail: The service is busy. Please retry in a moment.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 503
     NotFound:
@@ -3470,7 +3532,7 @@ components:
         code: NOT_FOUND
         title: Not Found
         detail: The requested resource could not be found. Please check the URL and try again.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        type: about:blank
         instance: trace-id-placeholder
         status: 404
   responses:

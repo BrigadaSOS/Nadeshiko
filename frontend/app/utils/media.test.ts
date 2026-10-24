@@ -1,3 +1,4 @@
+import { Window } from 'happy-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   anilistAnimeUrl,
@@ -259,22 +260,7 @@ describe('copyToClipboard', () => {
     vi.stubGlobal('useNuxtApp', () => ({ $i18n: { t: (key: string) => key } }));
     vi.stubGlobal('useToastSuccess', toastSuccess);
     vi.stubGlobal('useToastError', toastError);
-    vi.stubGlobal('document', {
-      createElement: () => {
-        const el = { innerHTML: '', textContent: '', innerText: '' };
-        return new Proxy(el, {
-          set(target, prop, value) {
-            if (prop === 'innerHTML') {
-              target.innerHTML = value;
-              // Enough of a parser for what this copies: the highlight markup a
-              // search result carries.
-              target.textContent = String(value).replace(/<[^>]*>/g, '');
-            }
-            return true;
-          },
-        });
-      },
-    });
+    vi.stubGlobal('DOMParser', new Window().DOMParser);
   }
 
   it('copies the text with its highlight markup stripped', async () => {
@@ -284,6 +270,16 @@ describe('copyToClipboard', () => {
 
     expect(await copyToClipboard('<em>食べ</em>たい')).toBe(true);
     expect((navigator.clipboard.writeText as ReturnType<typeof vi.fn>).mock.calls[0]![0]).toBe('食べたい');
+  });
+
+  it('parses corpus HTML inertly, so markup in the text cannot run while it is stripped', async () => {
+    stubClipboard(async () => {});
+    const parse = vi.spyOn(DOMParser.prototype, 'parseFromString');
+
+    expect(await copyToClipboard('<img src="x" onerror="globalThis.__copied=1">食べたい')).toBe(true);
+    expect((navigator.clipboard.writeText as ReturnType<typeof vi.fn>).mock.calls[0]![0]).toBe('食べたい');
+    expect(parse).toHaveBeenCalledWith(expect.any(String), 'text/html');
+    expect((globalThis as { __copied?: number }).__copied).toBeUndefined();
   });
 
   it('confirms the copy', async () => {

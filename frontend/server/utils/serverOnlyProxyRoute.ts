@@ -3,7 +3,7 @@ import { createPublicRouteMatcher } from '#shared/utils/backendSdk';
 
 // Match Express's case-insensitive, optional-trailing-slash and HEAD-to-GET routing before adding the internal secret.
 // Keep normalization separate from the public allowlist: widening that matcher grants privileges.
-function normalizeExpressPath(pathname: string): string {
+export function normalizeExpressPath(pathname: string): string {
   const withoutTrailingSlashes = pathname.replace(/\/+$/, '');
   return (withoutTrailingSlashes || '/').toLowerCase();
 }
