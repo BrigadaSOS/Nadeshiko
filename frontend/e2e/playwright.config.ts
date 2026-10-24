@@ -76,7 +76,9 @@ export default defineConfig({
   use: {
     baseURL: BASE_URL,
     screenshot: 'only-on-failure',
-    trace: 'on-first-retry',
+    // CI uploads the HTML report as an artifact, and a trace records every request header and cookie: the
+    // Cloudflare bypass secret and the E2E sessions would ship with it. Trace only where nothing is uploaded.
+    trace: process.env.CI ? 'off' : 'on-first-retry',
     // Hand-built contexts must also pass these headers (e.g. anonymous collection tests).
     extraHTTPHeaders: e2eBypassHeaders(),
   },

@@ -64,3 +64,13 @@ updates:
         applies-to: version-updates
         patterns: ['*']
         update-types: ['minor', 'patch']
+
+  # Base images are pinned by digest so a rebuild cannot silently pick up a different Node, which means
+  # nothing moves them forward on its own: without this entry a Node security release never reaches prod.
+  - package-ecosystem: docker
+    directories: ['/backend', '/frontend', '/discord']
+    schedule:
+      interval: weekly
+    groups:
+      node-image:
+        patterns: ['node']
