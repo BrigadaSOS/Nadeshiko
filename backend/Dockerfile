@@ -1,6 +1,6 @@
 # Build from the repository root so npm workspaces resolve the root manifests and lockfile. Usage: docker build -f
 # backend/Dockerfile .
-FROM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS build
+FROM node:26.12.1-slim@sha256:36793bcbb160a6a16cede1e62b93f84e26b78a972a8a4c0b879c1c12f22761ec AS build
 WORKDIR /build
 
 # `npm ci` reconciles the whole workspace set against the root lockfile, so every
@@ -37,7 +37,7 @@ RUN set -eux; \
   node -e "require.resolve('tsx',{paths:['/app']})"; \
   node -e "require.resolve('@brigadasos/nadeshiko-shared/traffic',{paths:['/app']})"
 
-FROM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS release
+FROM node:26.12.1-slim@sha256:36793bcbb160a6a16cede1e62b93f84e26b78a972a8a4c0b879c1c12f22761ec AS release
 WORKDIR /app
 COPY --from=build /app /app
 USER node

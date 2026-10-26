@@ -3,7 +3,7 @@
 # the root package.json and package-lock.json.
 #
 #   docker build -f discord/Dockerfile .
-FROM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS manifests
+FROM node:26.12.1-slim@sha256:36793bcbb160a6a16cede1e62b93f84e26b78a972a8a4c0b879c1c12f22761ec AS manifests
 WORKDIR /build
 # better-sqlite3 runs node-gyp from its install script. The toolchain is confined
 # to the build stages; the release image copies only the assembled /app.
@@ -81,7 +81,7 @@ RUN set -eux; \
   node -e "require.resolve('better-sqlite3',{paths:['/app']})"; \
   test -f /app/node_modules/better-sqlite3/build/Release/better_sqlite3.node
 
-FROM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS release
+FROM node:26.12.1-slim@sha256:36793bcbb160a6a16cede1e62b93f84e26b78a972a8a4c0b879c1c12f22761ec AS release
 WORKDIR /app
 COPY --from=build /app /app
 
