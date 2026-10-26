@@ -76,7 +76,7 @@
     "@opentelemetry/instrumentation-runtime-node": "^0.35.0",
     "@opentelemetry/instrumentation-undici": "^0.32.0",
     "@opentelemetry/resources": "^2.11.0",
-    "@opentelemetry/sdk-metrics": "^2.11.0",
+    "@opentelemetry/sdk-metrics": "^3.0.0",
     "@opentelemetry/sdk-node": "^0.222.0",
     "@smithy/node-http-handler": "^4.12.1",
     "better-auth": "^1.7.4",

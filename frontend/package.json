@@ -38,7 +38,7 @@
     "@opentelemetry/instrumentation-runtime-node": "^0.35.0",
     "@opentelemetry/instrumentation-undici": "^0.32.0",
     "@opentelemetry/resources": "^2.11.0",
-    "@opentelemetry/sdk-metrics": "^2.11.0",
+    "@opentelemetry/sdk-metrics": "^3.0.0",
     "@opentelemetry/sdk-node": "^0.222.0",
     "@opentelemetry/sdk-trace-node": "^2.10.0",
     "@pinia/nuxt": "^1.0.2",
