@@ -10,23 +10,18 @@ describe('who writes to a reader', () => {
     }
   });
 
-  it('splits sequential accounts evenly between them', () => {
+  it('has Natsume sign for every reader', () => {
     const keys = Array.from({ length: 100 }, (_, i) => senderForUser(i + 1).key);
 
-    expect(keys.filter((key) => key === 'dav')).toHaveLength(50);
-    expect(keys.filter((key) => key === 'natsume')).toHaveLength(50);
+    expect(keys.every((key) => key === 'natsume')).toBe(true);
   });
 
-  /** Both are real mailboxes on the sending domain, or replies bounce. */
-  it('gives each of them their own address on the domain', () => {
-    const addresses = SENDERS.map((sender) => sender.email);
-
-    expect(new Set(addresses).size).toBe(2);
-    for (const address of addresses) expect(address).toMatch(/@nadeshiko\.co$/);
+  /** A real mailbox on the sending domain, or replies bounce. */
+  it('gives every sender an address on the domain', () => {
+    for (const sender of SENDERS) expect(sender.email).toMatch(/@nadeshiko\.co$/);
   });
 
   it('signs with their own name rather than the product', () => {
-    expect(fromNameFor(SENDERS[0])).toBe('Dav from Nadeshiko');
-    expect(fromNameFor(SENDERS[1])).toBe('Natsume from Nadeshiko');
+    expect(fromNameFor(SENDERS[0])).toBe('Natsume from Nadeshiko');
   });
 });
