@@ -27,6 +27,13 @@ on:
   workflow_dispatch:
 
 # OIDC for the AWS role that can read the R2 credentials out of SSM.
+#
+# Scheduled runs always use the default branch (main), and the production
+# environment admits only the production branch, so this workflow has its own
+# environment, backup-verify (main only). Its role,
+# github-actions-nadeshiko-backup-verify, can read /nadeshiko/prod/R2_BACKUP_*
+# and the shared warning webhook, nothing else (brigadasos-infra
+# terraform/aws-iam.tf).
 permissions:
   contents: read
   id-token: write
@@ -34,7 +41,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    environment: production
+    environment: backup-verify
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -42,7 +49,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-prod
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-backup-verify
           aws-region: eu-north-1
 
       - name: Check each database has a recent, plausible backup
@@ -178,13 +185,13 @@ jobs:
     needs: verify
     if: failure()
     runs-on: ubuntu-latest
-    environment: production
+    environment: backup-verify
     timeout-minutes: 5
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-prod
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-backup-verify
           aws-region: eu-north-1
 
       - name: Post failure to the warning channel
@@ -195,7 +202,7 @@ jobs:
           set -euo pipefail
 
           # `/nadeshiko/shared/`, not `/nadeshiko/prod/`: the same channel takes
-          # staging's, and both CI roles are granted that prefix. The canonical
+          # staging's. This job's role is granted exactly this one parameter. The canonical
           # copy under `/brigadasos-infra/monitoring/victoria/` is deliberately
           # NOT read here -- neither role can reach outside its own path, and
           # SECRETS.md asks each consumer to hold its own copy regardless.
