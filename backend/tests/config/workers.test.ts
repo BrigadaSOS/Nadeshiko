@@ -52,17 +52,31 @@ beforeEach(() => {
 });
 
 describe('workers initializer', () => {
-  it('updates the retry delay on existing ES queues after createQueue', async () => {
+  it('updates every queue with its options after createQueue', async () => {
     const context = { app: express(), server: null };
     await workersInitializer.initialize(context);
 
-    expect(mocks.boss.updateQueue).toHaveBeenCalledTimes(3);
-    expect(mocks.boss.updateQueue).toHaveBeenNthCalledWith(1, ES_SYNC_CREATE_QUEUE, { retryDelay: 1 });
-    expect(mocks.boss.updateQueue).toHaveBeenNthCalledWith(2, ES_SYNC_UPDATE_QUEUE, { retryDelay: 1 });
-    expect(mocks.boss.updateQueue).toHaveBeenNthCalledWith(3, ES_SYNC_DELETE_QUEUE, { retryDelay: 1 });
-    expect(mocks.boss.createQueue.mock.invocationCallOrder[2]).toBeLessThan(
-      mocks.boss.updateQueue.mock.invocationCallOrder[0]!,
+    const created = mocks.boss.createQueue.mock.calls;
+    expect(mocks.boss.updateQueue.mock.calls).toEqual(created);
+    created.forEach((_, i) => {
+      expect(mocks.boss.createQueue.mock.invocationCallOrder[i]).toBeLessThan(
+        mocks.boss.updateQueue.mock.invocationCallOrder[i]!,
+      );
+    });
+    expect(created.map(([name]) => name)).toEqual(
+      expect.arrayContaining([ES_SYNC_CREATE_QUEUE, ES_SYNC_UPDATE_QUEUE, ES_SYNC_DELETE_QUEUE]),
     );
+
+    await workersInitializer.shutdown?.(context);
+  });
+
+  it('gives retry delays in seconds, not milliseconds', async () => {
+    const context = { app: express(), server: null };
+    await workersInitializer.initialize(context);
+
+    for (const [name, options] of mocks.boss.createQueue.mock.calls) {
+      expect(options.retryDelay, name).toBeLessThanOrEqual(300);
+    }
 
     await workersInitializer.shutdown?.(context);
   });
