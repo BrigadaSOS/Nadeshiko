@@ -100,7 +100,11 @@ async function render(
         NuxtLink: { props: ['to'], template: '<a><slot /></a>' },
         UiBaseIcon: true,
         SearchSegmentContainer: true,
-        SearchContainer: true,
+        SearchContainer: {
+          name: 'SearchContainer',
+          props: ['initialSentenceOutcome', 'initialStatsOutcome'],
+          template: '<div />',
+        },
         CommonBaseModal: true,
       },
     },
@@ -191,6 +195,25 @@ describe('the breadcrumb', () => {
     await render(null, null);
 
     expect(createError).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
+  });
+});
+
+describe('the search container', () => {
+  // Without a primed outcome the container runs its own empty search on mount and the shared
+  // sentence never shows (BrigadaSOS/Nadeshiko#585).
+  test('is primed with the sentence the page loaded', async () => {
+    const wrapper = await render();
+
+    const container = wrapper.findComponent({ name: 'SearchContainer' });
+    expect(container.props('initialSentenceOutcome')).toMatchObject({ status: 'ok' });
+    expect(container.props('initialSentenceOutcome').data.results[0].segment.publicId).toBe('seg-1');
+  });
+
+  test('is primed with the stats for that one title', async () => {
+    const wrapper = await render();
+
+    const outcome = wrapper.findComponent({ name: 'SearchContainer' }).props('initialStatsOutcome');
+    expect(outcome).toMatchObject({ status: 'ok', data: { media: [{ mediaPublicId: 'm1', matchCount: 1 }] } });
   });
 });
 
