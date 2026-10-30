@@ -74,7 +74,7 @@ export const workersInitializer: RuntimeInitializer = {
         name: EMAIL_SEND_QUEUE,
         options: {
           retryLimit: 5,
-          retryDelay: 1000,
+          retryDelay: 1,
           retryBackoff: true,
           expireInSeconds: 1800,
           retentionSeconds: 86400,
@@ -86,7 +86,7 @@ export const workersInitializer: RuntimeInitializer = {
           // One retry covers a transient DB failure; beyond that a query failure should wait for tomorrow’s sweep
           // rather than repeat indefinitely.
           retryLimit: 1,
-          retryDelay: 300000,
+          retryDelay: 300,
           expireInSeconds: 1800,
           retentionSeconds: 86400,
         },
@@ -95,7 +95,7 @@ export const workersInitializer: RuntimeInitializer = {
         name: ACTIVITY_RETENTION_QUEUE,
         options: {
           retryLimit: 3,
-          retryDelay: 60000,
+          retryDelay: 60,
           retryBackoff: true,
           expireInSeconds: 3600,
           retentionSeconds: 86400,
@@ -105,7 +105,7 @@ export const workersInitializer: RuntimeInitializer = {
         name: AFFINITY_RETENTION_QUEUE,
         options: {
           retryLimit: 3,
-          retryDelay: 60000,
+          retryDelay: 60,
           retryBackoff: true,
           expireInSeconds: 3600,
           retentionSeconds: 86400,
@@ -117,7 +117,7 @@ export const workersInitializer: RuntimeInitializer = {
           // Retry the outer Shirabe pull across deploy/502/timeout failures; `parseSegments` already retries individual
           // chunks.
           retryLimit: 5,
-          retryDelay: 30000,
+          retryDelay: 30,
           retryBackoff: true,
           // Generous next to the ES queues' hour. A full pull is 500 sentences
           // and the adaptive limiter drops to one chunk at a time when Shirabe
@@ -132,20 +132,17 @@ export const workersInitializer: RuntimeInitializer = {
         options: {
           // This query sweep gets one retry for a DB blip; later failures wait for tomorrow.
           retryLimit: 1,
-          retryDelay: 300000,
+          retryDelay: 300,
           expireInSeconds: 1800,
           retentionSeconds: 86400,
         },
       },
     ];
 
+    // `createQueue` leaves existing queues unchanged, so update each one to keep the stored options in sync.
     for (const queue of queues) {
       await boss.createQueue(queue.name, queue.options);
-    }
-
-    // Update the three ES queues explicitly; `createQueue` leaves existing queues unchanged.
-    for (const queueName of [ES_SYNC_CREATE_QUEUE, ES_SYNC_UPDATE_QUEUE, ES_SYNC_DELETE_QUEUE]) {
-      await boss.updateQueue(queueName, { retryDelay: 1 });
+      await boss.updateQueue(queue.name, queue.options);
     }
 
     await boss.schedule(ACTIVITY_RETENTION_QUEUE, '0 3 * * *', {});
