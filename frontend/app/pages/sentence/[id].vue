@@ -6,7 +6,8 @@ import { mediaBrowsePath } from '~/utils/routes';
 import { resolveSearchResponse } from '~/utils/resolvers';
 import { apiErrorStatus, isMissing } from '~/utils/apiError';
 import { reportError } from '~/utils/reportError';
-import type { SearchStatsResponse } from '~/types/search';
+import type { FetchOutcome } from '~/composables/useSearchFetch';
+import type { SearchResponse, SearchStatsResponse } from '~/types/search';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -92,6 +93,15 @@ const initialStatsData = computed<SearchStatsResponse | null>(() => {
     categories: [{ category: result.media.category === 'JDRAMA' ? 'JDRAMA' : 'ANIME', count: 1, realCount: 1 }],
   };
 });
+
+// SearchContainer takes outcomes, not bare data. Without one it treats the page as unprimed and runs
+// its own corpus search on mount, which on /sentence/ has no query and replaces the shared sentence.
+const initialSentenceOutcome = computed<FetchOutcome<SearchResponse> | null>(() =>
+  initialSentenceData.value ? { status: 'ok', data: initialSentenceData.value } : null,
+);
+const initialStatsOutcome = computed<FetchOutcome<SearchStatsResponse> | null>(() =>
+  initialStatsData.value ? { status: 'ok', data: initialStatsData.value } : null,
+);
 
 const metaTags = computed(() => {
   const defaultTitle = t('seo.sentence.title');
@@ -234,7 +244,7 @@ if (import.meta.client) {
                         <div class="px-4 md:px-0">
                             <SearchBaseInputSegment />
                         </div>
-                        <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" />
+                        <SearchContainer :initial-sentence-outcome="initialSentenceOutcome" :initial-stats-outcome="initialStatsOutcome" />
                     </div>
             </div>
         </div>
