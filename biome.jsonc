@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.4/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -29,6 +29,14 @@
       "semicolons": "always",
       "arrowParentheses": "always"
     }
+  },
+  // Biome 2.6 started formatting these. It pads every Markdown table, inserts runs of blank lines and switches
+  // YAML to double quotes, all against how the repository is written, so they stay unformatted as before.
+  "markdown": {
+    "formatter": { "enabled": false }
+  },
+  "yaml": {
+    "formatter": { "enabled": false }
   },
   "linter": {
     "enabled": true,
@@ -60,6 +68,18 @@
           "suspicious": {
             "noImplicitAnyLet": "off",
             "noAssignInExpressions": "off"
+          }
+        }
+      }
+    },
+    {
+      // The rule targets the DOM `innerText` property; in e2e it only ever matches Playwright's
+      // `locator.innerText()`, which is a different API and is the one the specs mean to read.
+      "includes": ["**/e2e/**"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "useDomNodeTextContent": "off"
           }
         }
       }

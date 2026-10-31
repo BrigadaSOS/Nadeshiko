@@ -71,6 +71,7 @@ const { openFeedback } = useFeedbackWidget();
         </div>
 
         <div class="flex -mx-2">
+          <!-- biome-ignore lint/a11y/useAnchorContent: aria-label names the link; Biome 2.6 misses it in Vue templates -->
           <a
             :href="DISCORD_INVITE_URL"
             class="mx-2 text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"

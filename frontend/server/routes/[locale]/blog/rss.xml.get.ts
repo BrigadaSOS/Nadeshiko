@@ -21,8 +21,9 @@ export default defineEventHandler(async (event) => {
 
   // The module's own resolver rather than a hand-rolled origin, so the feed
   // cannot start advertising a different host than the canonicals do. Trailing
-  // slash trimmed because every URL below appends its own path.
-  const siteUrl = getNitroOrigin(event).replace(/\/$/, '');
+  // slash trimmed because every URL below appends its own path. Only `context` is passed: nuxt-site-config 5 types
+  // the event as h3 v2's, and it resolves the origin from `context.siteConfigNitroOrigin`, set by its request hook.
+  const siteUrl = getNitroOrigin({ context: event.context }).replace(/\/$/, '');
 
   let posts = await getBlogPosts(locale);
   if (posts.length === 0 && locale !== 'en') posts = await getBlogPosts('en');
