@@ -47,7 +47,7 @@
     "gray-matter": "^4.0.3",
     "js-yaml": "5.5.0",
     "marked": "^18.1.1",
-    "nuxt-og-image": "^6.10.4",
+    "nuxt-og-image": "^7.0.7",
     "nuxt-security": "^2.6.0",
     "pinia": "^4.0.3",
     "pinia-plugin-persistedstate": "^4.7.1",
