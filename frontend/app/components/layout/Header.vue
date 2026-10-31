@@ -122,6 +122,7 @@ watch(() => route.fullPath, closeNavSidebar);
                 </div>
                 <div class="gap-2 flex flex-row">
                     <div class="flex items-center">
+                    <!-- biome-ignore lint/a11y/useAnchorContent: aria-label names the link; Biome 2.6 misses it in Vue templates -->
                     <a :href="DISCORD_INVITE_URL"
                         class="mx-2 hidden lg:flex text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
                         target="_blank" aria-label="Discord">
@@ -311,6 +312,7 @@ watch(() => route.fullPath, closeNavSidebar);
             <div class="mt-auto border-t border-hairline py-3 px-5">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
+                        <!-- biome-ignore lint/a11y/useAnchorContent: aria-label names the link; Biome 2.6 misses it in Vue templates -->
                         <a :href="DISCORD_INVITE_URL"
                             class="flex items-center justify-center size-9 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700"
                             target="_blank" aria-label="Discord">

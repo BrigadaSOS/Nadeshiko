@@ -95,7 +95,7 @@ test.describe('Developer API Keys', () => {
 
     try {
       const read = await api.get('/v1/media?take=1');
-      expect(read, await read.text()).toBeOK();
+      await expect(read, await read.text()).toBeOK();
 
       const forbiddenWrite = await api.post('/v1/media', { data: {} });
       expect(forbiddenWrite.status()).toBe(403);
@@ -134,14 +134,14 @@ test.describe('Developer API Keys', () => {
       const segmentResponse = await authenticatedPage.request.post('/v1/search', {
         data: { query: { search: '私' }, take: 10, include: ['media'] },
       });
-      expect(segmentResponse, await segmentResponse.text()).toBeOK();
+      await expect(segmentResponse, await segmentResponse.text()).toBeOK();
       const segmentPublicId = (await segmentResponse.json()).segments?.[0]?.publicId as string | undefined;
       expect(segmentPublicId, 'the seeded corpus must provide a segment for API-key collection tests').toBeTruthy();
 
       const create = await api.post('/v1/collections', {
         data: { name: `e2e-api-collection-${Date.now()}` },
       });
-      expect(create, await create.text()).toBeOK();
+      await expect(create, await create.text()).toBeOK();
       collectionPublicId = ((await create.json()) as { publicId: string }).publicId;
 
       const add = await api.post(`/v1/collections/${collectionPublicId}/segments`, {
@@ -150,17 +150,17 @@ test.describe('Developer API Keys', () => {
       expect(add.status()).toBe(204);
 
       const read = await api.get(`/v1/collections/${collectionPublicId}`);
-      expect(read, await read.text()).toBeOK();
+      await expect(read, await read.text()).toBeOK();
       expect((await read.json()).segmentCount).toBe(1);
 
       const search = await api.post(`/v1/collections/${collectionPublicId}/search`, { data: {} });
-      expect(search, await search.text()).toBeOK();
+      await expect(search, await search.text()).toBeOK();
       expect(
         (await search.json()).segments.some((segment: { publicId: string }) => segment.publicId === segmentPublicId),
       ).toBeTruthy();
 
       const stats = await api.get(`/v1/collections/${collectionPublicId}/stats`);
-      expect(stats, await stats.text()).toBeOK();
+      await expect(stats, await stats.text()).toBeOK();
       expect(Array.isArray((await stats.json()).media)).toBeTruthy();
 
       const visitorPage = await visitor.newPage();
@@ -174,11 +174,11 @@ test.describe('Developer API Keys', () => {
       expect((await visitorPage.request.delete(`/v1/collections/${collectionPublicId}`)).status()).toBe(403);
 
       const publish = await api.patch(`/v1/collections/${collectionPublicId}`, { data: { visibility: 'PUBLIC' } });
-      expect(publish, await publish.text()).toBeOK();
+      await expect(publish, await publish.text()).toBeOK();
       expect((await visitorPage.request.get(`/v1/collections/${collectionPublicId}`)).status()).toBe(200);
 
       const privatize = await api.patch(`/v1/collections/${collectionPublicId}`, { data: { visibility: 'PRIVATE' } });
-      expect(privatize, await privatize.text()).toBeOK();
+      await expect(privatize, await privatize.text()).toBeOK();
       expect((await visitorPage.request.get(`/v1/collections/${collectionPublicId}`)).status()).toBe(403);
 
       await developer.deactivateApiKey(developer.apiKeyRowByName(keyName));

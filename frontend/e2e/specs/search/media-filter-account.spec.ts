@@ -81,7 +81,7 @@ async function familiarMediaIds(page: Page): Promise<string[]> {
   // entries, which is indistinguishable from "the tally did not record" unless
   // the status is checked. Silently reading it as an empty ranking is how a
   // rate-limited run blames the feature.
-  expect(response, await response.text()).toBeOK();
+  await expect(response, await response.text()).toBeOK();
   const data = (await response.json()) as { familiarMedia?: Array<{ media?: { publicId?: string } }> };
   return (data.familiarMedia ?? []).map((entry) => entry.media?.publicId ?? '');
 }
@@ -126,7 +126,7 @@ test.describe('Media filter (signed in)', () => {
     const recorded = await page.request.post('/v1/user/activity', {
       data: { activityType: 'ANKI_EXPORT', mediaPublicId: studiedId },
     });
-    expect(recorded, await recorded.text()).toBeOK();
+    await expect(recorded, await recorded.text()).toBeOK();
     await expect.poll(() => familiarMediaIds(page), { timeout: 15_000 }).toContain(studiedId);
 
     await search.goto(QUERY);
@@ -159,11 +159,11 @@ test.describe('Media filter (signed in)', () => {
     const studyRecorded = await page.request.post('/v1/user/activity', {
       data: { activityType: 'ANKI_EXPORT', mediaPublicId: await publicIdForLabel(page, studiedLabel) },
     });
-    expect(studyRecorded, await studyRecorded.text()).toBeOK();
+    await expect(studyRecorded, await studyRecorded.text()).toBeOK();
     const starred = await page.request.post('/v1/user/favorite-media', {
       data: { mediaPublicId: await publicIdForLabel(page, starredLabel) },
     });
-    expect(starred, await starred.text()).toBeOK();
+    await expect(starred, await starred.text()).toBeOK();
 
     await search.goto(QUERY);
     await search.expectResultsVisible();

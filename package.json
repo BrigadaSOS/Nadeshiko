@@ -9,6 +9,7 @@
     "discord"
   ],
   "//lint,typecheck,test": "`--workspaces --if-present` rather than a hand-written list, so a new workspace is covered the day it is added and a contributor running `npm run lint && npm run typecheck && npm run test` cannot pass locally and fail in CI. npm runs them in the order the `workspaces` array declares. Biome runs once over the whole repository from the root `biome.jsonc`; a workspace `lint` holds only what Biome does not cover: backend's `redocly lint` and frontend's locale parity check.",
+  "//overrides:biome": "The OpenAPI generator formats its output with an embedded Biome that reads the root `biome.jsonc`, so it must understand the same rules: an older one rejects the config and `generate:api` fails. Keep the wasm pin equal to `@biomejs/biome`.",
   "//sdk:sync": "Bundles the spec before regenerating the SDK from it, so starting the stack right after a spec edit does not build the SDK from the previous bundle. Runs once per `npm run dev`, not per Nuxt restart, and deliberately stops short of backend `generate:api` -- `dev:backend` does that for itself.",
   "scripts": {
     "predev": "npm run sdk:sync",
@@ -31,7 +32,7 @@
     "setup": "sh scripts/setup-hooks.sh && npm run setup --workspace backend && npm run setup --workspace frontend"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.12",
+    "@biomejs/biome": "^2.6.4",
     "@vitest/coverage-v8": "^5.0.5",
     "portless": "^0.15.10",
     "tsx": "^4.23.15"
@@ -44,7 +45,8 @@
       "js-yaml": "^4.3.2"
     },
     "@nahkies/openapi-code-generator": {
-      "js-yaml": "^4.3.2"
+      "js-yaml": "^4.3.2",
+      "@biomejs/wasm-nodejs": "2.6.4"
     },
     "@rollup/plugin-yaml": {
       "js-yaml": "^4.3.2"

@@ -37,7 +37,7 @@ async function searchQueries(page: Page): Promise<string[]> {
   const response = await page.request.get('/v1/user/activity?activityType=SEARCH&take=100');
   // Same reason as `familiarMediaIds`: an unread response reads as "nothing was
   // recorded", which is exactly what the off-switch tests claim to prove.
-  expect(response, await response.text()).toBeOK();
+  await expect(response, await response.text()).toBeOK();
   const data = (await response.json()) as { activities?: Array<{ searchQuery?: string }> };
   return (data.activities ?? []).map((activity) => activity.searchQuery ?? '');
 }
@@ -46,7 +46,7 @@ async function familiarMediaIds(page: Page): Promise<string[]> {
   const response = await page.request.get('/v1/user/familiar-media');
   // Not swallowed: a 429 reads as an empty tally, which would make the
   // "nothing was counted" assertions pass for the wrong reason.
-  expect(response, await response.text()).toBeOK();
+  await expect(response, await response.text()).toBeOK();
   const data = (await response.json()) as { familiarMedia?: Array<{ media?: { publicId?: string } }> };
   return (data.familiarMedia ?? []).map((entry) => entry.media?.publicId ?? '');
 }
@@ -196,7 +196,7 @@ test.describe('Activity privacy', () => {
       const whileOffRecord = await page.request.post('/v1/user/activity', {
         data: { activityType: 'ANKI_EXPORT', mediaPublicId: whileOffMediaId },
       });
-      expect(whileOffRecord, await whileOffRecord.text()).toBeOK();
+      await expect(whileOffRecord, await whileOffRecord.text()).toBeOK();
 
       await toggle.click();
       await expect.poll(async () => (await preferences(page)).familiarMedia?.enabled, { timeout: 10_000 }).toBe(true);

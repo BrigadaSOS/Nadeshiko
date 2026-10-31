@@ -62,7 +62,7 @@ test.describe('Deployed application health', () => {
 
     const frontendHealth = await page.request.get('/up');
     const frontendBody = await frontendHealth.json();
-    expect(frontendHealth, JSON.stringify(frontendBody)).toBeOK();
+    await expect(frontendHealth, JSON.stringify(frontendBody)).toBeOK();
     expect(frontendBody).toMatchObject({ status: 'ok', releaseSha: expectedSha });
 
     const site = new URL(process.env.E2E_BASE_URL || 'http://localhost:3000');
@@ -72,7 +72,7 @@ test.describe('Deployed application health', () => {
 
     const backendHealth = await page.request.get(site.toString());
     const backendBody = await backendHealth.json();
-    expect(backendHealth, JSON.stringify(backendBody)).toBeOK();
+    await expect(backendHealth, JSON.stringify(backendBody)).toBeOK();
     expect(backendBody).toMatchObject({
       status: 'ok',
       database: 'up',
