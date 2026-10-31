@@ -36,12 +36,14 @@ if (endpoint) {
   const sdk = new NodeSDK({
     resource,
     traceExporter: new OTLPTraceExporter(),
-    metricReader: new PeriodicExportingMetricReader({
-      exporter: new OTLPMetricExporter({
-        temporalityPreference: AggregationTemporalityPreference.DELTA,
+    metricReaders: [
+      new PeriodicExportingMetricReader({
+        exporter: new OTLPMetricExporter({
+          temporalityPreference: AggregationTemporalityPreference.DELTA,
+        }),
+        exportIntervalMillis: 15000,
       }),
-      exportIntervalMillis: 15000,
-    }),
+    ],
     // Drop pg pool gauges: their cross-pool delta baseline produces false values; keep query spans. Drop duplicate
     // durations in favor of TypeORM metrics, accepting lost metric coverage for better-auth and pg-boss.
     views: [

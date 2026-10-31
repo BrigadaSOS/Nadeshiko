@@ -3,7 +3,9 @@
 // instrumentation hooks miss their patch windows and meters captured at
 // module load (e.g. instrumentation.ts) bind to no-op providers.
 
-import { metrics, trace, type Meter, type Tracer } from '@opentelemetry/api';
+import { context, metrics, propagation, trace, type Meter, type Tracer } from '@opentelemetry/api';
+import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
+import { CompositePropagator, W3CBaggagePropagator, W3CTraceContextPropagator } from '@opentelemetry/core';
 import { AggregationTemporalityPreference, OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
@@ -12,10 +14,10 @@ import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runti
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-import { BatchSpanProcessor, NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { BatchSpanProcessor, TracerProvider } from '@opentelemetry/sdk-trace';
 import packageJson from '../package.json';
 
-let tracerProvider: NodeTracerProvider | undefined;
+let tracerProvider: TracerProvider | undefined;
 let meterProvider: MeterProvider | undefined;
 
 const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
@@ -27,11 +29,16 @@ if (endpoint) {
     'deployment.environment': process.env.NODE_ENV || 'development',
   });
 
-  tracerProvider = new NodeTracerProvider({
+  tracerProvider = new TracerProvider({
     resource,
-    spanProcessors: [new BatchSpanProcessor(new OTLPTraceExporter())],
+    spanProcessors: [new BatchSpanProcessor({ exporter: new OTLPTraceExporter() })],
   });
-  tracerProvider.register();
+  // sdk-trace 3 dropped NodeTracerProvider.register(); these three calls are what it did.
+  context.setGlobalContextManager(new AsyncLocalStorageContextManager().enable());
+  propagation.setGlobalPropagator(
+    new CompositePropagator({ propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()] }),
+  );
+  trace.setGlobalTracerProvider(tracerProvider);
 
   meterProvider = new MeterProvider({
     resource,

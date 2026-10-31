@@ -9,7 +9,7 @@ import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace';
 import { normalizeRoute, isIgnoredPath } from './route-normalization.mjs';
 
 const require = createRequire(import.meta.url);
@@ -36,13 +36,15 @@ if (endpoint) {
   const sdk = new NodeSDK({
     resource,
     resourceDetectors: [hostDetector, processDetector],
-    spanProcessors: [new FilteringSpanProcessor(traceExporter)],
-    metricReader: new PeriodicExportingMetricReader({
-      exporter: new OTLPMetricExporter({
-        temporalityPreference: AggregationTemporalityPreference.DELTA,
+    spanProcessors: [new FilteringSpanProcessor({ exporter: traceExporter })],
+    metricReaders: [
+      new PeriodicExportingMetricReader({
+        exporter: new OTLPMetricExporter({
+          temporalityPreference: AggregationTemporalityPreference.DELTA,
+        }),
+        exportIntervalMillis: 15000,
       }),
-      exportIntervalMillis: 15000,
-    }),
+    ],
     instrumentations: [
       new HttpInstrumentation({
         ignoreOutgoingRequestHook: () => true,

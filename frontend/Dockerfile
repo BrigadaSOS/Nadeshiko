@@ -65,17 +65,17 @@ WORKDIR /deps
 # could break the image (api 1.10.0 did, against sdk-trace-node's peer range) or ship code nobody reviewed.
 RUN npm init -y >/dev/null \
   && npm install --omit=dev --no-audit --no-fund --save-exact \
-    @opentelemetry/api@1.9.1 \
-    @opentelemetry/sdk-node@0.222.0 \
-    @opentelemetry/sdk-trace-node@2.11.0 \
-    @opentelemetry/exporter-trace-otlp-http@0.222.0 \
-    @opentelemetry/exporter-metrics-otlp-http@0.222.0 \
-    @opentelemetry/resources@2.11.0 \
-    @opentelemetry/sdk-metrics@2.11.0 \
-    @opentelemetry/instrumentation-http@0.222.0 \
-    @opentelemetry/instrumentation-undici@0.32.0 \
-    @opentelemetry/instrumentation-runtime-node@0.35.0 \
-    @opentelemetry/instrumentation-pino@0.68.0
+    @opentelemetry/api@1.10.0 \
+    @opentelemetry/sdk-node@0.300.0 \
+    @opentelemetry/sdk-trace@3.0.0 \
+    @opentelemetry/exporter-trace-otlp-http@0.300.0 \
+    @opentelemetry/exporter-metrics-otlp-http@0.300.0 \
+    @opentelemetry/resources@3.0.0 \
+    @opentelemetry/sdk-metrics@3.0.0 \
+    @opentelemetry/instrumentation-http@0.300.0 \
+    @opentelemetry/instrumentation-undici@0.34.0 \
+    @opentelemetry/instrumentation-runtime-node@0.37.0 \
+    @opentelemetry/instrumentation-pino@0.70.0
 
 FROM node:26.12.1-slim@sha256:36793bcbb160a6a16cede1e62b93f84e26b78a972a8a4c0b879c1c12f22761ec
 WORKDIR /app
