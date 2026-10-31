@@ -61,7 +61,7 @@
     "node": "^24.22.1 || >=26.12.1"
   },
   "dependencies": {
-    "@aws-sdk/client-sesv2": "^3.1156.0",
+    "@aws-sdk/client-sesv2": "^3.1158.0",
     "@better-auth/api-key": "^1.7.12",
     "@brigadasos/nadeshiko-shared": "*",
     "@elastic/elasticsearch": "^9.5.1",
