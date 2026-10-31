@@ -12,6 +12,12 @@ describe('safeHighlight', () => {
     );
   });
 
+  it('retains the expanded-context tint', () => {
+    expect(safeHighlight("<span class='text-cyan-200'>before</span> <em>match</em>")).toBe(
+      '<span class="text-cyan-200">before</span> <em>match</em>',
+    );
+  });
+
   it('does not retain attributes or other elements masquerading as highlights', () => {
     expect(safeHighlight('<em onclick="alert(1)">x</em><span class="other">y</span>')).toBe(
       '&lt;em onclick=&quot;alert(1)&quot;&gt;x</em>&lt;span class=&quot;other&quot;&gt;y</span>',
