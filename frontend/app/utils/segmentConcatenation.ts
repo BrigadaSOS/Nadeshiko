@@ -1,4 +1,5 @@
 import type { SearchResult, Segment } from '~/types/search';
+import { EXPANDED_NEIGHBOUR_TAG } from './safeHighlight';
 
 /** Which side(s) of a segment the reader asked to pull in. */
 export type ExpandDirection = 'forward' | 'backward' | 'both';
@@ -115,12 +116,17 @@ function concatJapanese(current: JaField, pieces: JaPiece[]): JaField | null {
  * Join one language's text across the segments being merged, marking the pulled-in
  * neighbours so the reader can see which half was theirs.
  *
+ * Only the highlight carries the mark (`EXPANDED_NEIGHBOUR_TAG`, which `safeHighlight`
+ * lets through). The content stays plain text: it is copied to the clipboard and
+ * rendered escaped under a spoiler, so any markup in it reaches the reader as literal
+ * tags.
+ *
  * A missing side is dropped rather than joined as an empty string: "expand both"
  * one segment away from the end of an episode used to emit `<span></span>` and a
  * stray leading space around text that had not actually grown.
  */
 function concatLangField<T extends TextFieldBase>(current: T, before: T | undefined, after: T | undefined): T {
-  const wrap = (text: string) => `<span class="text-cyan-200">${text}</span>`;
+  const wrap = (text: string) => `${EXPANDED_NEIGHBOUR_TAG}${text}</span>`;
   const join = (parts: Array<string | null>) => parts.filter((part): part is string => !!part).join(' ');
 
   const contentOf = (field: T | undefined) => field?.content || '';
@@ -128,7 +134,7 @@ function concatLangField<T extends TextFieldBase>(current: T, before: T | undefi
 
   const merged = {
     ...current,
-    content: join([before ? wrap(contentOf(before)) : null, contentOf(current), after ? wrap(contentOf(after)) : null]),
+    content: join([before ? contentOf(before) : null, contentOf(current), after ? contentOf(after) : null]),
     highlight: join([
       before ? wrap(highlightOf(before)) : null,
       highlightOf(current),
