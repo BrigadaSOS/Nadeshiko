@@ -169,7 +169,7 @@ jobs:
       # repo surfaces spec changes; keep it that way, and drop these lines only
       # deliberately.
       - name: Check public API breaking changes
-        uses: oasdiff/oasdiff-action/breaking@9c0494cfee8b8fcc9fb383ed2d5d3fbdae169b93 # v0.1.15
+        uses: oasdiff/oasdiff-action/breaking@9ce3a29eb0e6478dd0140932a678c7fb59d08f22 # v0.1.20
         with:
           base: base/backend/docs/generated/openapi-public.yaml
           revision: head/backend/docs/generated/openapi-public.yaml
@@ -181,7 +181,7 @@ jobs:
       # but should be visible in review.
       - name: Check internal API breaking changes
         continue-on-error: true
-        uses: oasdiff/oasdiff-action/breaking@9c0494cfee8b8fcc9fb383ed2d5d3fbdae169b93 # v0.1.15
+        uses: oasdiff/oasdiff-action/breaking@9ce3a29eb0e6478dd0140932a678c7fb59d08f22 # v0.1.20
         with:
           base: base/backend/docs/generated/openapi.yaml
           revision: head/backend/docs/generated/openapi.yaml
@@ -189,7 +189,7 @@ jobs:
           review: false
 
       - name: Generate public API changelog
-        uses: oasdiff/oasdiff-action/changelog@9c0494cfee8b8fcc9fb383ed2d5d3fbdae169b93 # v0.1.15
+        uses: oasdiff/oasdiff-action/changelog@9ce3a29eb0e6478dd0140932a678c7fb59d08f22 # v0.1.20
         with:
           base: base/backend/docs/generated/openapi-public.yaml
           revision: head/backend/docs/generated/openapi-public.yaml
