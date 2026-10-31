@@ -37,12 +37,14 @@ if (endpoint) {
     resource,
     resourceDetectors: [hostDetector, processDetector],
     spanProcessors: [new FilteringSpanProcessor({ exporter: traceExporter })],
-    metricReader: new PeriodicExportingMetricReader({
-      exporter: new OTLPMetricExporter({
-        temporalityPreference: AggregationTemporalityPreference.DELTA,
+    metricReaders: [
+      new PeriodicExportingMetricReader({
+        exporter: new OTLPMetricExporter({
+          temporalityPreference: AggregationTemporalityPreference.DELTA,
+        }),
+        exportIntervalMillis: 15000,
       }),
-      exportIntervalMillis: 15000,
-    }),
+    ],
     instrumentations: [
       new HttpInstrumentation({
         ignoreOutgoingRequestHook: () => true,

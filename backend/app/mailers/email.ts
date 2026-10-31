@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import nodemailer, { type Transporter } from 'nodemailer';
 import { config } from '@config/config';
 import { logger } from '@config/log';
 import {
@@ -30,7 +30,7 @@ import { captureEmailSent } from '@app/services/analytics/posthog';
 
 const tracer = getTracer();
 
-let transporter: nodemailer.Transporter | null = null;
+let transporter: Transporter | null = null;
 
 /** Reset the memoized transport in tests; production keeps one transport, but otherwise the first test mock would
  * affect every later case. */
@@ -40,7 +40,7 @@ export function resetTransporterForTests(): void {
 
 /** Memoize the local letter-opener transport; deployed environments use HTTP and must not acquire a nodemailer
  * transport. */
-async function getTransporter(): Promise<nodemailer.Transporter> {
+async function getTransporter(): Promise<Transporter> {
   if (transporter) {
     return transporter;
   }
