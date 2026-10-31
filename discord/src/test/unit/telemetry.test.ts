@@ -21,9 +21,8 @@ const registerTracer = vi.fn();
 const setGlobalMeterProvider = vi.fn();
 const registerInstrumentations = vi.fn();
 
-vi.mock('@opentelemetry/sdk-trace-node', () => ({
-  NodeTracerProvider: class {
-    register = registerTracer;
+vi.mock('@opentelemetry/sdk-trace', () => ({
+  TracerProvider: class {
     shutdown = tracerShutdown;
   },
   BatchSpanProcessor: class {},
@@ -55,13 +54,14 @@ vi.mock('@opentelemetry/resources', () => ({ resourceFromAttributes: (attrs: unk
 // instead of against the behaviour the bot actually gets. Only the one setter
 // this module calls is spied on, and it is installed before the dynamic import
 // below because the call happens at module evaluation.
-import { metrics } from '@opentelemetry/api';
+import { metrics, trace } from '@opentelemetry/api';
 
 /** Loads the module with `OTEL_EXPORTER_OTLP_ENDPOINT` set or unset. */
 async function loadTelemetry(endpoint?: string) {
   vi.resetModules();
   vi.clearAllMocks();
   vi.spyOn(metrics, 'setGlobalMeterProvider').mockImplementation(setGlobalMeterProvider);
+  vi.spyOn(trace, 'setGlobalTracerProvider').mockImplementation(registerTracer);
   vi.stubEnv('OTEL_EXPORTER_OTLP_ENDPOINT', endpoint ?? '');
   return import('../../telemetry');
 }
