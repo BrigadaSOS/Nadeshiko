@@ -46,7 +46,6 @@
     },
     "@nahkies/openapi-code-generator": {
       "js-yaml": "^4.3.2",
-      "@biomejs/biome": "$@biomejs/biome",
       "@biomejs/wasm-nodejs": "2.6.4"
     },
     "@rollup/plugin-yaml": {
