@@ -748,14 +748,4 @@ watch(playingVideoId, (id) => {
 .image-container {
   position: relative;
 }
-
-.nd-translation-spoiler .text-cyan-200 {
-  color: transparent;
-}
-
-@media (hover: hover) {
-  .group\/translation:hover .nd-translation-spoiler .text-cyan-200 {
-    color: rgb(165 243 252);
-  }
-}
 </style>

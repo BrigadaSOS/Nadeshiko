@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import type { SearchResult, Segment } from '~/types/search';
+import { safeHighlight } from './safeHighlight';
 import { buildExpandedTexts, orderAudioUrls, pickNeighbours } from './segmentConcatenation';
 import { enrichTokens, tokensToAnkiFurigana, type SlimToken } from './tokenEnrichment';
 
@@ -87,8 +88,21 @@ describe('buildExpandedTexts', () => {
 
   it('expands every language, not just Japanese', () => {
     const texts = buildExpandedTexts(current, context[0]!, null);
-    expect(texts.textEn.content).toBe('<span class="text-cyan-200">一-en</span> 二-en');
-    expect(texts.textEs.content).toBe('<span class="text-cyan-200">一-es</span> 二-es');
+    expect(texts.textEn.highlight).toBe('<span class="text-cyan-200">一-en</span> 二-en');
+    expect(texts.textEs.highlight).toBe('<span class="text-cyan-200">一-es</span> 二-es');
+  });
+
+  it('keeps the translation content plain text, with the tint only on the highlight', () => {
+    // The content is what gets copied to the clipboard and what a spoiler row
+    // renders escaped, so a wrapper there showed up as literal `<span ...>` tags.
+    const texts = buildExpandedTexts(current, context[0]!, context[2]!);
+    expect(texts.textEn.content).toBe('一-en 二-en 三-en');
+    expect(texts.textEs.content).toBe('一-es 二-es 三-es');
+  });
+
+  it('renders the tinted highlight as markup, not as escaped tags', () => {
+    const texts = buildExpandedTexts(current, context[0]!, null);
+    expect(safeHighlight(texts.textEn.highlight)).toBe('<span class="text-cyan-200">一-en</span> 二-en');
   });
 
   it('rebases every token onto the merged sentence', () => {
@@ -124,7 +138,8 @@ describe('buildExpandedTexts', () => {
     // is the only thing left to mark the pulled-in half with.
     const untokenized = segment('c', '三', []);
     const texts = buildExpandedTexts(current, null, untokenized);
-    expect(texts.textJa.content).toBe('二 <span class="text-cyan-200">三</span>');
+    expect(texts.textJa.highlight).toBe('二 <span class="text-cyan-200">三</span>');
+    expect(texts.textJa.content).toBe('二 三');
     expect((texts.textJa as { tokens: unknown }).tokens).toBeNull();
   });
 
