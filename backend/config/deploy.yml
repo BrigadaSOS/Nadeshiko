@@ -23,6 +23,10 @@ builder:
 ssh:
   user: docker
 
+# The backend transpiles with tsx on start and took 25-28s to answer /up on the staging host as of 2026-10, against
+# Kamal's 30s default; the October dependency bump pushed it to 30-32s and every deploy failed. 90s leaves headroom.
+deploy_timeout: 90
+
 # Set log rotation explicitly: Kamal has limited defaults for the app and none for accessories.
 logging:
   driver: json-file
