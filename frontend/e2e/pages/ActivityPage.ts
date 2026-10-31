@@ -47,7 +47,7 @@ export class ActivityPage {
           candidate.request().method() === 'GET' && new URL(candidate.url()).pathname === '/v1/user/activity/stats',
       );
       await button.click();
-      expect(await response).toBeOK();
+      await expect(await response).toBeOK();
     };
     await choose(this.allTimeButton);
     await choose(sevenDayButton);

@@ -388,6 +388,10 @@ export default defineNuxtConfig({
   ogImage: {
     enabled: false,
   },
+  // @nuxtjs/seo 6 installs these two by default. ai-ready publishes llms.txt, page markdown and an MCP server, and
+  // skew-protection polls for new builds; neither was reviewed as a feature, so they stay off as before the upgrade.
+  aiReady: false,
+  skewProtection: false,
   tailwindcss: {
     cssPath: '~/assets/css/tailwind.css',
   },

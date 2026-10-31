@@ -94,7 +94,7 @@ export const getCoveredWords: GetCoveredWords = async ({ query }, respond) => {
   const { filter, cursor, take } = query;
 
   const decodedRank = decodeKeysetCursor<number>(cursor) ?? 0;
-  const startRank = decodedRank > minRank ? decodedRank : minRank;
+  const startRank = Math.max(decodedRank, minRank);
 
   const conditions = ['rank <= $1', 'rank > $2'];
   if (filter === 'COVERED') conditions.push('match_count > 0');

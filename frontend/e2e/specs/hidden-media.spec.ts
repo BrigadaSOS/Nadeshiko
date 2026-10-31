@@ -6,11 +6,11 @@ test.describe('Hidden Media', () => {
 
   test.beforeEach(async ({ authenticatedPage }) => {
     const response = await authenticatedPage.request.get('/v1/user/excluded-media');
-    expect(response).toBeOK();
+    await expect(response).toBeOK();
     const { excludedMedia } = (await response.json()) as { excludedMedia: Array<{ publicId: string }> };
     for (const media of excludedMedia) {
       const deleted = await authenticatedPage.request.delete(`/v1/user/excluded-media/${media.publicId}`);
-      expect(deleted).toBeOK();
+      await expect(deleted).toBeOK();
     }
     await expect
       .poll(async () => {

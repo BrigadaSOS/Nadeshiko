@@ -37,7 +37,7 @@ test.describe('Account lifecycle', () => {
     await authenticatedPage.getByTestId('account-delete').click();
 
     const session = await authenticatedPage.request.get('/v1/auth/get-session');
-    expect(session).toBeOK();
+    await expect(session).toBeOK();
     expect(await session.json()).toMatchObject({ user: expect.any(Object), session: expect.any(Object) });
   });
 
@@ -84,7 +84,7 @@ test.describe('Destructive account lifecycle', () => {
       const revoked = await primaryPage.request.post('/v1/auth/revoke-other-sessions', {
         headers: { Origin: getE2EBaseUrl() },
       });
-      expect(revoked, await revoked.text()).toBeOK();
+      await expect(revoked, await revoked.text()).toBeOK();
       await expect
         .poll(async () => await (await otherPage.request.get('/v1/auth/get-session')).json(), { timeout: 10_000 })
         .toBeNull();

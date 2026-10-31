@@ -36,13 +36,13 @@ test.describe('Reporting and moderation', () => {
     try {
       await loginAsE2EUser(adminPage, e2eAccountForWorker(9));
       const listed = await adminPage.request.get('/v1/admin/reports?take=100');
-      expect(listed, await listed.text()).toBeOK();
+      await expect(listed, await listed.text()).toBeOK();
       expect(JSON.stringify(await listed.json())).toContain(description);
 
       const updated = await adminPage.request.patch(`/v1/admin/reports/${report.id}`, {
         data: { status: 'PROCESSING', adminNotes: 'Verified by staging E2E' },
       });
-      expect(updated, await updated.text()).toBeOK();
+      await expect(updated, await updated.text()).toBeOK();
 
       await adminPage.goto('/user/admin/reports');
       await expect(adminPage.getByTestId('reports-title')).toBeVisible({ timeout: 15_000 });

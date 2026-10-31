@@ -11,7 +11,7 @@ type Collection = {
 
 async function collectionByName(page: import('@playwright/test').Page, name: string): Promise<Collection> {
   const response = await page.request.get('/v1/collections?take=100');
-  expect(response, await response.text()).toBeOK();
+  await expect(response, await response.text()).toBeOK();
   const collection = (await response.json()).collections.find((item: Collection) => item.name === name);
   expect(collection, `collection ${name} should exist in the owner's list`).toBeTruthy();
   return collection as Collection;
@@ -21,7 +21,7 @@ async function searchSegment(page: import('@playwright/test').Page): Promise<str
   const response = await page.request.post('/v1/search', {
     data: { query: { search: '私' }, take: 10, include: ['media'] },
   });
-  expect(response, await response.text()).toBeOK();
+  await expect(response, await response.text()).toBeOK();
   const { segments } = await response.json();
   expect(segments?.[0]?.publicId, 'the seeded corpus must provide a segment for collection tests').toBeTruthy();
   return segments[0].publicId;
@@ -171,7 +171,7 @@ test.describe('Collections', () => {
     const createdResponse = await authenticatedPage.request.post('/v1/collections', {
       data: { name, visibility: 'PUBLIC' },
     });
-    expect(createdResponse, await createdResponse.text()).toBeOK();
+    await expect(createdResponse, await createdResponse.text()).toBeOK();
     const created = (await createdResponse.json()) as { publicId: string };
 
     const visitor = await browser.newContext({
@@ -228,7 +228,7 @@ test.describe('Collections', () => {
       // intentionally require authentication even when their visibility is
       // PUBLIC; the existing anonymous redirect is part of the privacy model.
       const publicResponse = await visitorPage.request.get(`/v1/collections/${created.publicId}`);
-      expect(publicResponse, await publicResponse.text()).toBeOK();
+      await expect(publicResponse, await publicResponse.text()).toBeOK();
       expect((await publicResponse.json()).name).toBe(name);
 
       await collections.openMenuFor(row);
@@ -256,7 +256,7 @@ test.describe('Collections', () => {
   }) => {
     const name = `e2e-authorization-${Date.now()}`;
     const create = await authenticatedPage.request.post('/v1/collections', { data: { name } });
-    expect(create, await create.text()).toBeOK();
+    await expect(create, await create.text()).toBeOK();
     const created = (await create.json()) as Collection;
     const segmentPublicId = await searchSegment(authenticatedPage);
 
@@ -274,19 +274,19 @@ test.describe('Collections', () => {
       expect(add.status()).toBe(204);
 
       const ownerCollection = await authenticatedPage.request.get(`/v1/collections/${created.publicId}`);
-      expect(ownerCollection, await ownerCollection.text()).toBeOK();
+      await expect(ownerCollection, await ownerCollection.text()).toBeOK();
       expect((await ownerCollection.json()).segmentCount).toBe(1);
 
       const search = await authenticatedPage.request.post(`/v1/collections/${created.publicId}/search`, {
         data: { take: 10, include: ['media'] },
       });
-      expect(search, await search.text()).toBeOK();
+      await expect(search, await search.text()).toBeOK();
       expect(
         (await search.json()).segments.some((segment: { publicId: string }) => segment.publicId === segmentPublicId),
       ).toBeTruthy();
 
       const stats = await authenticatedPage.request.get(`/v1/collections/${created.publicId}/stats`);
-      expect(stats, await stats.text()).toBeOK();
+      await expect(stats, await stats.text()).toBeOK();
       const statsBody = await stats.json();
       expect(Array.isArray(statsBody.media)).toBeTruthy();
       expect(Array.isArray(statsBody.categories)).toBeTruthy();
@@ -296,12 +296,12 @@ test.describe('Collections', () => {
       );
       expect(remove.status()).toBe(204);
       const emptyCollection = await authenticatedPage.request.get(`/v1/collections/${created.publicId}`);
-      expect(emptyCollection, await emptyCollection.text()).toBeOK();
+      await expect(emptyCollection, await emptyCollection.text()).toBeOK();
       expect((await emptyCollection.json()).segmentCount).toBe(0);
       const emptySearch = await authenticatedPage.request.post(`/v1/collections/${created.publicId}/search`, {
         data: { take: 10 },
       });
-      expect(emptySearch, await emptySearch.text()).toBeOK();
+      await expect(emptySearch, await emptySearch.text()).toBeOK();
       expect((await emptySearch.json()).segments).toHaveLength(0);
 
       // Put it back so the cross-account PATCH/DELETE-segment checks below
@@ -343,7 +343,7 @@ test.describe('Collections', () => {
       const publish = await authenticatedPage.request.patch(`/v1/collections/${created.publicId}`, {
         data: { visibility: 'PUBLIC' },
       });
-      expect(publish, await publish.text()).toBeOK();
+      await expect(publish, await publish.text()).toBeOK();
       expect((await visitorPage.request.get(`/v1/collections/${created.publicId}`)).status()).toBe(200);
       expect(
         (await visitorPage.request.post(`/v1/collections/${created.publicId}/search`, { data: {} })).status(),
@@ -353,7 +353,7 @@ test.describe('Collections', () => {
       const privatize = await authenticatedPage.request.patch(`/v1/collections/${created.publicId}`, {
         data: { visibility: 'PRIVATE' },
       });
-      expect(privatize, await privatize.text()).toBeOK();
+      await expect(privatize, await privatize.text()).toBeOK();
       expect((await visitorPage.request.get(`/v1/collections/${created.publicId}`)).status()).toBe(403);
       expect(
         (await visitorPage.request.post(`/v1/collections/${created.publicId}/search`, { data: {} })).status(),
