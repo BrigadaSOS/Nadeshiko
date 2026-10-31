@@ -4,7 +4,9 @@
 #   docker build -f frontend/Dockerfile .
 FROM node:26.12.1-slim@sha256:36793bcbb160a6a16cede1e62b93f84e26b78a972a8a4c0b879c1c12f22761ec AS deps
 WORKDIR /build
-RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
+# ca-certificates: the PostHog CLI that uploads sourcemaps in production builds is a Rust binary that reads the system
+# trust store, and the slim image ships without one.
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ ca-certificates && rm -rf /var/lib/apt/lists/*
 # npm ci needs every workspace manifest to reconcile the root lockfile.
 COPY package.json package-lock.json ./
 COPY backend/package.json backend/
