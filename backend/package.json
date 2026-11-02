@@ -61,7 +61,7 @@
     "node": "^24.22.1 || >=26.12.1"
   },
   "dependencies": {
-    "@aws-sdk/client-sesv2": "^3.1156.0",
+    "@aws-sdk/client-sesv2": "^3.1161.0",
     "@better-auth/api-key": "^1.7.12",
     "@brigadasos/nadeshiko-shared": "*",
     "@elastic/elasticsearch": "^9.5.1",
@@ -86,7 +86,7 @@
     "express-rate-limit": "^8.7.1",
     "helmet": "^8.3.0",
     "nanoid": "^6.0.2",
-    "nodemailer": "^10.2.1",
+    "nodemailer": "^10.3.1",
     "pg": "^8.23.1",
     "pg-boss": "^12.38.0",
     "pino": "^10.4.0",
