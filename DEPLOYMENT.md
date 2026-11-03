@@ -30,12 +30,13 @@ the Discord bot are separate Kamal services on that host.
   guards the ancestry check on its existence — a repo with no `production`
   branch still releases off `main`. Recreate it at release time
   (`git push origin main:production`) or when a hotfix needs the lane. What it
-  cannot be is *renamed*: the tag guard names `main` and `production`
-  literally, so a tag on `hotfix/foo` is rejected however correct the commit is.
-- **A commit SHA is production.** The production workflow deploys only the SHA
-  supplied in the dispatch payload, and only after that exact SHA has successful
-  staging backend/frontend deploys followed by E2E. Images and rollback remain
-  immutable SHA references.
+  cannot be is *renamed*: the release guard names `main` and `production`
+  literally, so a commit that lives only on `hotfix/foo` is rejected however
+  correct it is.
+- **A commit SHA is production.** The production workflow deploys the pushed
+  `production` SHA (or the `release_sha` of a manual run), and only after that
+  exact SHA has successful staging backend/frontend deploys followed by E2E.
+  Images and rollback remain immutable SHA references.
 - **Semver is API metadata, not a deployment trigger.** Use
   `release:set-version` only when the backend/OpenAPI contract changes. E2E,
   frontend, infrastructure and release fixes can ship under the same API
@@ -47,8 +48,8 @@ the Discord bot are separate Kamal services on that host.
   using it land in the same commit. Nothing is published or version-pinned to
   move a change between them.
 
-We have not split prod into separate backend/frontend tags. A single `vX.Y.Z`
-tag releases the whole stack.
+Backend, frontend and the Discord bot are not released separately: one
+promotion of `production` releases the whole stack.
 
 ## Staging: pushing to `main`
 
@@ -98,28 +99,21 @@ Workflow: [`.github/workflows/release.yml`](.github/workflows/release.yml)
 (`[Prod] Release`), triggered by a push to `production`. The repository
 dispatch path remains available for hotfixes and explicit re-runs.
 
-A prod release deploys backend, frontend and the Discord bot to prod, publishes
-the **stable** (public) SDKs, and creates a GitHub Release.
+A prod release deploys backend and frontend to prod, promotes the images to
+`:latest`, rolls back automatically if production E2E fails, and
+dispatches the **stable** (public) SDK releases. The Discord bot ships through
+its own workflow, `[Prod] Release Discord` (`release-discord.yml`), on the same
+`production` push.
 
 The release identity is the commit SHA. No version bump or tag is required for
 frontend, E2E, infrastructure, or documentation fixes.
 
-"The resulting commit" is the bump commit only if nothing landed after it. The
-check is `release:check-version` against the *tagged* commit's package files,
-not an assertion that the tag sits on the bump itself, so main moving on is fine
-and common — v2.4.5 shipped three commits past its own bump. Everything
-between the bump and the tag ships under that version, which is the intent: the
-version names the release, not the commit that typed the number. If the bump is
-stale enough that the extra work deserves its own number, bump again rather than
-tagging the older one.
-
-Normal promotion is now:
+Normal promotion:
 
 ```bash
 # 1. Push to main. GitHub Actions deploys that SHA to staging and runs E2E.
 # 2. After staging is green, fast-forward production to the same main SHA.
-jj bookmark set production -r main
-jj git push --bookmark production
+git push origin main:production
 ```
 
 The production workflow requires a successful staging deploy and E2E run for
@@ -178,11 +172,12 @@ What the prod workflow does, in order:
    release's spec and publishes `X.Y.Z` to npm. Publishing lives there because
    npm's trusted publisher (OIDC, no token) is bound to that repository.
 7. Dispatches the **stable** Python SDK release -> public PyPI version.
-8. Creates a GitHub Release with the public OpenAPI spec attached.
+8. Promotes the release images to `:latest`; if E2E fails after both deploys,
+   rolls production back to the previous images instead.
 
 > **Not part of this workflow:** the root-path locale redirect is answered by
 > Cloudflare, applied 2026-08-13 and managed as code in
-> `brigadasos-infra/terraform/cloudflare-redirects.tf`. No deploy touches it, and
+> `nadeshiko-infra/terraform/cloudflare-redirects.tf`. No deploy touches it, and
 > no deploy is needed to change it. See
 > [Cloudflare edge configuration](#cloudflare-edge-configuration).
 
@@ -224,8 +219,8 @@ is always manual.
 rewriting a handler, changing what a command replies, or reformatting the file
 all ship on the deploy alone. What needs registering is a command added or
 removed, or a change to a `setName` / `setDescription` / `add*Option` /
-`setRequired` call. Diff those calls against the last released tag rather
-than the file as a whole — v2.4.5 rewrote most of `discord/src/commands/` and
+`setRequired` call. Diff those calls against the last released commit (the
+`releaseSha` on `/up`) rather than the file as a whole — v2.4.5 rewrote most of `discord/src/commands/` and
 needed no registration, because every definition came out byte-identical once
 the reindentation was normalized away.
 
@@ -234,12 +229,10 @@ leaves users a picker that disagrees with the bot — an option Discord will not
 send, or a command that 404s on invoke. Running it when nothing changed is a
 no-op `PUT`.
 
-### One prerequisite that fails the deploy hard, not softly
+### One secret that fails the deploy hard, not softly
 
-Arrived with the telemetry rewrite on 2026-08-14. It does not degrade — it takes
-the whole deploy down — so do it before the first push that carries that change.
-
-**`DISCORD_ANALYTICS_SALT` must exist in SSM.** `.kamal/secrets.prod` now
+**`DISCORD_ANALYTICS_SALT` must exist in SSM.** It does today; this matters if
+it is ever lost or the bot moves to a new account. `.kamal/secrets.prod` now
 resolves it, and `.kamal/ssm-secret` exits non-zero on a missing or blank
 parameter under `set -euo pipefail`, which aborts the deploy at secret
 resolution before anything is built. This is the same failure mode that
@@ -247,7 +240,7 @@ resolution before anything is built. This is the same failure mode that
 `discord/.kamal/ssm-secret`.
 
 ```bash
-aws ssm put-parameter --profile nadeshiko-prod --region eu-north-1 \
+aws ssm put-parameter --profile nadeshiko-admin --region eu-north-1 \
   --name /nadeshiko/prod/DISCORD_ANALYTICS_SALT --type SecureString \
   --value "$(openssl rand -hex 32)"
 ```
@@ -278,7 +271,8 @@ brand-new environment (role, database, grants) is still a one-time
 `npm run db:bootstrap` with admin credentials. To run migrations manually
 out of band, use `backend/scripts/remote-db.sh <env> migrate` (that script
 reaches the host over Tailscale and sources `.kamal/secrets.<env>`; `env` is
-`dev` or `prod`, and anything that writes to prod needs `--allow-prod`).
+`staging` (aliases `stg`, `dev`) or `prod`, and `prepare`/`migrate` against prod
+need `--allow-prod`).
 
 ## Privileged service API keys
 
@@ -377,9 +371,8 @@ the API stays up and serving non-search traffic for the whole rebuild.
 
 ### Removing the ES8 rollback stack
 
-The 8 → 9 migration renames the old Elasticsearch container to
-the ES8 container and volume were retained through the observation window and
-have since been removed, so recovery from a lost index is a reindex from
+The ES8 container and volume were retained through the observation window of
+the 8 → 9 migration and have since been removed, so recovery from a lost index is a reindex from
 PostgreSQL (`remote-db.sh <env> reindex`). That is not a loss: the index is
 derived data and PostgreSQL is authoritative.
 
@@ -392,7 +385,7 @@ remote command. Production releases are now a plain `kamal deploy`.
 ## Postgres: the admin password is a file, not an env var
 
 The `postgres` accessory takes `POSTGRES_PASSWORD_FILE`, not `POSTGRES_PASSWORD`
-(brigadasos-infra#5). Kamal renders `backend/config/postgres/admin-password.erb`
+(nadeshiko-infra#5). Kamal renders `backend/config/postgres/admin-password.erb`
 from the same SSM-backed secret and bind-mounts it at
 `/run/secrets/postgres-admin-password`, so the value never enters the container
 environment where `docker exec … env`, `docker inspect` and `/proc/<pid>/environ`
@@ -490,8 +483,8 @@ Postgres custom format, so they restore with `pg_restore`, not `psql`.
 ### Backup monitoring
 
 [`.github/workflows/verify-backup.yml`](.github/workflows/verify-backup.yml) runs
-daily at 03:30 UTC and fails — notifying Discord through the same workflow the
-deploys use — if any expected database lacks a dump newer than 26 hours, or if a
+daily at 03:30 UTC and fails — posting to the Discord Warning channel from its
+own `notify` job, not through the deploy-failure workflow — if any expected database lacks a dump newer than 26 hours, or if a
 dump comes in under 70% of the size of the run before it.
 
 It checks the database **by name** (`nadeshiko-prod`). kartoza/pg-backup dumps
@@ -606,44 +599,26 @@ dashboard decoration must never be able to fail a deploy.
 
 ## Alerting and dashboards
 
-**None of this is in this repo.** Monitoring config lives with the stack that
-loads it, in `brigadasos-infra`:
+**None of this is in this repo.** Monitoring lives with the stack that runs it,
+in `nadeshiko-infra/machines/nadeshiko/victoria/` on the `nadeshiko` host:
+VictoriaMetrics, VictoriaLogs, vmalert, Alertmanager and Grafana, all reachable
+only over the tailnet (`*.ops.nadeshiko.co`).
 
 | What | Where |
 | --- | --- |
-| Alert rules | `machines/monitoring/victoria/config/vmalert-rules/` |
-| Scripts, dashboards, the detail | `machines/nadeshiko/monitoring/` |
+| Alert rules | `machines/nadeshiko/victoria/config/vmalert-rules/` — every `*.yml` there is loaded; its README lists what each file covers |
+| Dashboards | `machines/nadeshiko/victoria/dashboards/` |
+| Host-side metrics (ES health, backup freshness, restarts, expiry) | The Ansible roles `host_metrics_publisher`, `host_backup_metrics` and `host_expiry_metrics` |
 
-Rules used to live here and were mounted by nothing — which reads like coverage
-and is worse than an empty directory. Anything that only an infra deploy can
-apply belongs next to that deploy, not next to the application.
+Delivery is vmalert → Alertmanager → the Discord Critical and Warning channels.
 
-vmalert runs and evaluates `*.yml` in that directory; everything except
-`noop.yml` currently sits in `disabled/`, so nothing fires. Moving a file up one
-level out of `disabled/` is the entire activation step — deliberately separate
-from writing the rule, so enabling is a decision someone makes rather than a
-side effect of authoring. Alertmanager on `monitoring:9093` has had a working
-Discord receiver since June, so delivery is built and tested; what is missing is
-anything enabled to send. Production backend telemetry stopped on 2026-07-24 and
-was still missing twelve days later without anyone being told.
+Rules used to live in this repo and were mounted by nothing — which reads like
+coverage and is worse than an empty directory. Anything that only an infra
+deploy can apply belongs next to that deploy, not next to the application.
 
-Before writing a rule, check what actually reports — this used to say "span
-metrics only, and no logs", and both halves are now wrong.
-`brigadasos-infra/machines/nadeshiko/monitoring/README.md` has the current
-inventory: application metrics, span metrics, host and container metrics all
-arrive via the Alloy edge collector, and VictoriaLogs *does* hold Nadeshiko
-streams — in **tenant `1:0`**, which is why querying without the tenant header
-makes them look absent. Two traps worth repeating: always filter host metrics on
-`host_name="nadeshiko"` (the same instance holds other hosts' series), and check
-a metric exists in *production* before alerting on it. Several custom counters
-are emitted only by builds newer than what prod is running.
-
-`machines/nadeshiko/monitoring/scripts/publish-host-metrics.sh` is the cheap way
-around the first gap: a cron on the host publishing Elasticsearch health,
-Postgres backup freshness and container restart counts, which is what the
-`nadeshiko-host` rule group alerts on. Note it is **not installed** — it is in
-no crontab and not present at `/usr/local/bin` on the host, so that rule group
-would alert on data nothing produces. Install it before enabling those rules.
+Before writing a rule, check the metric exists in *production*: a rule whose
+selector matches no series evaluates cleanly and reports `ok` forever. Several
+custom counters are emitted only by builds newer than what prod may be running.
 
 ### Deploy failure notifications
 
@@ -658,7 +633,7 @@ the other reports production.
 ## Refreshing the contributor seed
 
 `bin/setup.ts` offers new contributors a seed database of real content, served
-from R2 by the Worker in `BrigadaSOS/brigadasos-infra/seed-worker`. Refreshing
+from R2 by the Worker in `BrigadaSOS/nadeshiko-infra/seed-worker`. Refreshing
 the seed is a manual infrastructure operation documented in that directory's
 README. It is not run by GitHub Actions or the application deploy workflows.
 
@@ -676,7 +651,8 @@ answers on the Tailnet. When that file has no entry for the host, the composite
 action falls back to `ssh-keyscan` and prints a warning annotation on every
 deploy, so an unpinned host is visible rather than silent.
 
-Populating it is a one-time manual step, from a machine already on the Tailnet:
+The file is populated. If the host is rebuilt or its keys rotate, replace the
+entries from a machine already on the Tailnet:
 
 ```bash
 ssh-keyscan nadeshiko >> .github/known_hosts
@@ -686,9 +662,8 @@ Use plain `ssh-keyscan`, not `-H`. Verify the fingerprints against the host
 before committing — pinning a key learned over the same channel you are trying
 to protect proves nothing.
 
-This covers the raw `ssh` calls, which is where most of the surface is: the
-Elasticsearch migration, the staging canary bootstrap and every health probe in
-the workflows all shell out to `ssh`. Kamal connects through net-ssh rather than
+This covers the raw `ssh` calls, which is where most of the surface is: every
+health probe in the workflows shells out to `ssh`. Kamal connects through net-ssh rather than
 the OpenSSH binary, so whether `~/.ssh/config` governs its host key checking
 depends on Kamal's own `verify_host_key` default — worth confirming before
 treating the pin as covering deploys too.
@@ -819,7 +794,7 @@ it was wrong.
 | --- | --- | --- |
 | Welcome, magic link, email verification, feedback notification, lifecycle check-ins, and an affected-user service or privacy-policy notice | The app, through SES | Triggered by an account or service event, or by the opted-in lifecycle sweep with one-click unsubscribe. Keep it factual. |
 | Announcements to a group | None today | Not currently sent. If they return, send them through a separate SES configuration set and an opted-in list, never through the sign-in path. |
-| A personally written support reply | A person's own mailbox | Inbound `@nadeshiko.co` mail is forwarded by Cloudflare Email Routing. One-to-one correspondence only. |
+| A personally written support reply | The Zoho Mail mailbox `admin@nadeshiko.co` | Inbound `@nadeshiko.co` mail lands there (every other address is an alias, plus a catch-all). One-to-one correspondence only. |
 
 #### What to watch
 
@@ -835,9 +810,9 @@ Management shows whether every sender is aligned.
 | --- | --- |
 | DKIM (SES) | three `*._domainkey` CNAMEs to `dkim.amazonses.com`, Easy DKIM 2048-bit |
 | MAIL FROM | `mail.nadeshiko.co`: MX `feedback-smtp.eu-north-1.amazonses.com`, SPF `include:amazonses.com`. Aligned for DMARC. |
-| Apex SPF | Cloudflare Email Routing only; SES authenticates through `mail.nadeshiko.co` |
+| Apex SPF | `v=spf1 include:zohomail.com ~all` (Zoho Mail); SES authenticates through `mail.nadeshiko.co` |
 | DMARC | `v=DMARC1; p=quarantine; rua=mailto:…@dmarc-reports.cloudflare.net;` |
-| Inbound | Cloudflare Email Routing, one catch-all (`nadeshiko-infra/terraform/cloudflare-email-routing.tf`) |
+| Inbound | Zoho Mail since 2026-10-30: MX `mx`/`mx2`/`mx3.zoho.com` and Zoho DKIM, in `nadeshiko-infra/terraform/cloudflare-dns.tf`. Cloudflare Email Routing is disabled. |
 
 Cloudflare DMARC Management edits `_dmarc` out of band, so its address is also
 written into `nadeshiko-infra/terraform/cloudflare-dns.tf`; without that, the
@@ -846,14 +821,15 @@ reports show every legitimate sender aligned.
 
 ## Cloudflare edge configuration
 
-`nadeshiko.co` is proxied by Cloudflare. Everything below is **dashboard/API
-state, not code** — nothing in this repository applies it, so it survives no
-deploy and is recreated by nobody. Treat it as part of the release checklist.
+`nadeshiko.co` is proxied by Cloudflare. The zone is managed as code in
+`nadeshiko-infra/terraform/` (`./tf plan`, then `./tf apply`), not by this
+repository or its deploys. Change it there; a change made by hand in the
+dashboard is reverted by the next apply.
 
 ### The bare-path locale redirect
 
 **Status: APPLIED 2026-08-13**, and managed as code — the rules live in
-`brigadasos-infra/terraform/cloudflare-redirects.tf` with the matching `import`
+`nadeshiko-infra/terraform/cloudflare-redirects.tf` with the matching `import`
 block in `imports.tf`, not in the dashboard. Verified with the commands at the
 end of this section: `/` answers `302` to `/en`, `/es` or `/ja` from the cookie
 alone and carries no `x-request-id`, so it is the edge answering, not the origin.
@@ -938,14 +914,11 @@ first-visit cost actually is.
 
 ### Applying it
 
-`PUT …/entrypoint` **replaces the whole ruleset**, and the `www` -> apex redirect
-very likely lives in this same phase. Read it before writing, then PUT the merged
-list:
-
-```bash
-curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/rulesets/phases/http_request_dynamic_redirect/entrypoint" \
-  -H "Authorization: Bearer $CF_TOKEN" | jq '.result.rules[] | {description, expression}'
-```
+Edit `cloudflare-redirects.tf` in `nadeshiko-infra/terraform`, then `./tf plan`
+and `./tf apply`. The phase is one entry-point ruleset whose `rules` list is the
+whole phase: it also carries the `www` -> apex 301, so removing an entry there
+removes it from the zone. Do not `PUT …/entrypoint` by hand; the next apply
+reverts it.
 
 Verify afterwards, allowing a few minutes for the edit to reach every PoP:
 
@@ -1089,7 +1062,7 @@ for those paths was raised to an hour.
 
 | Deploy path | Purged by |
 | --- | --- |
-| Tagged release (`release.yml`) | the `Purge Cloudflare cache` step in `release-frontend` |
+| CI release (`release.yml`) | the `Purge Cloudflare cache` step in `release-frontend` |
 | `kamal deploy -d prod` by hand | `frontend/.kamal/hooks/post-deploy` |
 
 The hook was added on 2026-08-13 because only the first of those was covered.
@@ -1133,12 +1106,12 @@ before `e2e`, so the prod E2E run tests a purged edge. Cloudflare answers `200`
 with `"success": false` when the token lacks the permission, so both the step and
 the hook check the body rather than the exit code.
 
-The hook stands down when `GITHUB_ACTIONS` is set, so a tagged release purges
+The hook stands down when `GITHUB_ACTIONS` is set, so a CI release purges
 once rather than twice and does not gain a new way to fail. It also fires on
 `rollback`, which changes which digests are live just as much as a deploy does.
 Its token is read through `.kamal/ssm-secret` from
-`/nadeshiko/prod/CLOUDFLARE_PURGE_TOKEN` — a separate, Cache-Purge-only token
-from the CI one, minted the same way. Note that **writing** that parameter needs
+`/nadeshiko/prod/CLOUDFLARE_PURGE_TOKEN` — the same Cache-Purge-only token as
+the CI secret. Note that **writing** that parameter needs
 the `nadeshiko-admin` profile; `nadeshiko-prod` can read SSM but not write it.
 
 CI needs two repository secrets, both already set:
@@ -1151,13 +1124,14 @@ CI needs two repository secrets, both already set:
 The purge token is deliberately separate from the broad Terraform token in
 `/brigadasos-infra/terraform/cloudflare_api_token` in SSM: anything readable by
 Actions is readable by anyone who can land a workflow, so it holds the narrowest
-permission that does the job. It was minted from the Terraform token via the
-Cloudflare API and can be re-minted the same way.
+permission that does the job. To rotate it, create a new Cache Purge token for
+the zone and store it in both places: the `CLOUDFLARE_PURGE_TOKEN` Actions
+secret and the SSM parameter above.
 
 ## Manual / emergency deploys
 
-The staging workflow supports `workflow_dispatch` with `force_backend`,
-`force_frontend` and `bootstrap_elasticsearch_canary` inputs, so you can
+The staging workflow supports `workflow_dispatch` with `force_backend` and
+`force_frontend` inputs, so you can
 redeploy stg from the Actions tab without a code change.
 
 To deploy from your own machine you need Tailscale access to the `nadeshiko`
@@ -1177,17 +1151,11 @@ on one:
 - **The edge cache purge is handled** by `frontend/.kamal/hooks/post-deploy`
   (see [Purging HTML on deploy](#purging-html-on-deploy)). It was not, before
   2026-08-13.
-- **Nothing records what shipped.** There is no tag, no GitHub Release and no
-  version bump, so `release:check-version`, the `v*` tags and
-  `OTEL_SERVICE_VERSION` all keep describing the last tagged release while prod
-  runs something newer. Commit and push first so the image is at least tagged
-  with a revision that exists on `main` — Kamal otherwise stamps the image
-  `<sha>_uncommitted_<digest>`, which nobody can trace back. Reconcile with a
-  bump-and-tag release when convenient.
-
-After a **frontend prod** deploy, check
-[Cloudflare edge configuration](#cloudflare-edge-configuration) — it lists zone
-state that no deploy applies and that is currently outstanding.
+- **Nothing records what shipped** except `releaseSha` on `/up`; `production`
+  does not move. Commit and push first so the image is at least tagged with a
+  revision that exists on `main` — Kamal otherwise stamps the image
+  `<sha>_uncommitted_<digest>`, which nobody can trace back. When CI is back,
+  follow with a normal `production` push of the same commit.
 
 
 ## Persistent production sitemaps
