@@ -22,18 +22,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, available command
 
 ## Deployment
 
-Pushes are reviewed normally, then an explicit commit-SHA dispatch deploys to
-staging (https://stg.nadeshiko.co) and, after its E2E gate, to production
-(https://nadeshiko.co). This avoids random semver bumps for frontend or test
-fixes. See [DEPLOYMENT.md](DEPLOYMENT.md) for the full workflow.
-
-Quick prod release from the repository root:
+Every push to `main` deploys that commit to staging (https://stg.nadeshiko.co)
+and runs E2E against it. Once staging is green, pushing the same commit to
+`production` releases it to https://nadeshiko.co. Releases are identified by
+commit SHA; there are no version bumps or tags. See
+[DEPLOYMENT.md](DEPLOYMENT.md) for the full workflow.
 
 ```bash
-# use the exact reviewed commit; no version bump is needed for frontend/E2E fixes
-scripts/release staging
-# after staging E2E passes:
-scripts/release prod
+# after the staging release of this main commit is green:
+git push origin main:production
 ```
 
 ## Projects Using Nadeshiko
@@ -63,14 +60,14 @@ scripts/release prod
     </td>
     <td align="center">
         <a href="https://github.com/davafons">
-            <img src="https://avatars.githubusercontent.com/u/29177698?v=4" width="100;" alt="m-edlund"/>
+            <img src="https://avatars.githubusercontent.com/u/29177698?v=4" width="100;" alt="davafons"/>
             <br />
             <sub><b>Davafons</b></sub>
         </a>
     </td>
     <td align="center">
         <a href="https://github.com/xyaman">
-            <img src="https://avatars.githubusercontent.com/u/32078353?v=4" width="100;" alt="m-edlund"/>
+            <img src="https://avatars.githubusercontent.com/u/32078353?v=4" width="100;" alt="xyaman"/>
             <br />
             <sub><b>Xyaman</b></sub>
         </a>
@@ -79,6 +76,6 @@ scripts/release prod
 </table>
 
 
-This search engine makes use of materials and references that are the intellectual property of their respective authors and rights holders. Please consult [here](https://nadeshiko.co/search/media) for the list of content used and its respective authors.
+This search engine makes use of materials and references that are the intellectual property of their respective authors and rights holders. Please consult [here](https://nadeshiko.co/media) for the list of content used and its respective authors.
 
 The use of these materials is carried out under the belief that it complies with the guidelines of "fair use" for educational purposes and without profit motive. If you are the holder of the rights to any of these materials and believe that the fair use standards are not being met, please [contact us](https://nadeshiko.co/dmca).
