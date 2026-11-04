@@ -24,7 +24,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:coverage": "npm run test:coverage --workspaces --if-present",
-    "sdk:codegen": "OPENAPI_SPEC_PATH=../../backend/docs/generated/openapi-sdk.yaml npm run codegen --workspace @brigadasos/nadeshiko-sdk",
+    "sdk:codegen": "npm run codegen --workspace @brigadasos/nadeshiko-sdk",
     "sdk:sync": "npm run docs:bundle --workspace backend && npm run generate:auth-spec --workspace backend && npm run sdk:codegen",
     "release:set-version": "bash -c 'node --import tsx scripts/releaseVersion.ts set \"$1\" && npm run generate:all --workspace backend && npm run sdk:codegen && node --import tsx scripts/releaseVersion.ts check \"$1\"' --",
     "release:check-version": "node --import tsx scripts/releaseVersion.ts check",

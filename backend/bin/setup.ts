@@ -2,8 +2,11 @@ import { execFileSync } from 'child_process';
 import { existsSync, copyFileSync, readFileSync, unlinkSync } from 'fs';
 import { writeFile } from 'fs/promises';
 import { createInterface } from 'readline';
+import { devNull, tmpdir } from 'os';
+import { join } from 'path';
+import { portableCommand } from './lib/portableSpawn';
 
-const SEED_DUMP_PATH = '/tmp/nadeshiko-seed.dump';
+const SEED_DUMP_PATH = join(tmpdir(), 'nadeshiko-seed.dump');
 const SEED_URL = process.env.SEED_URL || 'https://seed.nadeshiko.co/seed.dump';
 const DOCKER_COMPOSE_FILE = 'docker-compose.yaml';
 const ES_DOCKERFILE = 'docker/Dockerfile.elasticsearch';
@@ -13,6 +16,12 @@ const ES_DATA_VOLUME = 'backend_nadeshiko_elasticsearch_data';
 /** Blocks the thread outright; the readiness polls below are deliberately serial. */
 function sleepSync(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/** `npm` is a .cmd shim on Windows; see `portableCommand`. */
+function runNpmScript(script: string): void {
+  const npm = portableCommand('npm', ['run', script]);
+  execFileSync(npm.command, npm.args, { stdio: 'inherit', shell: npm.shell });
 }
 
 function printHeader() {
@@ -179,7 +188,7 @@ function ensureDockerContainers(adminUser: string): void {
       // A secured node’s anonymous 401 still proves HTTP is up; `curl -sf` would reject it.
       const status = execFileSync(
         'curl',
-        ['-s', '-o', '/dev/null', '-w', '%{http_code}', 'http://127.0.0.1:9200/_cluster/health'],
+        ['-s', '-o', devNull, '-w', '%{http_code}', 'http://127.0.0.1:9200/_cluster/health'],
         { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] },
       ).trim();
       if (status === '200' || status === '401') {
@@ -238,7 +247,7 @@ function runDbSetup(): void {
   printInfo('- Elasticsearch role/user + index reset');
   console.log('');
 
-  execFileSync('npm', ['run', 'db:setup'], { stdio: 'inherit' });
+  runNpmScript('db:setup');
   printSuccess('Infrastructure ready');
 }
 
@@ -410,13 +419,13 @@ function restoreSeedDump(adminUser: string, appDatabase: string): void {
 
 function rerunSeeds(): void {
   printInfo('Re-running seeds to match local credentials...');
-  execFileSync('npm', ['run', 'db:seed'], { stdio: 'inherit' });
+  runNpmScript('db:seed');
   printSuccess('Seeds applied');
 }
 
 function reindexElasticsearch(): void {
   printInfo('Indexing segments into Elasticsearch...');
-  execFileSync('npm', ['run', 'es:reindex'], { stdio: 'inherit' });
+  runNpmScript('es:reindex');
   printSuccess('Elasticsearch reindex complete');
 }
 

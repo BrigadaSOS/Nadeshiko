@@ -5,6 +5,7 @@ import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'no
 import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { clearGeneratedReady, defaultGeneratedDir, markGeneratedReady } from './lib/generatedReady';
+import { portableCommand } from './lib/portableSpawn';
 
 export const STAGING_DIR_NAME = 'generated.next';
 
@@ -14,8 +15,10 @@ const STAGING_DIR = resolve(BACKEND_ROOT, STAGING_DIR_NAME);
 
 function run(command: string, args: string[], extraEnv: NodeJS.ProcessEnv = {}): Promise<void> {
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(command, args, {
+    const portable = portableCommand(command, args);
+    const child = spawn(portable.command, portable.args, {
       cwd: BACKEND_ROOT,
+      shell: portable.shell,
       env: { ...process.env, ...extraEnv },
       stdio: 'inherit',
     });

@@ -1033,7 +1033,15 @@ async function main() {
     const specPath = getOpenApiSpecPath();
     await new Promise<void>((resolve, reject) => {
       // Use CLI arguments to pass the input source and output directory
-      const proc = spawn('npx', ['openapi-ts', '-i', specPath, '-o', GENERATED_DIR], { stdio: 'inherit' });
+      // `npx` is a .cmd shim on Windows, which Node only starts through a shell; the paths are repo-relative and
+      // space-free, so one joined command line is safe there (and avoids Node 24's DEP0190 args-with-shell warning).
+      const proc =
+        process.platform === 'win32'
+          ? spawn(['npx', 'openapi-ts', '-i', specPath, '-o', GENERATED_DIR].join(' '), {
+              stdio: 'inherit',
+              shell: true,
+            })
+          : spawn('npx', ['openapi-ts', '-i', specPath, '-o', GENERATED_DIR], { stdio: 'inherit' });
       proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`openapi-ts exited with code ${code}`))));
     });
 

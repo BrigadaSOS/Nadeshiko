@@ -5,6 +5,7 @@ import { createReadStream, existsSync, readdirSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { extname, join, resolve } from 'node:path';
+import { portableCommand } from './lib/portableSpawn';
 
 const ROOT_DIR = process.cwd();
 const OPENAPI_DIR = join(ROOT_DIR, 'docs', 'openapi');
@@ -82,7 +83,8 @@ function notifyReload(): void {
 
 function runBuildCommand(): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolvePromise, rejectPromise) => {
-    const proc = spawn('npm', ['run', BUILD_COMMAND], { cwd: ROOT_DIR, stdio: ['ignore', 'pipe', 'pipe'] });
+    const npm = portableCommand('npm', ['run', BUILD_COMMAND]);
+    const proc = spawn(npm.command, npm.args, { cwd: ROOT_DIR, shell: npm.shell, stdio: ['ignore', 'pipe', 'pipe'] });
 
     let stdout = '';
     let stderr = '';
