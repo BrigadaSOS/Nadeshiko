@@ -5,6 +5,7 @@ import { createInterface } from 'readline';
 import { devNull, tmpdir } from 'os';
 import { join } from 'path';
 import { portableCommand } from './lib/portableSpawn';
+import { staleSeedHint } from './lib/staleSeedHint';
 
 const SEED_DUMP_PATH = join(tmpdir(), 'nadeshiko-seed.dump');
 const SEED_URL = process.env.SEED_URL || 'https://seed.nadeshiko.co/seed.dump';
@@ -376,7 +377,8 @@ function restoreSeedDump(adminUser: string, appDatabase: string): void {
     );
     if (result) printInfo(result.trim());
   } catch (error) {
-    throw new Error(`Seed restore failed; dump files were kept for diagnosis.\n${describeCommandFailure(error)}`, {
+    const detail = describeCommandFailure(error);
+    throw new Error(`Seed restore failed; dump files were kept for diagnosis.\n${detail}${staleSeedHint(detail)}`, {
       cause: error,
     });
   }
