@@ -12,7 +12,7 @@ permissions:
   packages: read
 
 env:
-  NODE_VERSION: '24.22.1'
+  NODE_VERSION: '26.13.0'
 
 # A newer commit on the same pull request makes the old result obsolete. Stop
 # spending runners on it and surface feedback for the current head sooner.

@@ -13,7 +13,7 @@ COPY packages/nadeshiko-sdk/package.json packages/nadeshiko-sdk/
 COPY packages/nadeshiko-shared/package.json packages/nadeshiko-shared/
 # Runtime uses tsx, so omit dev dependencies; generators are not shipped or run in the deployed container.
 # npm ci also builds discord's plain better-sqlite3 dependency even for this backend image; --omit=optional cannot
-# remove it, and node:24-slim needs Python/make/g++ for node-gyp. Keep all workspace manifests for the lockfile; the
+# remove it, and node:26-slim needs Python/make/g++ for node-gyp. Keep all workspace manifests for the lockfile; the
 # compiler is discarded with the build stage, so the release image is unchanged.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ \

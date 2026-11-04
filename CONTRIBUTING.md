@@ -4,7 +4,7 @@ Thanks for your interest in contributing to Nadeshiko! This guide will help you 
 
 ## Prerequisites
 
-- [Node.js 24+](https://nodejs.org/) (npm ships with it)
+- [Node.js 26.13+](https://nodejs.org/) (npm ships with it)
 - [Docker](https://docs.docker.com/get-docker/) and Docker Compose
 
 ## Getting started

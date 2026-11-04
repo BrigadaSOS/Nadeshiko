@@ -28,7 +28,7 @@ Supports romaji, kanji, kana, English, and Spanish queries. Set `query.exactMatc
 
 ### Prerequisites
 
-- Node.js 24 (npm ships with it)
+- Node.js 26.13+ (npm ships with it)
 - Docker and Docker Compose
 
 ### Quick Start

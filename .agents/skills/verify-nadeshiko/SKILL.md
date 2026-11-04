@@ -17,7 +17,7 @@ The added backend launch/doctor and live HTTP fixture checks are source-checked 
 
 ## Launch
 
-Work from the repository root with installed dependencies and Node 24 or later. Preserve existing environment files. Do not print credentials or overwrite `.env`.
+Work from the repository root with installed dependencies and Node 26.13 or later. Preserve existing environment files. Do not print credentials or overwrite `.env`.
 
 Before launch, check `ss -ltnp 'sport = :4173'` and inspect existing Nuxt processes. Refuse an occupied port or a second Nuxt dev server in this checkout. Different ports still share `frontend/.nuxt`. Do not stop another session's server.
 

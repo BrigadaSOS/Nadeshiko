@@ -4,7 +4,7 @@
 
 ### Prerequisites
 
-- Node.js 24 (npm ships with it)
+- Node.js 26.13+ (npm ships with it)
 - Backend API running (see backend README)
 
 ### 1. Install Dependencies

@@ -35,7 +35,7 @@ permissions:
   id-token: write
 
 env:
-  NODE_VERSION: '24.22.1'
+  NODE_VERSION: '26.13.0'
   # Releases are identified by the immutable commit SHA supplied by the
   # dispatcher. This deliberately decouples deployment from package semver:
   # frontend, E2E and infrastructure fixes do not need a fake version bump.

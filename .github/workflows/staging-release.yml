@@ -22,7 +22,7 @@ permissions:
   id-token: write
 
 env:
-  NODE_VERSION: '24.22.1'
+  NODE_VERSION: '26.13.0'
   RELEASE_SHA: ${{ github.sha }}
 
 # Keep the deployed staging revision stable until its E2E suite finishes. Job-
