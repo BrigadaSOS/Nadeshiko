@@ -3,8 +3,6 @@ name: "[Prod] Release"
 on:
   push:
     branches: [production]
-  repository_dispatch:
-    types: [production_release]
   workflow_dispatch:
     inputs:
       release_sha:
@@ -41,7 +39,7 @@ env:
   # Releases are identified by the immutable commit SHA supplied by the
   # dispatcher. This deliberately decouples deployment from package semver:
   # frontend, E2E and infrastructure fixes do not need a fake version bump.
-  RELEASE_SHA: ${{ inputs.release_sha || github.event.client_payload.release_sha || github.sha }}
+  RELEASE_SHA: ${{ inputs.release_sha || github.sha }}
 
 # A failed release may still be rolling the stack back. Keep the next tag from
 # deploying over that recovery or capturing the failed revision as its fallback.
@@ -63,7 +61,7 @@ jobs:
     needs: release-policy
     uses: ./.github/workflows/verify-staging-e2e.yml
     with:
-      release_sha: ${{ inputs.release_sha || github.event.client_payload.release_sha || github.sha }}
+      release_sha: ${{ inputs.release_sha || github.sha }}
       skip_staging: ${{ inputs.skip_staging || false }}
       emergency_reason: ${{ inputs.emergency_reason || '' }}
       emergency_confirmation: ${{ inputs.emergency_confirmation || '' }}
@@ -72,7 +70,7 @@ jobs:
     needs: release-policy
     uses: ./.github/workflows/checks.yml
     with:
-      ref: ${{ inputs.release_sha || github.event.client_payload.release_sha || github.sha }}
+      ref: ${{ inputs.release_sha || github.sha }}
       # build-backend below validates and publishes this exact Dockerfile in
       # parallel. Do not repeat the same image build inside the checks job.
       backend_image: false

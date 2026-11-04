@@ -3,8 +3,6 @@ name: "[Stg] Release"
 on:
   push:
     branches: [main, production]
-  repository_dispatch:
-    types: [staging_release]
   workflow_dispatch:
     inputs:
       force_backend:
@@ -25,7 +23,7 @@ permissions:
 
 env:
   NODE_VERSION: '24.22.1'
-  RELEASE_SHA: ${{ github.event.client_payload.release_sha || github.sha }}
+  RELEASE_SHA: ${{ github.sha }}
 
 # Keep the deployed staging revision stable until its E2E suite finishes. Job-
 # level deploy locks alone release as soon as Kamal finishes, which allowed the
@@ -138,7 +136,7 @@ jobs:
   checks:
     uses: ./.github/workflows/checks.yml
     with:
-      ref: ${{ github.event.client_payload.release_sha || github.sha }}
+      ref: ${{ github.sha }}
       # The release build below exercises the same Dockerfile and gates deploy.
       # Avoid building it twice in one staging pipeline.
       backend_image: false
@@ -149,7 +147,7 @@ jobs:
   build-backend:
     needs: changes
     if: >-
-      (github.event_name == 'repository_dispatch' || (github.event_name == 'push' &&
+      ((github.event_name == 'push' &&
        (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
       inputs.force_backend == true)
     runs-on: ubuntu-latest
@@ -185,7 +183,7 @@ jobs:
   build-frontend:
     needs: changes
     if: >-
-      (github.event_name == 'repository_dispatch' || (github.event_name == 'push' &&
+      ((github.event_name == 'push' &&
        (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
       inputs.force_frontend == true)
     runs-on: ubuntu-latest
@@ -226,7 +224,7 @@ jobs:
       always() &&
       needs.checks.result == 'success' &&
       needs.build-backend.result == 'success' &&
-      (github.event_name == 'repository_dispatch' || (github.event_name == 'push' &&
+      ((github.event_name == 'push' &&
         (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
        inputs.force_backend == true)
     runs-on: ubuntu-latest
@@ -301,7 +299,7 @@ jobs:
       always() &&
       needs.checks.result == 'success' &&
       needs.build-frontend.result == 'success' &&
-      (github.event_name == 'repository_dispatch' || (github.event_name == 'push' &&
+      ((github.event_name == 'push' &&
         (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
        inputs.force_frontend == true)
     runs-on: ubuntu-latest

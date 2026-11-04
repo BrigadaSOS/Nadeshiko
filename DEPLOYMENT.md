@@ -96,8 +96,8 @@ production release (see below); internal consumers never wait on npm.
 ## Production: promoting `production`
 
 Workflow: [`.github/workflows/release.yml`](.github/workflows/release.yml)
-(`[Prod] Release`), triggered by a push to `production`. The repository
-dispatch path remains available for hotfixes and explicit re-runs.
+(`[Prod] Release`), triggered by a push to `production`. For an explicit re-run
+of a given commit, run it from the Actions tab with `release_sha`.
 
 A prod release deploys backend and frontend to prod, promotes the images to
 `:latest`, rolls back automatically if production E2E fails, and
