@@ -25,7 +25,7 @@ import { cursorMatchesKind, decodeOffsetCursor, encodeOffsetCursor } from '@lib/
 import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { sendBulkEsSyncJobs } from '@app/workers/esSyncQueue';
 import { InvalidRequestError } from '@app/errors';
-import { slugify, hasJapaneseChars } from '@lib/utils/slug';
+import { slugify, pickSlugSource, FALLBACK_SLUG } from '@lib/utils/slug';
 
 export const listMedia: ListMedia = async ({ query }, respond) => {
   if (query.query) {
@@ -124,9 +124,8 @@ async function listMediaRanked(query: ListMediaQueryOutput, respond: ListMediaRe
 
 export const createMedia: CreateMedia = async ({ body }, respond) => {
   const attrs = toMediaCreateAttributes(body);
-  const romajiName = String(attrs.nameRomaji || '');
-  const slugSource = romajiName && !hasJapaneseChars(romajiName) ? romajiName : String(attrs.nameEn || '');
-  const slug = await resolveUniqueSlug(slugSource);
+  const externalIds = (attrs.externalIds ?? []).map((externalId) => externalId?.externalId);
+  const slug = await resolveUniqueSlug(pickSlugSource(attrs.nameRomaji, attrs.nameEn, externalIds));
   const media = await Media.create({ ...attrs, slug } as DeepPartial<Media>).save();
 
   Cache.invalidate(MEDIA_INFO_CACHE);
@@ -149,8 +148,9 @@ export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {
   const patch = toMediaUpdatePatch(body);
 
   if (body.nameRomaji !== undefined || body.nameEn !== undefined) {
-    const romaji = body.nameRomaji ?? media.nameRomaji;
-    const slugSource = romaji && !hasJapaneseChars(romaji) ? romaji : (body.nameEn ?? media.nameEn);
+    const slugSource = pickSlugSource(body.nameRomaji ?? media.nameRomaji, body.nameEn ?? media.nameEn, [
+      media.publicId,
+    ]);
     patch.slug = await resolveUniqueSlug(slugSource, media.id);
   }
 
@@ -232,7 +232,7 @@ export async function enqueueSegmentEsDeletes(segmentIds: number[]): Promise<voi
 const escapeLikePattern = (value: string): string => value.replace(/[\\%_]/g, '\\$&');
 
 async function resolveUniqueSlug(name: string, excludeMediaId?: number): Promise<string> {
-  const baseSlug = slugify(name);
+  const baseSlug = slugify(name) || FALLBACK_SLUG;
 
   const qb = Media.createQueryBuilder('media')
     .select('media.slug')

@@ -251,6 +251,23 @@ describe('POST /v1/media', () => {
     const rows = await MediaExternalId.findBy({ mediaId: created.id });
     expect(rows).toHaveLength(2);
   });
+  it('never stores an empty slug for a Japanese-only name', async () => {
+    const name = 'しおりのなんとなく日常';
+    const res = await request(app)
+      .post('/v1/media')
+      .send(
+        buildCreateMediaBody({
+          nameJa: name,
+          nameRomaji: name,
+          nameEn: name,
+          externalIds: { anilist: null, imdb: null, tvdb: null, tmdb: null, youtube: 'UCauyM-A8JIJ9NQcw5_jF00Q' },
+        }),
+      );
+
+    expect(res.status).toBe(201);
+    const created = await Media.findOneByOrFail({ publicId: res.body.publicId as string });
+    expect(created.slug).toBe('ucauym-a8jij9nqcw5-jf00q');
+  });
 });
 
 describe('GET /v1/media/:id', () => {
