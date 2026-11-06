@@ -1,7 +1,7 @@
 # Reusable component for media category field
 type: string
 description: Media category type
-enum: [ANIME, JDRAMA, YOUTUBE]
+enum: [ANIME, JDRAMA, YOUTUBE, AUDIOBOOK]
 example: "ANIME"
 x-enum-descriptions:
   - value: ANIME
@@ -10,3 +10,5 @@ x-enum-descriptions:
     description: Japanese Drama
   - value: YOUTUBE
     description: YouTube channel
+  - value: AUDIOBOOK
+    description: Audiobook

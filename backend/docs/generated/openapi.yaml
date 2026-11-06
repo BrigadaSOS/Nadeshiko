@@ -490,6 +490,7 @@ paths:
               - ANIME
               - JDRAMA
               - YOUTUBE
+              - AUDIOBOOK
             example: ANIME
         - name: query
           in: query
@@ -4528,6 +4529,7 @@ components:
         - ANIME
         - JDRAMA
         - YOUTUBE
+        - AUDIOBOOK
       example: ANIME
       x-enum-descriptions:
         - value: ANIME
@@ -4536,6 +4538,8 @@ components:
           description: Japanese Drama
         - value: YOUTUBE
           description: YouTube channel
+        - value: AUDIOBOOK
+          description: Audiobook
     ContentRating:
       type: string
       description: Content rating level for the segment
@@ -4593,6 +4597,7 @@ components:
             - ANIME
             - JDRAMA
             - YOUTUBE
+            - AUDIOBOOK
         contentRating:
           type: array
           description: Content ratings to include (omit for all ratings)
@@ -4976,7 +4981,7 @@ components:
               description: URL to the video clip for this segment
     ExternalId:
       type: object
-      description: External IDs for this media, keyed by source. Every source appears as a key; absent mappings are represented with a null value.
+      description: External IDs for this media, keyed by source. Responses always carry every source as a key, with null for absent mappings. In requests `asin` may be omitted, so clients that predate it keep working.
       required:
         - anilist
         - imdb
@@ -5014,6 +5019,12 @@ components:
           minLength: 1
           description: YouTube channel ID
           example: UCauyM-A8JIJ9NQcw5_jF00Q
+        asin:
+          type: string
+          nullable: true
+          minLength: 1
+          description: Audible ASIN (audiobooks)
+          example: B07PPMBZHX
     Media:
       type: object
       description: Media entry with full metadata
@@ -5075,6 +5086,7 @@ components:
             - ONA
             - SPECIAL
             - YOUTUBE
+            - AUDIOBOOK
           example: TV
         airingStatus:
           type: string
@@ -5480,6 +5492,7 @@ components:
             - ANIME
             - JDRAMA
             - YOUTUBE
+            - AUDIOBOOK
     SearchMediaRequest:
       type: object
       required:
@@ -5845,6 +5858,7 @@ components:
             - ONA
             - SPECIAL
             - YOUTUBE
+            - AUDIOBOOK
           example: TV
         airingStatus:
           type: string
@@ -6196,6 +6210,7 @@ components:
             - ONA
             - SPECIAL
             - YOUTUBE
+            - AUDIOBOOK
           example: TV
         airingStatus:
           type: string
@@ -7191,6 +7206,7 @@ components:
             - ANIME
             - JDRAMA
             - YOUTUBE
+            - AUDIOBOOK
           description: |
             Category tab a search opens on when the URL names none. `ALL` -- the value
             assumed when unset -- searches every category the user still has visible.

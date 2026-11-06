@@ -1,5 +1,8 @@
+import type { Media } from '@brigadasos/nadeshiko-sdk';
 import { handleApiError } from '~/utils/apiError';
 import { buildSentencePath } from '~/utils/routes';
+
+type AiringFormat = Media['airingFormat'];
 
 type ConcatenatedAudio = {
   blob: Blob;
@@ -321,7 +324,7 @@ export function imdbTitleUrl(imdbId: string): string {
  * format that lives under `/movie/`; everything else we catalog (TV, OVA,
  * ONA, specials, J-drama) is a series page.
  */
-export function tmdbUrl(tmdbId: string, airingFormat: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE'): string {
+export function tmdbUrl(tmdbId: string, airingFormat: AiringFormat): string {
   return `https://www.themoviedb.org/${airingFormat === 'MOVIE' ? 'movie' : 'tv'}/${tmdbId}`;
 }
 
@@ -339,10 +342,7 @@ type CatalogExternalIds = {
  * guess. Without it the id is skipped: a wrong URL is worse than no URL.
  */
 export function mediaSameAsUrls(
-  media:
-    | { externalIds?: CatalogExternalIds | null; airingFormat?: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE' }
-    | null
-    | undefined,
+  media: { externalIds?: CatalogExternalIds | null; airingFormat?: AiringFormat } | null | undefined,
 ): string[] {
   const ids = media?.externalIds;
   const urls: string[] = [];

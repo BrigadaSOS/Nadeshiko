@@ -29,7 +29,14 @@ function buildMedia(overrides: Record<string, unknown> = {}) {
 describe('shared.mapper', () => {
   it('maps base media with normalized dates and external ids', () => {
     const dto = toMediaBaseDTO(buildMedia() as any);
-    expect(dto.externalIds).toEqual({ anilist: '123', imdb: null, tmdb: null, tvdb: null, youtube: null });
+    expect(dto.externalIds).toEqual({
+      anilist: '123',
+      imdb: null,
+      tmdb: null,
+      tvdb: null,
+      youtube: null,
+      asin: null,
+    });
     expect(dto.startDate).toBe('2024-02-03');
     expect(dto.endDate).toBeNull();
     // Read from the trigger-maintained column, not a loaded relation.

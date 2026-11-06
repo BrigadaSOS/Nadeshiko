@@ -51,7 +51,7 @@ properties:
   airingFormat:
     type: string
     description: Format of the media release
-    enum: [TV, MOVIE, OVA, ONA, SPECIAL, YOUTUBE]
+    enum: [TV, MOVIE, OVA, ONA, SPECIAL, YOUTUBE, AUDIOBOOK]
     example: TV
   airingStatus:
     type: string

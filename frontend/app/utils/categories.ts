@@ -41,6 +41,7 @@ export const CATEGORY_LABEL_KEYS: Record<Category, string> = {
   ANIME: 'searchContainer.categoryAnime',
   JDRAMA: 'searchContainer.categoryLiveaction',
   YOUTUBE: 'searchContainer.categoryYoutube',
+  AUDIOBOOK: 'searchContainer.categoryAudiobook',
 };
 
 /**

@@ -101,7 +101,7 @@ properties:
             did nothing.
   defaultSearchCategory:
     type: string
-    enum: [ALL, ANIME, JDRAMA, YOUTUBE]
+    enum: [ALL, ANIME, JDRAMA, YOUTUBE, AUDIOBOOK]
     description: |
       Category tab a search opens on when the URL names none. `ALL` -- the value
       assumed when unset -- searches every category the user still has visible.

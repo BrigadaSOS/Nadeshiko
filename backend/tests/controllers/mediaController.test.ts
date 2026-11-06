@@ -337,6 +337,7 @@ describe('PATCH /v1/media/:id', () => {
       tmdb: null,
       tvdb: 'new-tvdb',
       youtube: null,
+      asin: null,
     });
 
     const rows = await MediaExternalId.findBy({ mediaId: media.id });

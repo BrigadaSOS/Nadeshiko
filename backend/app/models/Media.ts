@@ -16,6 +16,7 @@ export enum CategoryType {
   ANIME = 'ANIME',
   JDRAMA = 'JDRAMA',
   YOUTUBE = 'YOUTUBE',
+  AUDIOBOOK = 'AUDIOBOOK',
 }
 
 export const ALL_CATEGORIES: CategoryType[] = Object.values(CategoryType);
