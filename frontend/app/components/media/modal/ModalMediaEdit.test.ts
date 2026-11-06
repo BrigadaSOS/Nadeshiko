@@ -33,7 +33,7 @@ function media(over: Record<string, unknown> = {}) {
     endDate: '2022-12-24',
     seasonName: 'FALL',
     seasonYear: 2022,
-    externalIds: { anilist: '1', imdb: 'tt2', tvdb: '3', tmdb: '4', youtube: 'UC5' },
+    externalIds: { anilist: '1', imdb: 'tt2', tvdb: '3', tmdb: '4', youtube: 'UC5', asin: 'B06' },
     ...over,
   };
 }
@@ -153,6 +153,7 @@ describe('saving', () => {
       tvdb: '3',
       tmdb: '4',
       youtube: 'UC5',
+      asin: 'B06',
     });
   });
 

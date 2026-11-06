@@ -166,6 +166,8 @@
     "videos": "Video",
     "episodeCount": "{count} episode",
     "videoCount": "{count} video",
+    "chapters": "Bab",
+    "chapterCount": "{count} bab",
     "sentenceCountLabel": "Jumlah kalimat:",
     "anilistButton": "AniList",
     "tmdbButton": "TMDB",
@@ -417,6 +419,7 @@
         "noresults": "Tidak ada hasil yang ditemukan",
         "episode": "Episode {number}",
         "movie": "Film",
+        "chapter": "Bab {number}",
         "hiddenMediaBadge": "Disembunyikan",
         "hiddenMediaBadgeTitle": "Judul ini ada dalam daftar yang Anda sembunyikan",
         "searchmain": "Cari judul…",
@@ -1294,6 +1297,7 @@
       "title": "Kalimat",
       "defaultDescription": "Cari lebih dari satu juta kalimat bahasa Jepang dari berbagai anime dan drama Jepang. Terjemahan tersedia dalam bahasa Inggris dan Spanyol.",
       "episode": "Episode {n}",
+      "chapter": "Bab {n}",
       "pageTitle": "「{sentence}」 ({media})"
     },
     "collection": {

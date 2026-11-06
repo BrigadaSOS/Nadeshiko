@@ -72,17 +72,17 @@ describe('what is left visible', () => {
   test('is everything not hidden', () => {
     user.preferences = { hiddenCategories: ['ANIME'] };
 
-    expect(useHiddenCategories().visibleCategories.value).toEqual(['JDRAMA', 'YOUTUBE']);
+    expect(useHiddenCategories().visibleCategories.value).toEqual(['JDRAMA', 'YOUTUBE', 'AUDIOBOOK']);
   });
 
   test('is the whole corpus when nothing is hidden', () => {
-    expect(useHiddenCategories().visibleCategories.value).toEqual(['ANIME', 'JDRAMA', 'YOUTUBE']);
+    expect(useHiddenCategories().visibleCategories.value).toEqual(['ANIME', 'JDRAMA', 'YOUTUBE', 'AUDIOBOOK']);
   });
 
   test('keeps tab order, so the tabs do not reshuffle as categories are hidden', () => {
     user.preferences = { hiddenCategories: ['JDRAMA'] };
 
-    expect(useHiddenCategories().visibleCategories.value).toEqual(['ANIME', 'YOUTUBE']);
+    expect(useHiddenCategories().visibleCategories.value).toEqual(['ANIME', 'YOUTUBE', 'AUDIOBOOK']);
   });
 
   test('reports whether anything is hidden at all, which is what shows the notice', () => {
@@ -101,9 +101,9 @@ describe('whether a switch can be flipped', () => {
   test('the LAST visible one cannot, since an empty filter means everything', () => {
     // Hiding it would hand back the whole corpus rather than nothing. The API
     // rejects it too; this keeps the UI from offering a click that only fails.
-    user.preferences = { hiddenCategories: ['ANIME', 'JDRAMA'] };
+    user.preferences = { hiddenCategories: ['ANIME', 'JDRAMA', 'YOUTUBE'] };
 
-    expect(useHiddenCategories().canToggleCategory('YOUTUBE')).toBe(false);
+    expect(useHiddenCategories().canToggleCategory('AUDIOBOOK')).toBe(false);
   });
 
   test('but an already-hidden one always can, so nobody is locked out', () => {
@@ -196,11 +196,11 @@ describe('a toggle nobody is allowed to make', () => {
   });
 
   test('the last visible category is refused before it reaches the API', async () => {
-    user.preferences = { hiddenCategories: ['ANIME', 'JDRAMA'] };
+    user.preferences = { hiddenCategories: ['ANIME', 'JDRAMA', 'YOUTUBE'] };
 
-    expect(await useHiddenCategories().toggleCategory('YOUTUBE')).toBe(false);
+    expect(await useHiddenCategories().toggleCategory('AUDIOBOOK')).toBe(false);
     expect(sdk.updateUserPreferences).not.toHaveBeenCalled();
-    expect(stored()).toEqual(['ANIME', 'JDRAMA']);
+    expect(stored()).toEqual(['ANIME', 'JDRAMA', 'YOUTUBE']);
   });
 });
 

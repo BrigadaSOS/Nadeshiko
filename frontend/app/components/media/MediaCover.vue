@@ -12,6 +12,7 @@ const props = withDefaults(
 );
 
 const isYoutube = computed(() => props.media?.category === 'YOUTUBE');
+const isAudiobook = computed(() => props.media?.category === 'AUDIOBOOK');
 </script>
 
 <template>
@@ -34,6 +35,26 @@ const isYoutube = computed(() => props.media?.category === 'YOUTUBE');
       :alt="alt"
       loading="lazy"
       class="relative w-[62%] aspect-square rounded-full object-fill ring-1 ring-white/10 shadow-xl"
+    />
+  </div>
+  <!-- Audiobook covers are square: show the whole cover on a blurred copy of itself rather than
+       cropping it into the portrait poster frame. -->
+  <div
+    v-else-if="isAudiobook"
+    class="absolute inset-0 overflow-hidden flex items-center justify-center bg-neutral-900"
+  >
+    <img
+      :src="media.coverUrl"
+      :alt="alt"
+      loading="lazy"
+      class="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl brightness-[0.85]"
+    />
+    <div class="absolute inset-0 bg-black/20"></div>
+    <img
+      :src="media.coverUrl"
+      :alt="alt"
+      loading="lazy"
+      class="relative w-[88%] aspect-square rounded-md object-cover ring-1 ring-white/10 shadow-xl"
     />
   </div>
   <img

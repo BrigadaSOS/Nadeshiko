@@ -4,6 +4,14 @@ import { buildSentencePath } from '~/utils/routes';
 
 type AiringFormat = Media['airingFormat'];
 
+/** Audiobooks are split into chapters; everything else we catalog into episodes. */
+export const isAudiobook = (media: { category?: string } | null | undefined): boolean =>
+  media?.category === 'AUDIOBOOK';
+
+/** i18n key for "Episode {number}", or "Chapter {number}" for audiobooks. */
+export const episodeLabelKey = (media: { category?: string } | null | undefined): string =>
+  isAudiobook(media) ? 'searchpage.main.labels.chapter' : 'searchpage.main.labels.episode';
+
 type ConcatenatedAudio = {
   blob: Blob;
   blob_url: string;
