@@ -83,7 +83,7 @@ export const s_ApiKeyScope = z.enum([
   'READ_ADMIN',
 ]);
 
-export const s_Category = z.enum(['ANIME', 'JDRAMA', 'YOUTUBE']);
+export const s_Category = z.enum(['ANIME', 'JDRAMA', 'YOUTUBE', 'AUDIOBOOK']);
 
 export const s_CollectionVisibility = z.enum(['PUBLIC', 'PRIVATE']);
 
@@ -240,6 +240,7 @@ export const s_ExternalId = z.object({
   tvdb: z.string().min(1).nullable(),
   tmdb: z.string().min(1).nullable(),
   youtube: z.string().min(1).nullable(),
+  asin: z.string().min(1).nullable().optional(),
 });
 
 export const s_FeedbackFormToken = z.object({ token: z.string() });
@@ -581,7 +582,7 @@ export const s_Media = z.object({
   nameJa: z.string().min(1),
   nameRomaji: z.string().min(1),
   nameEn: z.string().min(1),
-  airingFormat: z.enum(['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'YOUTUBE']),
+  airingFormat: z.enum(['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'YOUTUBE', 'AUDIOBOOK']),
   airingStatus: z.enum(['FINISHED', 'RELEASING', 'NOT_YET_RELEASED', 'CANCELLED']),
   genres: z.array(z.string().min(1)),
   coverUrl: z.string().min(1),
@@ -602,7 +603,7 @@ export const s_MediaCreateRequest = z.object({
   nameJa: z.string(),
   nameRomaji: z.string(),
   nameEn: z.string(),
-  airingFormat: z.enum(['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'YOUTUBE']),
+  airingFormat: z.enum(['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'YOUTUBE', 'AUDIOBOOK']),
   airingStatus: z.enum(['FINISHED', 'RELEASING', 'NOT_YET_RELEASED', 'CANCELLED']),
   genres: z.array(z.string()),
   storage: z.enum(['LOCAL', 'R2']).default('R2'),
@@ -632,7 +633,7 @@ export const s_MediaUpdateRequest = z.object({
   nameJa: z.string().optional(),
   nameRomaji: z.string().optional(),
   nameEn: z.string().optional(),
-  airingFormat: z.enum(['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'YOUTUBE']).optional(),
+  airingFormat: z.enum(['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'YOUTUBE', 'AUDIOBOOK']).optional(),
   airingStatus: z.enum(['FINISHED', 'RELEASING', 'NOT_YET_RELEASED', 'CANCELLED']).optional(),
   genres: z.array(z.string()).optional(),
   storage: z.enum(['LOCAL', 'R2']).optional(),
@@ -669,7 +670,7 @@ export const s_SearchFilters = z.object({
       exclude: z.array(s_MediaFilterItem).max(1000).optional(),
     })
     .optional(),
-  category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA', 'YOUTUBE']),
+  category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA', 'YOUTUBE', 'AUDIOBOOK']),
   contentRating: z.array(s_ContentRating).optional(),
   status: z.array(s_SegmentStatus).optional().default(['ACTIVE']),
   segmentLengthChars: z
@@ -684,7 +685,7 @@ export const s_SearchFilters = z.object({
 });
 
 export const s_SearchMediaFilters = z.object({
-  category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA', 'YOUTUBE']),
+  category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA', 'YOUTUBE', 'AUDIOBOOK']),
 });
 
 export const s_Segment = z.object({
@@ -822,7 +823,7 @@ export const s_UserPreferences = z.object({
       }),
     )
     .optional(),
-  defaultSearchCategory: z.enum(['ALL', 'ANIME', 'JDRAMA', 'YOUTUBE']).optional(),
+  defaultSearchCategory: z.enum(['ALL', 'ANIME', 'JDRAMA', 'YOUTUBE', 'AUDIOBOOK']).optional(),
   mediaCardDefault: z.enum(['OPEN', 'CLOSED']).optional(),
   hiddenCategories: z.array(s_Category).optional(),
   hiddenMedia: z.array(z.object({ mediaPublicId: z.string() })).optional(),

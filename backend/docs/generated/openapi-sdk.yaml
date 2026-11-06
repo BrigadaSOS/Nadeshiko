@@ -45,7 +45,7 @@ info:
 
     To request a quota increase, reach out via the [contact
     page](https://nadeshiko.co/about).
-  version: 2.4.19
+  version: 2.5.0
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -159,6 +159,7 @@ paths:
                   type: string
                   format: uri
                   maxLength: 1000
+                  pattern: ^https?://
                 title:
                   type: string
                   minLength: 1
@@ -570,6 +571,7 @@ paths:
               - ANIME
               - JDRAMA
               - YOUTUBE
+              - AUDIOBOOK
             example: ANIME
         - name: query
           in: query
@@ -4455,6 +4457,7 @@ paths:
                 - "null"
               format: uri
               maxLength: 1000
+              pattern: ^https?://
             coverUrl:
               type:
                 - string
@@ -4533,6 +4536,7 @@ paths:
                     - "null"
                   format: uri
                   maxLength: 1000
+                  pattern: ^https?://
                 coverUrl:
                   type:
                     - string
@@ -7015,7 +7019,9 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
+          description: A URI reference that identifies the problem type (`about:blank`
+            when the problem has no further semantics beyond the HTTP status,
+            per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -7058,7 +7064,9 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
+          description: A URI reference that identifies the problem type (`about:blank`
+            when the problem has no further semantics beyond the HTTP status,
+            per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -7103,7 +7111,9 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
+          description: A URI reference that identifies the problem type (`about:blank`
+            when the problem has no further semantics beyond the HTTP status,
+            per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -7148,7 +7158,9 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
+          description: A URI reference that identifies the problem type (`about:blank`
+            when the problem has no further semantics beyond the HTTP status,
+            per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -7192,7 +7204,9 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
+          description: A URI reference that identifies the problem type (`about:blank`
+            when the problem has no further semantics beyond the HTTP status,
+            per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -7282,6 +7296,7 @@ components:
         - ANIME
         - JDRAMA
         - YOUTUBE
+        - AUDIOBOOK
       example: ANIME
       x-enum-descriptions:
         - value: ANIME
@@ -7290,6 +7305,8 @@ components:
           description: Japanese Drama
         - value: YOUTUBE
           description: YouTube channel
+        - value: AUDIOBOOK
+          description: Audiobook
     ContentRating:
       type: string
       description: Content rating level for the segment
@@ -7362,6 +7379,7 @@ components:
             - ANIME
             - JDRAMA
             - YOUTUBE
+            - AUDIOBOOK
         contentRating:
           type: array
           description: Content ratings to include (omit for all ratings)
@@ -7805,8 +7823,9 @@ components:
               description: URL to the video clip for this segment
     ExternalId:
       type: object
-      description: External IDs for this media, keyed by source. Every source appears
-        as a key; absent mappings are represented with a null value.
+      description: External IDs for this media, keyed by source. Responses always
+        carry every source as a key, with null for absent mappings. In requests
+        `asin` may be omitted, so clients that predate it keep working.
       required:
         - anilist
         - imdb
@@ -7844,6 +7863,12 @@ components:
           minLength: 1
           description: YouTube channel ID
           example: UCauyM-A8JIJ9NQcw5_jF00Q
+        asin:
+          type: string
+          nullable: true
+          minLength: 1
+          description: Audible ASIN (audiobooks)
+          example: B07PPMBZHX
     Media:
       type: object
       description: Media entry with full metadata
@@ -7905,6 +7930,7 @@ components:
             - ONA
             - SPECIAL
             - YOUTUBE
+            - AUDIOBOOK
           example: TV
         airingStatus:
           type: string
@@ -8085,7 +8111,9 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
+          description: A URI reference that identifies the problem type (`about:blank`
+            when the problem has no further semantics beyond the HTTP status,
+            per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -8334,6 +8362,7 @@ components:
             - ANIME
             - JDRAMA
             - YOUTUBE
+            - AUDIOBOOK
     SearchMediaRequest:
       type: object
       required:
@@ -8700,6 +8729,7 @@ components:
             - ONA
             - SPECIAL
             - YOUTUBE
+            - AUDIOBOOK
           example: TV
         airingStatus:
           type: string
@@ -8799,7 +8829,9 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
+          description: A URI reference that identifies the problem type (`about:blank`
+            when the problem has no further semantics beyond the HTTP status,
+            per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -8842,7 +8874,9 @@ components:
           type: string
           format: uri
           minLength: 1
-          description: A URI reference that identifies the problem type (`about:blank` when the problem has no further semantics beyond the HTTP status, per RFC 9457)
+          description: A URI reference that identifies the problem type (`about:blank`
+            when the problem has no further semantics beyond the HTTP status,
+            per RFC 9457)
         instance:
           type: string
           minLength: 1
@@ -9071,6 +9105,7 @@ components:
             - ONA
             - SPECIAL
             - YOUTUBE
+            - AUDIOBOOK
           example: TV
         airingStatus:
           type: string
@@ -10138,6 +10173,7 @@ components:
             - ANIME
             - JDRAMA
             - YOUTUBE
+            - AUDIOBOOK
           description: >
             Category tab a search opens on when the URL names none. `ALL` -- the
             value
@@ -11391,6 +11427,7 @@ components:
             - "null"
           format: uri
           maxLength: 1000
+          pattern: ^https?://
         coverUrl:
           type:
             - string

@@ -285,12 +285,13 @@ function getPrimaryExternalId(media: Media): string {
     ExternalSourceType.TVDB,
     ExternalSourceType.IMDB,
     ExternalSourceType.YOUTUBE,
+    ExternalSourceType.ASIN,
   ];
   for (const source of preferred) {
     const ext = media.externalIds?.find((e) => e.source === source);
     if (ext) return ext.externalId;
   }
-  throw new InvalidRequestError(`Media ${media.id} is missing an external ID (AniList, TMDB, YouTube, etc.)`);
+  throw new InvalidRequestError(`Media ${media.id} is missing an external ID (AniList, TMDB, YouTube, ASIN, etc.)`);
 }
 
 async function getEpisodeExternalVideoId(mediaId: number, episodeNumber: number): Promise<string | null> {

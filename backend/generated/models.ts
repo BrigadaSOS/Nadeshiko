@@ -129,7 +129,7 @@ export type t_BulkUpdateReportsRequest = {
   status: t_ReportStatus;
 };
 
-export type t_Category = 'ANIME' | 'JDRAMA' | 'YOUTUBE';
+export type t_Category = 'ANIME' | 'JDRAMA' | 'YOUTUBE' | 'AUDIOBOOK';
 
 export type t_CategoryCount = {
   category: t_Category;
@@ -355,6 +355,7 @@ export type t_Error503 = {
 
 export type t_ExternalId = {
   anilist: string | null;
+  asin?: string | null;
   imdb: string | null;
   tmdb: string | null;
   tvdb: string | null;
@@ -379,7 +380,7 @@ export type t_HeatmapDayCounts = {
 export type t_IncludeExpansion = 'media';
 
 export type t_Media = {
-  airingFormat: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE';
+  airingFormat: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE' | 'AUDIOBOOK';
   airingStatus: 'FINISHED' | 'RELEASING' | 'NOT_YET_RELEASED' | 'CANCELLED';
   bannerUrl: string;
   category: t_Category;
@@ -406,7 +407,7 @@ export type t_MediaAutocompleteResponse = {
 };
 
 export type t_MediaCreateRequest = {
-  airingFormat: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE';
+  airingFormat: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE' | 'AUDIOBOOK';
   airingStatus: 'FINISHED' | 'RELEASING' | 'NOT_YET_RELEASED' | 'CANCELLED';
   category: t_Category;
   endDate?: string;
@@ -462,7 +463,7 @@ export type t_MediaSummary = {
 };
 
 export type t_MediaUpdateRequest = {
-  airingFormat?: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE';
+  airingFormat?: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE' | 'AUDIOBOOK';
   airingStatus?: 'FINISHED' | 'RELEASING' | 'NOT_YET_RELEASED' | 'CANCELLED';
   category?: t_Category;
   endDate?: string | null;
@@ -1003,7 +1004,7 @@ export type t_UserPreferences = {
   contentRatingPreferences?: {
     nsfw?: 'SHOW' | 'BLUR' | 'HIDE';
   };
-  defaultSearchCategory?: 'ALL' | 'ANIME' | 'JDRAMA' | 'YOUTUBE';
+  defaultSearchCategory?: 'ALL' | 'ANIME' | 'JDRAMA' | 'YOUTUBE' | 'AUDIOBOOK';
   familiarMedia?: {
     enabled?: boolean;
   };
@@ -1234,7 +1235,7 @@ export type t_ListEpisodesQuerySchema = {
 };
 
 export type t_ListMediaQuerySchema = {
-  category?: 'ANIME' | 'JDRAMA' | 'YOUTUBE';
+  category?: 'ANIME' | 'JDRAMA' | 'YOUTUBE' | 'AUDIOBOOK';
   cursor?: string;
   query?: string;
   take?: number;

@@ -259,7 +259,7 @@ export type MediaFilterItem = {
 /**
  * Media category type
  */
-export type Category = 'ANIME' | 'JDRAMA' | 'YOUTUBE';
+export type Category = 'ANIME' | 'JDRAMA' | 'YOUTUBE' | 'AUDIOBOOK';
 
 /**
  * Content rating level for the segment
@@ -568,7 +568,7 @@ export type Segment = {
 };
 
 /**
- * External IDs for this media, keyed by source. Every source appears as a key; absent mappings are represented with a null value.
+ * External IDs for this media, keyed by source. Responses always carry every source as a key, with null for absent mappings. In requests `asin` may be omitted, so clients that predate it keep working.
  */
 export type ExternalId = {
     /**
@@ -591,6 +591,10 @@ export type ExternalId = {
      * YouTube channel ID
      */
     youtube: string;
+    /**
+     * Audible ASIN (audiobooks)
+     */
+    asin?: string;
 };
 
 /**
@@ -621,7 +625,7 @@ export type Media = {
     /**
      * Format of the media release
      */
-    airingFormat: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE';
+    airingFormat: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE' | 'AUDIOBOOK';
     /**
      * Current airing status
      */
@@ -1151,7 +1155,7 @@ export type MediaCreateRequest = {
     /**
      * Format of the media release
      */
-    airingFormat: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE';
+    airingFormat: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE' | 'AUDIOBOOK';
     /**
      * Current airing status
      */
@@ -1438,7 +1442,7 @@ export type MediaUpdateRequest = {
     /**
      * Format of the media release
      */
-    airingFormat?: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE';
+    airingFormat?: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE' | 'AUDIOBOOK';
     /**
      * Current airing status
      */
@@ -2084,7 +2088,7 @@ export type UserPreferences = {
      * unhiding the category brings the choice back.
      *
      */
-    defaultSearchCategory?: 'ALL' | 'ANIME' | 'JDRAMA' | 'YOUTUBE';
+    defaultSearchCategory?: 'ALL' | 'ANIME' | 'JDRAMA' | 'YOUTUBE' | 'AUDIOBOOK';
     /**
      * Whether the title card starts open or closed on a title's own page, and on
      * a search narrowed to one title.
@@ -3378,7 +3382,7 @@ export type ListMediaData = {
         /**
          * Filter by media category
          */
-        category?: 'ANIME' | 'JDRAMA' | 'YOUTUBE';
+        category?: 'ANIME' | 'JDRAMA' | 'YOUTUBE' | 'AUDIOBOOK';
         /**
          * Search term to match against media names (English, Japanese, romaji)
          */

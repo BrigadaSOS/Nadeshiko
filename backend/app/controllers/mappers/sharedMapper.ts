@@ -10,6 +10,7 @@ const toExternalIdsMap = (externalIds?: MediaExternalId[]): t_ExternalId => {
     tmdb: null,
     tvdb: null,
     youtube: null,
+    asin: null,
   };
   for (const ext of externalIds ?? []) {
     const key = ext.source.toLowerCase() as keyof t_ExternalId;

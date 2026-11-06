@@ -143,7 +143,7 @@ describe('PATCH /v1/user/preferences', () => {
 
     const res = await request(app)
       .patch('/v1/user/preferences')
-      .send({ hiddenCategories: ['ANIME', 'JDRAMA', 'YOUTUBE'] });
+      .send({ hiddenCategories: ['ANIME', 'JDRAMA', 'YOUTUBE', 'AUDIOBOOK'] });
 
     expect(res.status).toBe(400);
 

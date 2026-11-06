@@ -191,7 +191,7 @@ export type GetEmailPreferencesByTokenQueryOutput = z.output<typeof getEmailPref
 export const listMediaQuerySchema = z.object({
     take: z.coerce.number().min(1).max(40).optional().default(20),
     cursor: z.string().optional(),
-    category: z.enum(['ANIME', 'JDRAMA', 'YOUTUBE']).optional(),
+    category: z.enum(['ANIME', 'JDRAMA', 'YOUTUBE', 'AUDIOBOOK']).optional(),
     query: z.string().optional(),
   });
 export type ListMediaQueryOutput = z.output<typeof listMediaQuerySchema>;

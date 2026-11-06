@@ -33,7 +33,7 @@ properties:
     description: Media category filter
     items:
       $ref: "./Category.yaml"
-    default: [ANIME, JDRAMA, YOUTUBE]
+    default: [ANIME, JDRAMA, YOUTUBE, AUDIOBOOK]
   contentRating:
     type: array
     description: Content ratings to include (omit for all ratings)

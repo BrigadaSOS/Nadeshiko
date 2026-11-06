@@ -1,5 +1,5 @@
 type: object
-description: External IDs for this media, keyed by source. Every source appears as a key; absent mappings are represented with a null value.
+description: External IDs for this media, keyed by source. Responses always carry every source as a key, with null for absent mappings. In requests `asin` may be omitted, so clients that predate it keep working.
 required:
   - anilist
   - imdb
@@ -37,3 +37,9 @@ properties:
     minLength: 1
     description: YouTube channel ID
     example: UCauyM-A8JIJ9NQcw5_jF00Q
+  asin:
+    type: string
+    nullable: true
+    minLength: 1
+    description: Audible ASIN (audiobooks)
+    example: B07PPMBZHX
