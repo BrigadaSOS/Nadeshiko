@@ -974,6 +974,9 @@ onBeforeRouteUpdate(async (to, from) => {
                             <CommonTabsItem v-if="!media && !isSingleSegmentView && searchData?.categories?.find((item) => item.category === 'YOUTUBE')"
                                 data-testid="search-category-tab-youtube" category="youtube" :categoryName="t('searchContainer.categoryYoutube')" :count="getCategoryCount('youtube')" :totalCount="getCategoryTotalCount('youtube')" :isActive="category === 'youtube'"
                                 @click="categoryFilter('youtube')" />
+                            <CommonTabsItem v-if="!media && !isSingleSegmentView && searchData?.categories?.find((item) => item.category === 'AUDIOBOOK')"
+                                data-testid="search-category-tab-audiobook" category="audiobook" :categoryName="t('searchContainer.categoryAudiobook')" :count="getCategoryCount('audiobook')" :totalCount="getCategoryTotalCount('audiobook')" :isActive="category === 'audiobook'"
+                                @click="categoryFilter('audiobook')" />
                         </CommonTabsHeader>
                     </CommonTabsContainer>
                 </div>

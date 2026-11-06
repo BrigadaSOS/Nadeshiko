@@ -9,6 +9,7 @@ import {
 } from '~/utils/metaTags';
 import type { Media } from '@brigadasos/nadeshiko-sdk';
 import { reportError } from '~/utils/reportError';
+import { isAudiobook } from '~/utils/media';
 import { buildMediaPath, decodeSearchQuery, readSearchRouteFilters } from '~/utils/routes';
 
 definePageMeta({
@@ -216,7 +217,7 @@ const metaTags = computed(() => {
     const sentenceTags = buildSentenceMetaTags(
       result,
       mediaName,
-      (n) => t('seo.sentence.episode', { n }),
+      (n) => t(isAudiobook(result.media) ? 'seo.sentence.chapter' : 'seo.sentence.episode', { n }),
       (sentence, media) => t('seo.sentence.pageTitle', { sentence, media }),
     );
     tags.title = sentenceTags.title;

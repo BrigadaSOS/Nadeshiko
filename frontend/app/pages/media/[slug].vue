@@ -159,7 +159,7 @@ const metaTags = computed(() => {
 useHead(metaTags);
 
 // Describe the work as well as the sentence list. Match MediaCountLabel's airingFormat policy;
-// YouTube channels are neither movies nor TV series and get no work node.
+// YouTube channels are neither movies nor TV series and get no work node; audiobooks are books.
 const workSchema = computed(() => {
   const entry = media.value;
   if (!entry || entry.category === 'YOUTUBE') return null;
@@ -183,6 +183,8 @@ const workSchema = computed(() => {
     inLanguage: 'ja',
   };
 
+  // An audiobook is a book, not a series: chapters aren't episodes.
+  if (entry.category === 'AUDIOBOOK') return defineBook(shared);
   if (entry.airingFormat === 'MOVIE') return defineMovie(shared);
 
   return defineTVSeries({

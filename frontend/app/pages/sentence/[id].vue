@@ -3,6 +3,7 @@ import { useDocumentVisibility, useTimeoutFn } from '@vueuse/core';
 import { ENGAGED_VIEW_DWELL_MS, createEngagedViewGate } from '~/utils/engagedView';
 import { buildDefaultMetaTags, buildSentenceMetaTags } from '~/utils/metaTags';
 import { mediaBrowsePath } from '~/utils/routes';
+import { isAudiobook } from '~/utils/media';
 import { resolveSearchResponse } from '~/utils/resolvers';
 import { apiErrorStatus, isMissing } from '~/utils/apiError';
 import { reportError } from '~/utils/reportError';
@@ -90,7 +91,7 @@ const initialStatsData = computed<SearchStatsResponse | null>(() => {
         slug: result.media.slug,
       },
     ],
-    categories: [{ category: result.media.category === 'JDRAMA' ? 'JDRAMA' : 'ANIME', count: 1, realCount: 1 }],
+    categories: [{ category: result.media.category, count: 1, realCount: 1 }],
   };
 });
 
@@ -115,7 +116,7 @@ const metaTags = computed(() => {
     const sentenceTags = buildSentenceMetaTags(
       result,
       mediaName,
-      (n) => t('seo.sentence.episode', { n }),
+      (n) => t(isAudiobook(result.media) ? 'seo.sentence.chapter' : 'seo.sentence.episode', { n }),
       (sentence, media) => t('seo.sentence.pageTitle', { sentence, media }),
     );
     tags.title = sentenceTags.title;
@@ -138,7 +139,7 @@ const videoSchema = computed(() => {
   const durationSeconds = Math.max(0, (segment.endTimeMs - segment.startTimeMs) / 1000);
 
   return defineVideo({
-    name: `${mediaName(media)} - ${t('seo.sentence.episode', { n: segment.episode })}`,
+    name: `${mediaName(media)} - ${t(isAudiobook(media) ? 'seo.sentence.chapter' : 'seo.sentence.episode', { n: segment.episode })}`,
     description: segment.textJa.content,
     thumbnailUrl: segment.urls.imageUrl,
     contentUrl: segment.urls.videoUrl,

@@ -166,6 +166,8 @@
     "videos": "vídeos",
     "episodeCount": "{count} episodios",
     "videoCount": "{count} vídeos",
+    "chapters": "capítulos",
+    "chapterCount": "{count} capítulos",
     "sentenceCountLabel": "Frases:",
     "anilistButton": "AniList",
     "tmdbButton": "TMDB",
@@ -417,6 +419,7 @@
         "noresults": "No se encontraron frases",
         "episode": "Episodio {number}",
         "movie": "Película",
+        "chapter": "Capítulo {number}",
         "hiddenMediaBadge": "Oculto",
         "hiddenMediaBadgeTitle": "Este título está en tu lista de ocultos",
         "searchmain": "Buscar títulos",
@@ -1294,6 +1297,7 @@
       "title": "Frase",
       "defaultDescription": "Busca entre más de un millón de frases en japonés de anime, series y YouTube. Consulta sus traducciones al español.",
       "episode": "Episodio {n}",
+      "chapter": "Capítulo {n}",
       "pageTitle": "「{sentence}」 ({media})"
     },
     "collection": {

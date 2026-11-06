@@ -15,6 +15,7 @@ import type {
   MultiSearchResponse,
 } from '~/types/search';
 import type { WordMatch, Category } from '@brigadasos/nadeshiko-sdk';
+import { isCategory } from '~/utils/categories';
 
 const emptyMedia = (mediaPublicId: string): Media => ({
   publicId: mediaPublicId,
@@ -84,8 +85,7 @@ export function resolveStatsResponse(raw: SdkSearchStatsResponse): SearchStatsRe
     raw.categories
       ?.filter(
         (c): c is CategoryCount & { category: Category; count: number } =>
-          (c.category === 'ANIME' || c.category === 'JDRAMA' || c.category === 'YOUTUBE') &&
-          typeof c.count === 'number',
+          isCategory(c.category) && typeof c.count === 'number',
       )
       .map((c) => ({
         category: c.category,

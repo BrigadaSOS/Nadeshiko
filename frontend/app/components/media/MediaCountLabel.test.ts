@@ -66,3 +66,12 @@ describe('a count that is missing', () => {
     expect(render({ ...SERIES, episodeCount }).text()).toBe('animeList.episodeCount');
   });
 });
+
+describe('an audiobook', () => {
+  const BOOK = { category: 'AUDIOBOOK', airingFormat: 'AUDIOBOOK', episodeCount: 9 };
+
+  test('is counted in chapters, not episodes', () => {
+    expect(render(BOOK).text()).toBe('animeList.chapterCount');
+    expect(render(BOOK, true).text()).toBe('animeList.chapters: 9');
+  });
+});

@@ -166,6 +166,8 @@
     "videos": "视频",
     "episodeCount": "{count} 集",
     "videoCount": "{count} 个视频",
+    "chapters": "章节",
+    "chapterCount": "{count} 章",
     "sentenceCountLabel": "例句数量：",
     "anilistButton": "AniList",
     "tmdbButton": "TMDB",
@@ -417,6 +419,7 @@
         "noresults": "未找到结果",
         "episode": "第 {number} 集",
         "movie": "电影",
+        "chapter": "第 {number} 章",
         "hiddenMediaBadge": "已隐藏",
         "hiddenMediaBadgeTitle": "你已将此作品设为隐藏",
         "searchmain": "搜索作品…",
@@ -1294,6 +1297,7 @@
       "title": "例句",
       "defaultDescription": "搜索众多动画和日剧中的百万余条日语例句，译文目前支持英语和西班牙语。",
       "episode": "第 {n} 集",
+      "chapter": "第 {n} 章",
       "pageTitle": "「{sentence}」（{media}）"
     },
     "collection": {

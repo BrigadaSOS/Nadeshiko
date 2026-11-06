@@ -8,6 +8,7 @@ export const CATEGORY_API_MAPPING: Record<string, Category> = {
   anime: 'ANIME',
   liveaction: 'JDRAMA',
   youtube: 'YOUTUBE',
+  audiobook: 'AUDIOBOOK',
 } as const;
 
 /** URL slugs in the order the category tabs render them. */

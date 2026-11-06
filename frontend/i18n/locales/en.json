@@ -166,6 +166,8 @@
     "videos": "Videos",
     "episodeCount": "{count} Episodes",
     "videoCount": "{count} Videos",
+    "chapters": "Chapters",
+    "chapterCount": "{count} Chapters",
     "sentenceCountLabel": "Sentence Count:",
     "anilistButton": "AniList",
     "tmdbButton": "TMDB",
@@ -417,6 +419,7 @@
         "noresults": "No results found...",
         "episode": "Episode {number}",
         "movie": "Movie",
+        "chapter": "Chapter {number}",
         "hiddenMediaBadge": "Hidden",
         "hiddenMediaBadgeTitle": "This title is on your hidden list",
         "searchmain": "Search a title here...",
@@ -1294,6 +1297,7 @@
       "title": "Sentence",
       "defaultDescription": "Search over 1 million Japanese sentences with English translations from a wide variety of anime and J-dramas.",
       "episode": "Episode {n}",
+      "chapter": "Chapter {n}",
       "pageTitle": "「{sentence}」 ({media})"
     },
     "collection": {

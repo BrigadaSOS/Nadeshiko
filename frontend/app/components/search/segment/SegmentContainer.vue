@@ -14,6 +14,7 @@ import {
   searchScopeQuery,
 } from '~/utils/routes';
 import { escapeCorpusText, safeHighlight } from '~/utils/safeHighlight';
+import { episodeLabelKey } from '~/utils/media';
 
 type Props = {
   searchData: SearchResponse | null;
@@ -614,7 +615,7 @@ watch(playingVideoId, (id) => {
                     data-testid="segment-episode-link"
                     :to="mediaFilterLink(result.media, result.segment.episode)"
                     class="select-text hover:text-white hover:underline transition-colors cursor-pointer">
-                    {{ $t('searchpage.main.labels.episode', { number: result.segment.episode }) }}
+                    {{ $t(episodeLabelKey(result.media), { number: result.segment.episode }) }}
                   </NuxtLink>
                 </template>
                 &bull;

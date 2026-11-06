@@ -166,6 +166,8 @@
     "videos": "動画",
     "episodeCount": "{count}話",
     "videoCount": "{count}本",
+    "chapters": "章",
+    "chapterCount": "{count}章",
     "sentenceCountLabel": "例文数：",
     "anilistButton": "AniList",
     "tmdbButton": "TMDB",
@@ -417,6 +419,7 @@
         "noresults": "例文が見つかりませんでした",
         "episode": "第{number}話",
         "movie": "映画",
+        "chapter": "第{number}章",
         "hiddenMediaBadge": "非表示",
         "hiddenMediaBadgeTitle": "この作品は非表示リストに入っています",
         "searchmain": "作品のタイトルを検索",
@@ -1294,6 +1297,7 @@
       "title": "例文",
       "defaultDescription": "アニメ・ドラマ・YouTubeの日本語例文を100万件以上収録。単語やフレーズで検索し、音声や英語・スペイン語の翻訳を確認できます。",
       "episode": "第{n}話",
+      "chapter": "第{n}章",
       "pageTitle": "「{sentence}」（{media}）"
     },
     "collection": {

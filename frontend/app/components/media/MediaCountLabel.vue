@@ -13,10 +13,15 @@ const props = withDefaults(
 );
 
 const isYoutube = computed(() => props.media?.category === 'YOUTUBE');
+const isAudiobook = computed(() => props.media?.category === 'AUDIOBOOK');
 const isMovie = computed(() => !isYoutube.value && props.media?.airingFormat === 'MOVIE');
 const count = computed(() => props.media?.episodeCount || 0);
-const wordKey = computed(() => (isYoutube.value ? 'animeList.videos' : 'animeList.episodes'));
-const countKey = computed(() => (isYoutube.value ? 'animeList.videoCount' : 'animeList.episodeCount'));
+const wordKey = computed(() =>
+  isYoutube.value ? 'animeList.videos' : isAudiobook.value ? 'animeList.chapters' : 'animeList.episodes',
+);
+const countKey = computed(() =>
+  isYoutube.value ? 'animeList.videoCount' : isAudiobook.value ? 'animeList.chapterCount' : 'animeList.episodeCount',
+);
 </script>
 
 <template>

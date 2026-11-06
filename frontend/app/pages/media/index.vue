@@ -77,7 +77,7 @@ const secondaryMediaNames = (mediaInfo: Media) => {
   return secondary.join(' - ');
 };
 
-const allowedFilterTypes = new Set<string>(['ANIME', 'JDRAMA', 'YOUTUBE']);
+const allowedFilterTypes = new Set<string>(['ANIME', 'JDRAMA', 'YOUTUBE', 'AUDIOBOOK']);
 const pageSize = 28;
 
 const normalizeView = (value: unknown) => (value === 'list' ? 'list' : 'grid');
@@ -102,6 +102,8 @@ const filterCategoryLabel = computed(() => {
       return t('searchContainer.categoryLiveaction');
     case 'YOUTUBE':
       return t('searchContainer.categoryYoutube');
+    case 'AUDIOBOOK':
+      return t('searchContainer.categoryAudiobook');
     default:
       return t('searchContainer.categoryAll');
   }
@@ -343,6 +345,11 @@ watch([searchQuery, filterCategory], () => {
                 :text="$t('searchContainer.categoryYoutube')"
                 @click="handleFilterChange('YOUTUBE')"
                 :selected="filterCategory === 'YOUTUBE'"
+              />
+              <SearchDropdownItem
+                :text="$t('searchContainer.categoryAudiobook')"
+                @click="handleFilterChange('AUDIOBOOK')"
+                :selected="filterCategory === 'AUDIOBOOK'"
               />
               <div v-if="hasHiddenContent" class="nd-menu-divider"></div>
               <SearchDropdownItem

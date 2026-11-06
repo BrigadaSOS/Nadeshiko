@@ -115,11 +115,11 @@ describe('search filters', () => {
 describe('search filters with hidden categories', () => {
   it('narrows an unfiltered search to the categories left visible', () => {
     const filters = buildSentenceFilters(scope({ hiddenCategories: ['JDRAMA'] }));
-    expect(filters.category).toEqual(['ANIME', 'YOUTUBE']);
+    expect(filters.category).toEqual(['ANIME', 'YOUTUBE', 'AUDIOBOOK']);
   });
 
   it('applies the same narrowing to the tab counts', () => {
-    const filters = buildStatsFilters(scope({ hiddenCategories: ['JDRAMA', 'YOUTUBE'] }));
+    const filters = buildStatsFilters(scope({ hiddenCategories: ['JDRAMA', 'YOUTUBE', 'AUDIOBOOK'] }));
     expect(filters.category).toEqual(['ANIME']);
   });
 
@@ -138,7 +138,7 @@ describe('search filters with hidden categories', () => {
    * nothing. The API refuses to store that state; this is the belt to its braces.
    */
   it('omits the filter rather than sending an empty list when every category is hidden', () => {
-    const filters = buildSentenceFilters(scope({ hiddenCategories: ['ANIME', 'JDRAMA', 'YOUTUBE'] }));
+    const filters = buildSentenceFilters(scope({ hiddenCategories: ['ANIME', 'JDRAMA', 'YOUTUBE', 'AUDIOBOOK'] }));
     expect(filters.category).toBeUndefined();
   });
 });

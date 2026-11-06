@@ -38,11 +38,12 @@ const form = reactive({
   tvdbId: '',
   tmdbId: '',
   youtubeId: '',
+  asinId: '',
 });
 
-const airingFormatOptions = ['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'YOUTUBE'] as const;
+const airingFormatOptions = ['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'YOUTUBE', 'AUDIOBOOK'] as const;
 const airingStatusOptions = ['FINISHED', 'RELEASING', 'NOT_YET_RELEASED', 'CANCELLED'] as const;
-const categoryOptions = ['ANIME', 'JDRAMA', 'YOUTUBE'] as const;
+const categoryOptions = ['ANIME', 'JDRAMA', 'YOUTUBE', 'AUDIOBOOK'] as const;
 const seasonOptions = ['WINTER', 'SPRING', 'SUMMER', 'FALL', 'NONE'] as const;
 
 const pillClasses = (active: boolean) => {
@@ -73,6 +74,7 @@ watch(
     form.tvdbId = m.externalIds?.tvdb || '';
     form.tmdbId = m.externalIds?.tmdb || '';
     form.youtubeId = m.externalIds?.youtube || '';
+    form.asinId = m.externalIds?.asin || '';
     errorMessage.value = '';
     showDeleteConfirm.value = false;
   },
@@ -113,6 +115,7 @@ const submitEdit = async () => {
       tvdb: form.tvdbId || '',
       tmdb: form.tmdbId || '',
       youtube: form.youtubeId || '',
+      asin: form.asinId || '',
     };
 
     await sdk.updateMedia({
@@ -143,6 +146,7 @@ const submitEdit = async () => {
         tvdb: form.tvdbId || undefined,
         tmdb: form.tmdbId || undefined,
         youtube: form.youtubeId || undefined,
+        asin: form.asinId || undefined,
       },
     };
 
@@ -430,6 +434,16 @@ const submitDelete = async () => {
                 v-model="form.youtubeId"
                 type="text"
                 :placeholder="t('common.example', { value: 'UCxxxxxxxxxxxxxxxx' })"
+                class="nd-input font-mono"
+              />
+            </div>
+            <div>
+              <label :for="`${fieldId}-asinId`" class="block text-xs text-neutral-500 mb-1">ASIN</label>
+              <input
+                :id="`${fieldId}-asinId`"
+                v-model="form.asinId"
+                type="text"
+                :placeholder="t('common.example', { value: 'B07PPMBZHX' })"
                 class="nd-input font-mono"
               />
             </div>
