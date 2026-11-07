@@ -104,7 +104,7 @@ describe('parseSortMode', () => {
 });
 
 describe('parseCategory', () => {
-  test.each(['ANIME', 'JDRAMA', 'YOUTUBE'])('accepts %s', (category) => {
+  test.each(['ANIME', 'JDRAMA', 'YOUTUBE', 'AUDIOBOOK'])('accepts %s', (category) => {
     expect(parseCategory(category)).toBe(category);
   });
 

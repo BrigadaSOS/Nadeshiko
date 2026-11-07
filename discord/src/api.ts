@@ -39,12 +39,13 @@ const SORT_MODES: Record<SortMode, true> = {
   RANDOM: true,
 };
 
-// YOUTUBE is accepted by the API but is deliberately not offered as a slash-command
-// choice yet -- surfacing it to users is a product decision, not a typing one.
+// YOUTUBE and AUDIOBOOK are accepted by the API but are deliberately not offered as
+// slash-command choices yet -- surfacing them to users is a product decision, not a typing one.
 const CATEGORIES: Record<Category, true> = {
   ANIME: true,
   JDRAMA: true,
   YOUTUBE: true,
+  AUDIOBOOK: true,
 };
 
 /** Narrows free-form user input to a sort mode; returns undefined when it isn't one. */
