@@ -424,6 +424,18 @@ jobs:
           echo "::add-mask::${E2E_RATE_LIMIT_BYPASS_SECRET}"
           echo "E2E_RATE_LIMIT_BYPASS_SECRET=${E2E_RATE_LIMIT_BYPASS_SECRET}" >> "$GITHUB_ENV"
 
+          # Sent as X-Nadeshiko-CI so Cloudflare's skip rule exempts the run from
+          # the JS challenge and edge rate limit, which cover stg.nadeshiko.co
+          # since 2026-11-07 (a distributed crawler moved there from prod).
+          # Playwright cannot solve a challenge. Same value as
+          # /nadeshiko/prod/CI_BYPASS_SECRET and the Terraform copy in
+          # nadeshiko-infra; the staging role can only read /nadeshiko/staging/*.
+          #
+          E2E_CI_BYPASS_SECRET=$(aws ssm get-parameter --name "/nadeshiko/staging/CI_BYPASS_SECRET" --with-decryption --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+          test -n "${E2E_CI_BYPASS_SECRET}" || { echo "::error::CI_BYPASS_SECRET is required for staging E2E"; exit 1; }
+          echo "::add-mask::${E2E_CI_BYPASS_SECRET}"
+          echo "E2E_CI_BYPASS_SECRET=${E2E_CI_BYPASS_SECRET}" >> "$GITHUB_ENV"
+
       # ONE setup-node, not two. There were two, and the second -- pinning
       # node-version to a literal '22' with no `cache` -- silently won, so the
       # suite ran on whatever '22' resolved to rather than on NODE_VERSION, and
