@@ -328,6 +328,11 @@
     "deleteEpisodeError": "Error al eliminar el episodio"
   },
   "filterContent": {
+    "categoryBadge": {
+      "jdrama": "Acción real",
+      "youtube": "YouTube",
+      "audiobook": "Audiolibro"
+    },
     "searchPlaceholder": "Buscar títulos",
     "backToTitles": "Volver a la lista de títulos"
   },

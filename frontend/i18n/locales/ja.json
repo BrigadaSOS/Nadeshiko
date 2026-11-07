@@ -328,6 +328,11 @@
     "deleteEpisodeError": "エピソードの削除に失敗しました"
   },
   "filterContent": {
+    "categoryBadge": {
+      "jdrama": "実写",
+      "youtube": "YouTube",
+      "audiobook": "オーディオブック"
+    },
     "searchPlaceholder": "作品を検索",
     "backToTitles": "作品一覧に戻る"
   },

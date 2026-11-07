@@ -328,6 +328,11 @@
     "deleteEpisodeError": "無法刪除本集"
   },
   "filterContent": {
+    "categoryBadge": {
+      "jdrama": "真人影視",
+      "youtube": "YouTube",
+      "audiobook": "有聲書"
+    },
     "searchPlaceholder": "搜尋作品",
     "backToTitles": "返回作品列表"
   },

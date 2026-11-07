@@ -36,10 +36,10 @@ const PanelShell = {
     <div class="sub"><slot name="subheader" /></div><slot /></div>`,
 };
 const FilterRow = {
-  props: ['rowId', 'label', 'count', 'selected', 'truncate', 'title'],
+  props: ['rowId', 'label', 'count', 'selected', 'truncate', 'title', 'badge'],
   emits: ['select'],
   template: `<button class="row" :data-row-id="rowId" :data-selected="String(!!selected)"
-    @click="$emit('select')"><span class="label">{{ label }}</span><span class="count">{{ count }}</span></button>`,
+    @click="$emit('select')"><span class="label">{{ label }}</span><span v-if="badge" class="badge">{{ badge }}</span><span class="count">{{ count }}</span></button>`,
 };
 
 type Row = Record<string, unknown>;
@@ -226,6 +226,32 @@ describe('narrowing by category', () => {
 
   test('a chosen category hides the others', () => {
     expect(labels(render(MIXED, { categorySelected: 'anime' }))).toEqual(['Anime']);
+  });
+});
+
+describe('category tags in the mixed list', () => {
+  // An anime and its audiobook can share a name; the tag is what tells them apart.
+  const SAME_NAME = [
+    media('anime', { nameEn: 'Oregairu' }, { category: 'ANIME' }),
+    media('book', { nameEn: 'Oregairu' }, { category: 'AUDIOBOOK' }),
+    media('drama', { nameEn: 'Drama' }, { category: 'JDRAMA' }),
+  ];
+
+  const tags = (wrapper: ReturnType<typeof render>) =>
+    wrapper.findAll('.row').map((row) => (row.find('.badge').exists() ? row.find('.badge').text() : null));
+
+  test('tags every non-anime title under "All", and leaves anime untagged', () => {
+    const wrapper = render(SAME_NAME, { categorySelected: 'all' });
+    expect(labels(wrapper)).toEqual(['Drama', 'Oregairu', 'Oregairu']);
+    expect(tags(wrapper)).toEqual([
+      'filterContent.categoryBadge.jdrama',
+      null,
+      'filterContent.categoryBadge.audiobook',
+    ]);
+  });
+
+  test('shows no tags inside a single category', () => {
+    expect(tags(render(SAME_NAME, { categorySelected: 'audiobook' }))).toEqual([null]);
   });
 });
 
