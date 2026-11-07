@@ -21,8 +21,10 @@ withDefaults(
      * on the title it came from.
      */
     rowId?: string | null;
+    /** A short tag after the label, e.g. the category of a title in a mixed list. */
+    badge?: string;
   }>(),
-  { selected: false, truncate: false, title: undefined, rowId: null },
+  { selected: false, truncate: false, title: undefined, rowId: null, badge: undefined },
 );
 
 defineEmits<{ select: [] }>();
@@ -49,6 +51,12 @@ defineEmits<{ select: [] }>();
         class="flex flex-1 min-w-0 items-center justify-between pl-3 pr-2 py-2 text-left outline-none">
         <span class="flex-1 min-w-0 pr-2" :class="truncate ? 'truncate' : 'line-clamp-2 break-words'">
           {{ label }}
+        </span>
+        <span
+          v-if="badge"
+          data-testid="media-filter-row-badge"
+          class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none bg-white/5 text-white/50">
+          {{ badge }}
         </span>
         <span class="bg-neutral-700 text-white rounded-lg px-3 ml-3 py-1 text-xs shrink-0">
           {{ count }}

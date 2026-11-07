@@ -328,6 +328,11 @@
     "deleteEpisodeError": "Não foi possível excluir o episódio"
   },
   "filterContent": {
+    "categoryBadge": {
+      "jdrama": "Live-action",
+      "youtube": "YouTube",
+      "audiobook": "Audiolivro"
+    },
     "searchPlaceholder": "Buscar títulos",
     "backToTitles": "Voltar aos títulos"
   },

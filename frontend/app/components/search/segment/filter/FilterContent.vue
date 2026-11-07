@@ -15,6 +15,8 @@ type MediaFilterRow = {
   displayName: string;
   displayNameLower: string;
   matchCount: number;
+  /** Tags non-anime titles in the mixed list. */
+  category?: string;
   nameEn?: string;
   nameJa?: string;
   nameRomaji?: string;
@@ -49,6 +51,18 @@ const querySearchMedia = ref('');
 const debouncedQuerySearchMedia = ref('');
 const categorySelected = ref<string>(props.categorySelected ?? 'all');
 const categoryApiMapping = CATEGORY_API_MAPPING;
+
+// In the mixed "All" list an anime and an audiobook can share a name, so every non-anime title
+// says what it is. Anime is most of the corpus and stays untagged, and a single-category list
+// needs no tag at all. Static keys, so the locale checker sees them used.
+const CATEGORY_BADGE_KEYS: Partial<Record<string, string>> = {
+  JDRAMA: 'filterContent.categoryBadge.jdrama',
+  YOUTUBE: 'filterContent.categoryBadge.youtube',
+  AUDIOBOOK: 'filterContent.categoryBadge.audiobook',
+};
+/** The i18n key of a title's category tag, or undefined when it shows none. */
+const categoryBadgeKey = (category: string | undefined): string | undefined =>
+  categorySelected.value === 'all' && category ? CATEGORY_BADGE_KEYS[category] : undefined;
 
 // Each keystroke restarts the timer, so the list only re-filters 300ms after
 // the reader stops typing. `useTimeoutFn` cancels it on unmount for us.
@@ -297,6 +311,7 @@ const applyPendingFocus = () => {
                 :key="item.mediaPublicId"
                 :row-id="item.mediaPublicId"
                 :label="item.displayName"
+                :badge="categoryBadgeKey(item.category) ? $t(categoryBadgeKey(item.category)!) : undefined"
                 :count="item.matchCount"
                 :selected="item.mediaPublicId === selectedMediaId"
                 @select="filterAnime(item.mediaPublicId, item.displayName, item.slug)">

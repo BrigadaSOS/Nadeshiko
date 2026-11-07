@@ -328,6 +328,11 @@
     "deleteEpisodeError": "Failed to delete episode"
   },
   "filterContent": {
+    "categoryBadge": {
+      "jdrama": "Live action",
+      "youtube": "YouTube",
+      "audiobook": "Audiobook"
+    },
     "searchPlaceholder": "Search here",
     "backToTitles": "Back to titles"
   },
