@@ -30,6 +30,15 @@ vi.mock('@config/log', async (importOriginal) => {
   };
 });
 
+const cacheInvalidate = vi.fn();
+vi.mock('@lib/cache', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@lib/cache')>();
+  return { ...actual, Cache: { ...actual.Cache, invalidate: (...a: unknown[]) => cacheInvalidate(...a) } };
+});
+
+const { SEARCH_STATS_CACHE } = vi.hoisted(() => ({ SEARCH_STATS_CACHE: Symbol('searchStats') }));
+vi.mock('@app/services/search/SegmentDocument', () => ({ SegmentDocument: { SEARCH_STATS_CACHE } }));
+
 // The instrumentation wrapper has its own tests; here it must pass the handler
 // through, or every assertion below would pass against a handler never run.
 vi.mock('@app/workers/workerInstrumentation', () => ({
@@ -244,5 +253,52 @@ describe('the delete worker', () => {
 
     await expect(run(ES_SYNC_DELETE_QUEUE, [1])).rejects.toThrow('connection refused');
     expect(logError).toHaveBeenCalled();
+  });
+});
+
+/** Stats are cached for a day and segments reach the index only here, asynchronously: a stats request made while an
+ * upload was still indexing froze a partial count for the day. */
+describe('the search stats cache', () => {
+  it('is cleared once indexed documents actually changed', async () => {
+    const { boss, run } = fakeBoss();
+    await registerEsSyncWorkers(boss);
+    segmentFind.mockResolvedValue(found([1, 2]));
+    bulkIndex.mockResolvedValue({ succeeded: 2, failed: 0, errors: [] });
+
+    await run(ES_SYNC_CREATE_QUEUE, [1, 2]);
+
+    expect(cacheInvalidate).toHaveBeenCalledWith(SEARCH_STATS_CACHE);
+  });
+
+  it('is cleared for the documents that landed even when others failed and the batch retries', async () => {
+    const { boss, run } = fakeBoss();
+    await registerEsSyncWorkers(boss);
+    segmentFind.mockResolvedValue(found([1, 2]));
+    bulkIndex.mockResolvedValue({ succeeded: 1, failed: 1, errors: [{ segmentId: 2, error: 'boom' }] });
+
+    await expect(run(ES_SYNC_UPDATE_QUEUE, [1, 2])).rejects.toThrow();
+    expect(cacheInvalidate).toHaveBeenCalledWith(SEARCH_STATS_CACHE);
+  });
+
+  it('is cleared after deletes too', async () => {
+    const { boss, run } = fakeBoss();
+    await registerEsSyncWorkers(boss);
+    bulkDelete.mockResolvedValue({ succeeded: 3, failed: 0, errors: [] });
+
+    await run(ES_SYNC_DELETE_QUEUE, [1, 2, 3]);
+
+    expect(cacheInvalidate).toHaveBeenCalledWith(SEARCH_STATS_CACHE);
+  });
+
+  it('is left alone when nothing changed in the index', async () => {
+    const { boss, run } = fakeBoss();
+    await registerEsSyncWorkers(boss);
+    segmentFind.mockResolvedValue([]);
+
+    await run(ES_SYNC_CREATE_QUEUE, [1]);
+    bulkDelete.mockResolvedValue({ succeeded: 0, failed: 0, errors: [] });
+    await run(ES_SYNC_DELETE_QUEUE, [1]);
+
+    expect(cacheInvalidate).not.toHaveBeenCalled();
   });
 });
