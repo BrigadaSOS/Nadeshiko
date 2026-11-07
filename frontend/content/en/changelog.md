@@ -22,7 +22,6 @@ We only list what you can see. Work behind a lab or a feature flag stays off thi
 
 - **Titles**: the sentence and chapter counts on a title catch up as soon as new sentences are searchable, instead of up to a day later.
 - **Titles**: a title that is replaced keeps its address, and its page loads the new version instead of failing every search.
-
 - **Search**: invalid requests, rate limits and temporary outages now show specific guidance instead of a generic connection error, including when viewing a collection. A short first page no longer stops scrolling when more results are available.
 - **Site**: when too many searches or page renders arrive at once, Nadeshiko now asks the excess to retry in a moment instead of letting every request wait until the whole site times out. The searches already under way get to finish, and other pages stay usable.
 - **Site**: the files from the build you already have open stay available while the next one takes over, including after a server worker restarts, so opening a menu or navigating a page does not turn into a missing-script error.
