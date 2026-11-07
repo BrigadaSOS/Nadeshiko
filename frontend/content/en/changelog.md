@@ -9,10 +9,19 @@ What's new in Nadeshiko, newest first. The version in the footer is the release 
 
 We only list what you can see. Work behind a lab or a feature flag stays off this page until it is on for everyone, and dependency bumps, refactors and CI never appear at all. For the commit-level history, see the [releases on GitHub](https://github.com/BrigadaSOS/Nadeshiko/releases).
 
-## Unreleased
+## 2.6.0 (2026-11-07)
+
+### Highlights
+
+- **Audiobooks**: a new category next to anime, live action and YouTube. Every sentence comes from the book itself and plays in the narrator's voice, with English and Spanish translations, so you can mine Japanese from novels the same way you do from shows. The first title is *My Youth Romantic Comedy Is Wrong, As I Expected* volume 1.
+- **Audiobooks**: chapters are named the way the book's table of contents names them (`① …`, `あとがき`), the title page shows when the book came out, and a button takes you to the book on Audible.
+- **Search filters**: under "All", live-action, YouTube and audiobook titles carry a small tag, so an anime and the book it came from are easy to tell apart.
+- **API**: media can be of category `AUDIOBOOK` and carry an `asin` external id; segments return their chapter's title (`episodeTitle`) and search stats return each episode's `title`. The 2.6.0 SDKs know the new category; older SDKs reject `AUDIOBOOK` media when they read it.
 
 ### Fixes
 
+- **Titles**: the sentence and chapter counts on a title catch up as soon as new sentences are searchable, instead of up to a day later.
+- **Titles**: a title that is replaced keeps its address, and its page loads the new version instead of failing every search.
 - **Search**: invalid requests, rate limits and temporary outages now show specific guidance instead of a generic connection error, including when viewing a collection. A short first page no longer stops scrolling when more results are available.
 - **Site**: when too many searches or page renders arrive at once, Nadeshiko now asks the excess to retry in a moment instead of letting every request wait until the whole site times out. The searches already under way get to finish, and other pages stay usable.
 - **Site**: the files from the build you already have open stay available while the next one takes over, including after a server worker restarts, so opening a menu or navigating a page does not turn into a missing-script error.
