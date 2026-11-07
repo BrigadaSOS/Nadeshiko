@@ -248,7 +248,7 @@ describe('audiobook chapters in the drill-down', () => {
 
     expect(labels(wrapper)).toEqual([
       'searchpage.main.labels.chapter 2',
-      'searchpage.main.labels.chapter 4 · (3)つねに由比ヶ浜結衣はきょろきょろしている。',
+      '③ つねに由比ヶ浜結衣はきょろきょろしている。',
     ]);
     delete routeQuery.media;
   });

@@ -12,14 +12,86 @@ export const isAudiobook = (media: { category?: string } | null | undefined): bo
 export const episodeLabelKey = (media: { category?: string } | null | undefined): string =>
   isAudiobook(media) ? 'searchpage.main.labels.chapter' : 'searchpage.main.labels.episode';
 
-/** Joins an audiobook chapter's title to its label ("Chapter 4 · title"); anything else is unchanged. */
+const KANJI_DIGITS: Record<string, number> = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+
+/** 一..九十九 ("十二", "二十", "三十五"); null for anything else. */
+const kanjiNumber = (text: string): number | null => {
+  const match = /^([一二三四五六七八九])?(十)?([一二三四五六七八九])?$/.exec(text);
+  if (!match || !text) return null;
+  const [, tens, ten, ones] = match;
+  const digit = (kanji: string | undefined, fallback: number) => (kanji ? (KANJI_DIGITS[kanji] ?? fallback) : fallback);
+  if (!ten) return tens && !ones ? digit(tens, 0) : null;
+  return digit(tens, 1) * 10 + digit(ones, 0);
+};
+
+const toNumber = (digits: string): number | null => {
+  const ascii = digits.replace(/[０-９]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 0xfee0));
+  if (/^\d+$/.test(ascii)) return Number(ascii);
+  return kanjiNumber(digits);
+};
+
+/** ① for 1, through ㊿ for 50 -- the forms Unicode has; above that, "51.". */
+export const circledNumber = (n: number): string => {
+  if (n >= 1 && n <= 20) return String.fromCodePoint(0x2460 + n - 1);
+  if (n >= 21 && n <= 35) return String.fromCodePoint(0x3251 + n - 21);
+  if (n >= 36 && n <= 50) return String.fromCodePoint(0x32b1 + n - 36);
+  return `${n}.`;
+};
+
+const circledValue = (char: string): number | null => {
+  const code = char.codePointAt(0) ?? 0;
+  if (code >= 0x2460 && code <= 0x2473) return code - 0x2460 + 1;
+  if (code >= 0x3251 && code <= 0x325f) return code - 0x3251 + 21;
+  if (code >= 0x32b1 && code <= 0x32bf) return code - 0x32b1 + 36;
+  return null;
+};
+
+const DIGITS = '[0-9０-９]+|[一二三四五六七八九十]+';
+const NUMBERED_TITLE = [
+  new RegExp(`^[(（]\\s*(${DIGITS})\\s*[)）]\\s*`), // (1)とにかく…  （１）…
+  new RegExp(`^第\\s*(${DIGITS})\\s*[章話回節部巻]\\s*`), // 第1章 … / 第十二話 …
+  /^(?:chapter|chap\.?|ch\.?)\s*([0-9]+)\s*[:.\-–—]?\s*/i, // Chapter 3: …
+  /^([0-9０-９]+)\s*[.．:：、]\s*/, // 1. …  ２：…
+];
+
+/**
+ * Splits the book's own numbering off a chapter title: "(1)とにかく…" is
+ * { number: 1, name: "とにかく…" }; "あとがき" has no number. The number is the
+ * book's, never our episode number -- the episode number is the chapter's
+ * position in the audio file, which skips untranscribed tracks (credits, the
+ * cast list), so it drifts from the book's numbering.
+ */
+export const parseChapterTitle = (title: string): { number: number | null; name: string } => {
+  const trimmed = title.trim();
+  const first = circledValue(trimmed);
+  if (first !== null) return { number: first, name: trimmed.slice(1).trim() };
+  for (const pattern of NUMBERED_TITLE) {
+    const match = pattern.exec(trimmed);
+    const number = match?.[1] ? toNumber(match[1]) : null;
+    if (match && number !== null) return { number, name: trimmed.slice(match[0].length).trim() };
+  }
+  return { number: null, name: trimmed };
+};
+
+/** A chapter the way the book's table of contents names it: "① とにかく…", or just "あとがき". */
+export const bookChapterName = (title: string): string => {
+  const { number, name } = parseChapterTitle(title);
+  if (number === null) return name;
+  return name ? `${circledNumber(number)} ${name}` : circledNumber(number);
+};
+
+/**
+ * An audiobook chapter with a title is named by it, as the book's contents name
+ * it ("① とにかく…", "あとがき"); the label ("Chapter 4") stays only for chapters
+ * with no title and for everything that is not an audiobook.
+ */
 export const withChapterTitle = (
   label: string,
   media: { category?: string } | null | undefined,
   title?: string | null,
-): string => (isAudiobook(media) && title?.trim() ? `${label} · ${title.trim()}` : label);
+): string => (isAudiobook(media) && title?.trim() ? bookChapterName(title) : label);
 
-/** "Episode 4", or for an audiobook "Chapter 4 · <its title>" when the chapter has one. */
+/** "Episode 4", or for an audiobook the chapter as its book names it ("① とにかく…") when it has a title. */
 export const episodeLabel = (
   t: (key: string, values?: Record<string, unknown>) => string,
   media: { category?: string } | null | undefined,
