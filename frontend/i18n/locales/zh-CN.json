@@ -173,6 +173,7 @@
     "tmdbButton": "TMDB",
     "imdbButton": "IMDb",
     "youtubeButton": "YouTube",
+    "audibleButton": "Audible",
     "vocabularyButton": "词汇"
   },
   "hiddenCategories": {
@@ -1577,6 +1578,7 @@
     }
   },
   "mediaHeader": {
+    "published": "发行",
     "collapse": "收起作品详情",
     "expand": "展开作品详情"
   },
