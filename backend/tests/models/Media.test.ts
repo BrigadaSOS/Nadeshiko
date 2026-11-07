@@ -3,6 +3,7 @@ import { setupTestSuite } from '../helpers/setup';
 import { loadFixtures } from '../fixtures/loader';
 import { Media, MEDIA_INFO_CACHE } from '@app/models/Media';
 import { Cache } from '@lib/cache';
+import { Episode } from '@app/models/Episode';
 
 setupTestSuite();
 
@@ -59,6 +60,26 @@ describe('Media.getMediaInfoMap', () => {
     await expect(Media.getMediaInfoMap()).rejects.toThrow('database is down');
     await expect(Media.getMediaInfoMap()).resolves.toHaveProperty('results');
     expect(find).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('episode titles in the media info cache', () => {
+  it('maps titled episodes by number, preferring the Japanese title, and skips untitled ones', async () => {
+    const [episode] = await Episode.find({ take: 1 });
+    if (!episode) throw new Error('fixture has no episode');
+    await Episode.update(
+      { mediaId: episode.mediaId, episodeNumber: episode.episodeNumber },
+      { titleJa: '(1)とにかく比企谷八幡はくさっている。', titleEn: 'Hachiman Hikigaya is rotten' },
+    );
+    await Episode.save(
+      Episode.create({ mediaId: episode.mediaId, episodeNumber: episode.episodeNumber + 1, segmentCount: 0 }),
+    );
+
+    const { results } = await Media.getMediaInfoMap();
+
+    expect(results.get(episode.mediaId)?.episodeTitles).toEqual({
+      [episode.episodeNumber]: '(1)とにかく比企谷八幡はくさっている。',
+    });
   });
 });
 

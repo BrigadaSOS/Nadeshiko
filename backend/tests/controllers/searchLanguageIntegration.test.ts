@@ -308,7 +308,7 @@ describe('search language compatibility (real HTTP/Postgres/Elasticsearch)', () 
           testCase.ids.map((mediaPublicId) => ({
             mediaPublicId,
             matchCount: 1,
-            episodeHits: [{ episode: 1, hitCount: 1 }],
+            episodeHits: [{ episode: 1, title: null, hitCount: 1 }],
           })),
         );
         expect(statsResponse.body.categories, `stats ${testCase.name}`).toEqual(testCase.categories);

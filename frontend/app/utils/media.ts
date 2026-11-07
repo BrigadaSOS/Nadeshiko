@@ -12,6 +12,21 @@ export const isAudiobook = (media: { category?: string } | null | undefined): bo
 export const episodeLabelKey = (media: { category?: string } | null | undefined): string =>
   isAudiobook(media) ? 'searchpage.main.labels.chapter' : 'searchpage.main.labels.episode';
 
+/** Joins an audiobook chapter's title to its label ("Chapter 4 · title"); anything else is unchanged. */
+export const withChapterTitle = (
+  label: string,
+  media: { category?: string } | null | undefined,
+  title?: string | null,
+): string => (isAudiobook(media) && title?.trim() ? `${label} · ${title.trim()}` : label);
+
+/** "Episode 4", or for an audiobook "Chapter 4 · <its title>" when the chapter has one. */
+export const episodeLabel = (
+  t: (key: string, values?: Record<string, unknown>) => string,
+  media: { category?: string } | null | undefined,
+  number: number,
+  title?: string | null,
+): string => withChapterTitle(t(episodeLabelKey(media), { number }), media, title);
+
 type ConcatenatedAudio = {
   blob: Blob;
   blob_url: string;

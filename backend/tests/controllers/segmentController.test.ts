@@ -13,6 +13,8 @@ import { SegmentRevision } from '@app/models/SegmentRevision';
 import { Media } from '@app/models/Media';
 import { MediaExternalId, ExternalSourceType } from '@app/models/MediaExternalId';
 import * as SegmentContext from '@app/services/search/segmentDocument/SegmentContext';
+import { Cache } from '@lib/cache';
+import { MEDIA_INFO_CACHE } from '@app/models/Media';
 
 setupTestSuite();
 
@@ -381,6 +383,17 @@ describe('GET /v1/media/segments/:segmentPublicId', () => {
       episode: episode.episodeNumber,
       position: 5,
     });
+  });
+
+  it("names the segment's episode, so the sentence page can show an audiobook chapter's title", async () => {
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
+    Cache.invalidate(MEDIA_INFO_CACHE);
+    const segment = await seedSegment(fixtures.media.testShow.id, fixtures.episodes.pilot.episodeNumber);
+
+    const res = await request(app).get(`/v1/media/segments/${segment.publicId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.episodeTitle).toBe('Pilot');
   });
 
   it('includes tokens so the sentence permalink can render the word card', async () => {

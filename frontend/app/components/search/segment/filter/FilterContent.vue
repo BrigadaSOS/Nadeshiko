@@ -2,7 +2,7 @@
 import { useTimeoutFn } from '@vueuse/core';
 import { mdiChevronLeft } from '@mdi/js';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
-import { episodeLabelKey } from '~/utils/media';
+import { episodeLabel } from '~/utils/media';
 import { EPISODE_HITS_LOADING } from '~/composables/useSearchFetch';
 import { compareMediaRows } from '~/utils/mediaFilterSort';
 import type { ResolvedMediaStats, SearchSidebarData } from '~/types/search';
@@ -154,7 +154,7 @@ const selectedEpisode = computed(() => {
 
 const episodesList = computed(() => {
   return [...(selectedStat.value?.episodeHits ?? [])]
-    .map((entry) => ({ episode: entry.episode, count: entry.hitCount }))
+    .map((entry) => ({ episode: entry.episode, title: entry.title ?? null, count: entry.hitCount }))
     .sort((a, b) => a.episode - b.episode);
 });
 
@@ -286,10 +286,10 @@ const applyPendingFocus = () => {
                 v-for="episode in episodesList"
                 :key="episode.episode"
                 truncate
-                :label="$t(episodeLabelKey(selectedStat), { number: episode.episode })"
+                :label="episodeLabel($t, selectedStat, episode.episode, episode.title)"
                 :count="episode.count"
                 :selected="selectedEpisode === episode.episode"
-                :title="`${$t(episodeLabelKey(selectedStat), { number: episode.episode })}: ${episode.count}`"
+                :title="`${episodeLabel($t, selectedStat, episode.episode, episode.title)}: ${episode.count}`"
                 @select="toggleEpisode(episode.episode)">
                 <!-- An episode is not a thing you star, but the title above it is:
                      the empty star column keeps these counts under that one. -->

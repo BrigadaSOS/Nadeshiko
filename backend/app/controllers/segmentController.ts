@@ -185,8 +185,11 @@ export const updateSegment: UpdateSegment = async ({ params, body }, respond, re
 
 export const getSegment: GetSegment = async ({ params }, respond) => {
   const { segment, mediaPublicId } = await findSegmentByUuidOrPublicId(params.segmentPublicId);
+  // The sentence page names the chapter of an audiobook segment; the title comes from the media cache.
+  const { results } = await Media.getMediaInfoMap();
+  const episodeTitle = results.get(segment.mediaId)?.episodeTitles?.[segment.episode] ?? null;
 
-  return respond.with200().body(toSegmentDTO(segment, mediaPublicId));
+  return respond.with200().body(toSegmentDTO(segment, mediaPublicId, episodeTitle));
 };
 
 export const listSegmentRevisions: ListSegmentRevisions = async ({ params }, respond) => {

@@ -29,6 +29,11 @@ properties:
           description: Episode number
           minimum: 0
           example: 1
+        title:
+          type: string
+          nullable: true
+          description: Episode title when it has one (an audiobook chapter's title), else null
+          example: "(1)とにかく比企谷八幡はくさっている。"
         hitCount:
           type: integer
           description: Number of matching segments in this episode

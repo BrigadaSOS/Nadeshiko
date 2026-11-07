@@ -270,7 +270,13 @@ export const s_MediaGlobalStats = z.object({
 export const s_MediaSearchStats = z.object({
   mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
   matchCount: z.coerce.number().min(0),
-  episodeHits: z.array(z.object({ episode: z.coerce.number().min(0), hitCount: z.coerce.number().min(0) })),
+  episodeHits: z.array(
+    z.object({
+      episode: z.coerce.number().min(0),
+      title: z.string().nullable().optional(),
+      hitCount: z.coerce.number().min(0),
+    }),
+  ),
 });
 
 export const s_PatreonConnection = z.object({
@@ -696,6 +702,7 @@ export const s_Segment = z.object({
   endTimeMs: z.coerce.number().min(0),
   contentRating: s_ContentRating,
   episode: z.coerce.number().min(0),
+  episodeTitle: z.string().nullable().optional(),
   externalVideoId: z.string().min(1).nullable(),
   mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
   textJa: z.object({

@@ -40,6 +40,7 @@ function makeMediaInfoMap(mediaId: number): Awaited<ReturnType<typeof Media.getM
           seasonYear: 2025,
           externalIds: {},
           storageBasePath: 'anime/test-anime',
+          episodeTitles: { 8: '(1)とにかく比企谷八幡はくさっている。' } as Record<number, string>,
         },
       ],
     ]),
@@ -97,6 +98,17 @@ function makeEsResponse(hits: estypes.SearchHit<SegmentDocumentShape>[]): estype
 
 describe('SegmentResponse', () => {
   describe('buildSearchResultSegments', () => {
+    it('names the episode when it has a title, and leaves it null otherwise', () => {
+      const titled = makeEsHit('1', { episode: 8 });
+      const untitled = makeEsHit('2', { episode: 3 });
+      const { segments } = SegmentResponse.buildSearchResultSegments(
+        makeEsResponse([titled, untitled]),
+        makeMediaInfoMap(1),
+      );
+
+      expect(segments.map((segment) => segment.episodeTitle)).toEqual(['(1)とにかく比企谷八幡はくさっている。', null]);
+    });
+
     it('includes tokens in textJa when present in source', () => {
       const tokens = [token('テスト', 'テスト', 0, 3, '名詞')];
       const hit = makeEsHit('1', { tokens });

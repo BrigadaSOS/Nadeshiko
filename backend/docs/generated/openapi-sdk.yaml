@@ -7712,6 +7712,12 @@ components:
           description: Episode number this segment belongs to (0 for movies/specials)
           minimum: 0
           example: 1
+        episodeTitle:
+          type: string
+          nullable: true
+          description: Title of this segment's episode when it has one (an audiobook
+            chapter's title), else null
+          example: (1)とにかく比企谷八幡はくさっている。
         externalVideoId:
           type: string
           nullable: true
@@ -8179,6 +8185,12 @@ components:
                 description: Episode number
                 minimum: 0
                 example: 1
+              title:
+                type: string
+                nullable: true
+                description: Episode title when it has one (an audiobook chapter's title), else
+                  null
+                example: (1)とにかく比企谷八幡はくさっている。
               hitCount:
                 type: integer
                 description: Number of matching segments in this episode

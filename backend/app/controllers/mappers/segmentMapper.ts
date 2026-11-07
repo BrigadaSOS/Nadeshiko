@@ -12,7 +12,7 @@ import { nanoid } from 'nanoid';
 const toJsonObjectOrNull = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
 
-export const toSegmentDTO = (segment: Segment, mediaPublicId?: string): t_Segment => {
+export const toSegmentDTO = (segment: Segment, mediaPublicId?: string, episodeTitle?: string | null): t_Segment => {
   const imageUrl = getSegmentImageUrl(segment);
   const audioUrl = getSegmentAudioUrl(segment);
   const videoUrl = getSegmentVideoUrl(segment);
@@ -42,6 +42,7 @@ export const toSegmentDTO = (segment: Segment, mediaPublicId?: string): t_Segmen
     },
     contentRating: segment.contentRating as t_Segment['contentRating'],
     episode: segment.episode,
+    episodeTitle: episodeTitle ?? null,
     externalVideoId: segment.externalVideoId ?? null,
     mediaPublicId: mediaPublicId ?? '',
     urls: {
