@@ -229,6 +229,31 @@ describe('narrowing by category', () => {
   });
 });
 
+describe('audiobook chapters in the drill-down', () => {
+  test('each chapter row shows its number and its title', async () => {
+    routeQuery.media = 'book';
+    const book = media(
+      'book',
+      { nameEn: 'Oregairu 1' },
+      {
+        category: 'AUDIOBOOK',
+        episodeHits: [
+          { episode: 4, title: '(3)つねに由比ヶ浜結衣はきょろきょろしている。', hitCount: 2 },
+          { episode: 2, title: null, hitCount: 1 },
+        ],
+      },
+    );
+    const wrapper = render([book]);
+    await nextTick();
+
+    expect(labels(wrapper)).toEqual([
+      'searchpage.main.labels.chapter 2',
+      'searchpage.main.labels.chapter 4 · (3)つねに由比ヶ浜結衣はきょろきょろしている。',
+    ]);
+    delete routeQuery.media;
+  });
+});
+
 describe('category tags in the mixed list', () => {
   // An anime and its audiobook can share a name; the tag is what tells them apart.
   const SAME_NAME = [

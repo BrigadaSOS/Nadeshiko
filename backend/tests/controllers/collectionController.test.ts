@@ -539,8 +539,8 @@ describe('GET /v1/collections/:id/stats', () => {
         mediaPublicId: show.publicId,
         matchCount: 3,
         episodeHits: [
-          { episode: 1, hitCount: 1 },
-          { episode: 2, hitCount: 2 },
+          { episode: 1, title: null, hitCount: 1 },
+          { episode: 2, title: null, hitCount: 2 },
         ],
       },
     ]);
@@ -565,7 +565,8 @@ describe('GET /v1/collections/:id/stats', () => {
       {
         mediaPublicId: fixtures.media.testShow.publicId,
         matchCount: 1,
-        episodeHits: [{ episode: 1, hitCount: 1 }],
+        // The fixture's episode 1 is titled "Pilot".
+        episodeHits: [{ episode: 1, title: 'Pilot', hitCount: 1 }],
       },
     ]);
   });

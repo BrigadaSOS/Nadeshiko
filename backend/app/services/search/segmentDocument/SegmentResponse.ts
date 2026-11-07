@@ -116,6 +116,7 @@ export class SegmentResponse {
           startTimeMs: data.startTimeMs,
           endTimeMs: data.endTimeMs,
           episode: data.episode,
+          episodeTitle: mediaInfo.episodeTitles?.[data.episode] ?? null,
           externalVideoId: data.externalVideoId ?? null,
           mediaId,
           mediaPublicId: mediaInfo.publicId,
@@ -309,6 +310,7 @@ export class SegmentResponse {
           matchCount: Number(mediaBucket.doc_count ?? 0),
           episodeHits: Object.entries(episodesWithResults).map(([ep, hitCount]) => ({
             episode: Number(ep),
+            title: mediaInfo.episodeTitles?.[Number(ep)] ?? null,
             hitCount,
           })),
         };

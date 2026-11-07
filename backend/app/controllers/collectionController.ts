@@ -229,7 +229,10 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
 
   const { results: mediaInfo } = await Media.getMediaInfoMap();
 
-  const mediaMap = new Map<string, { matchCount: number; episodeHits: { episode: number; hitCount: number }[] }>();
+  const mediaMap = new Map<
+    string,
+    { matchCount: number; episodeHits: { episode: number; title: string | null; hitCount: number }[] }
+  >();
   const categoryCountMap = new Map<CategoryOutput, number>();
   const includedMedia: Record<string, MediaOutput> = {};
 
@@ -246,7 +249,8 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
       includedMedia[info.publicId] = SegmentResponse.buildMedia(info);
     }
     entry.matchCount += hitCount;
-    entry.episodeHits.push({ episode: Number(row.episode), hitCount });
+    const episode = Number(row.episode);
+    entry.episodeHits.push({ episode, title: info.episodeTitles?.[episode] ?? null, hitCount });
 
     const category = toCategory(info.category);
     categoryCountMap.set(category, (categoryCountMap.get(category) ?? 0) + hitCount);

@@ -123,7 +123,7 @@ import { defineStore } from 'pinia';
 import { tokensToAnkiFurigana } from '~/utils/tokenEnrichment';
 import { userStore } from '@/stores/auth';
 import { apiErrorStatus, handleApiError } from '~/utils/apiError';
-import { isAudiobook } from '~/utils/media';
+import { isAudiobook, withChapterTitle } from '~/utils/media';
 import { reportError, reportEvent } from '~/utils/reportError';
 import { cspViolationLog, installCspViolationLog } from '~/utils/cspViolations';
 import { classifyAnkiAddress } from '~/utils/ankiAddress';
@@ -811,10 +811,16 @@ export const ankiStore = defineStore('anki', {
             case 'sentence-info': {
               const isMovie = sentence.media.airingFormat === 'MOVIE';
               const unit = isAudiobook(sentence.media) ? 'Chapter' : 'Episode';
-              const episodePart = isMovie ? 'Movie' : `${unit} ${sentence.segment.episode}`;
+              const episodePart = isMovie
+                ? 'Movie'
+                : withChapterTitle(
+                    `${unit} ${sentence.segment.episode}`,
+                    sentence.media,
+                    sentence.segment.episodeTitle,
+                  );
               const sentenceUrl = `${window.location.origin}${buildSentencePath(sentence.segment.publicId)}`;
               return (
-                `<hr><small>${escapeHtml(mediaName(sentence.media))}・${episodePart}, Timestamp: ${formatMs(sentence.segment.startTimeMs)}` +
+                `<hr><small>${escapeHtml(mediaName(sentence.media))}・${escapeHtml(episodePart)}, Timestamp: ${formatMs(sentence.segment.startTimeMs)}` +
                 `<br><a href="${escapeHtml(sentenceUrl)}">View on Nadeshiko</a></small>`
               );
             }

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, Index, BeforeInsert } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, Index, BeforeInsert, IsNull, Not } from 'typeorm';
 import type { FindOptionsRelations } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Episode } from './Episode';
@@ -156,11 +156,13 @@ export class Media extends BaseEntity {
         order: { createdAt: 'DESC' },
       });
 
+      const episodeTitles = await Media.loadEpisodeTitles();
+
       const mediaMap = new Map<number, ReturnType<typeof Media.toMediaInfoData>>();
       let totalSegments = 0;
 
       for (const media of allMedia) {
-        const info = Media.toMediaInfoData(media);
+        const info = Media.toMediaInfoData(media, episodeTitles.get(media.id));
         mediaMap.set(media.id, info);
         totalSegments += info.segmentCount ?? 0;
       }
@@ -208,7 +210,29 @@ export class Media extends BaseEntity {
     return Media.inFlightGlobalStats;
   }
 
-  static toMediaInfoData(media: Media) {
+  /**
+   * Episode titles by media id and episode number, for the episodes that have one (audiobook
+   * chapters carry their m4b chapter title). Japanese first, then romaji, then English. Lives in the
+   * media info cache, which episode writes already invalidate, so search responses can name a
+   * segment's episode without a query of their own.
+   */
+  static async loadEpisodeTitles(): Promise<Map<number, Record<number, string>>> {
+    const rows = await Episode.find({
+      select: { mediaId: true, episodeNumber: true, titleJa: true, titleRomaji: true, titleEn: true },
+      where: [{ titleJa: Not(IsNull()) }, { titleRomaji: Not(IsNull()) }, { titleEn: Not(IsNull()) }],
+    });
+    const titles = new Map<number, Record<number, string>>();
+    for (const row of rows) {
+      const title = [row.titleJa, row.titleRomaji, row.titleEn].map((value) => value?.trim()).find(Boolean);
+      if (!title) continue;
+      const forMedia = titles.get(row.mediaId) ?? {};
+      forMedia[row.episodeNumber] = title;
+      titles.set(row.mediaId, forMedia);
+    }
+    return titles;
+  }
+
+  static toMediaInfoData(media: Media, episodeTitles: Record<number, string> = {}) {
     const externalIds: Record<string, string> = {};
     for (const ext of media.externalIds ?? []) {
       externalIds[ext.source.toLowerCase()] = ext.externalId;
@@ -240,6 +264,7 @@ export class Media extends BaseEntity {
       seasonYear: media.seasonYear,
       externalIds,
       storageBasePath: media.storageBasePath,
+      episodeTitles,
     };
   }
 }

@@ -447,6 +447,7 @@ export type t_MediaSearchStats = {
   episodeHits: {
     episode: number;
     hitCount: number;
+    title?: string | null;
   }[];
   matchCount: number;
   mediaPublicId: string;
@@ -707,6 +708,7 @@ export type t_Segment = {
   contentRating: t_ContentRating;
   endTimeMs: number;
   episode: number;
+  episodeTitle?: string | null;
   externalVideoId: string | null;
   mediaPublicId: string;
   position: number;

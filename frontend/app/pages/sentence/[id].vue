@@ -3,7 +3,7 @@ import { useDocumentVisibility, useTimeoutFn } from '@vueuse/core';
 import { ENGAGED_VIEW_DWELL_MS, createEngagedViewGate } from '~/utils/engagedView';
 import { buildDefaultMetaTags, buildSentenceMetaTags } from '~/utils/metaTags';
 import { mediaBrowsePath } from '~/utils/routes';
-import { isAudiobook } from '~/utils/media';
+import { isAudiobook, withChapterTitle } from '~/utils/media';
 import { resolveSearchResponse } from '~/utils/resolvers';
 import { apiErrorStatus, isMissing } from '~/utils/apiError';
 import { reportError } from '~/utils/reportError';
@@ -116,7 +116,12 @@ const metaTags = computed(() => {
     const sentenceTags = buildSentenceMetaTags(
       result,
       mediaName,
-      (n) => t(isAudiobook(result.media) ? 'seo.sentence.chapter' : 'seo.sentence.episode', { n }),
+      (n) =>
+        withChapterTitle(
+          t(isAudiobook(result.media) ? 'seo.sentence.chapter' : 'seo.sentence.episode', { n }),
+          result.media,
+          result.segment.episodeTitle,
+        ),
       (sentence, media) => t('seo.sentence.pageTitle', { sentence, media }),
     );
     tags.title = sentenceTags.title;
@@ -139,7 +144,7 @@ const videoSchema = computed(() => {
   const durationSeconds = Math.max(0, (segment.endTimeMs - segment.startTimeMs) / 1000);
 
   return defineVideo({
-    name: `${mediaName(media)} - ${t(isAudiobook(media) ? 'seo.sentence.chapter' : 'seo.sentence.episode', { n: segment.episode })}`,
+    name: `${mediaName(media)} - ${withChapterTitle(t(isAudiobook(media) ? 'seo.sentence.chapter' : 'seo.sentence.episode', { n: segment.episode }), media, segment.episodeTitle)}`,
     description: segment.textJa.content,
     thumbnailUrl: segment.urls.imageUrl,
     contentUrl: segment.urls.videoUrl,

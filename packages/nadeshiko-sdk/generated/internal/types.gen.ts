@@ -499,6 +499,10 @@ export type Segment = {
      */
     episode: number;
     /**
+     * Title of this segment's episode when it has one (an audiobook chapter's title), else null
+     */
+    episodeTitle?: string;
+    /**
      * External source video ID of this segment's episode (YouTube video ID)
      */
     externalVideoId: string;
@@ -791,6 +795,10 @@ export type MediaSearchStats = {
          * Episode number
          */
         episode: number;
+        /**
+         * Episode title when it has one (an audiobook chapter's title), else null
+         */
+        title?: string;
         /**
          * Number of matching segments in this episode
          */
