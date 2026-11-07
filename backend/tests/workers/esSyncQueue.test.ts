@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setBossInstance } from '@app/workers/pgBossClient';
 import { sendBulkEsSyncJobs, sendEsSyncJob, type EsSyncJobData } from '@app/workers/esSyncQueue';
 import { ES_SYNC_CREATE_QUEUE, ES_SYNC_DELETE_QUEUE, ES_SYNC_UPDATE_QUEUE } from '@app/workers/queueNames';
@@ -75,5 +75,47 @@ describe('esSyncQueue', () => {
     const [queueName, jobs] = insert.mock.calls[0] as [string, { data: EsSyncJobData }[]];
     expect(queueName).toBe(ES_SYNC_DELETE_QUEUE);
     expect(jobs.map((job) => job.data.segmentId)).toEqual(segmentIds);
+  });
+
+  describe('when the queue database hiccups', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('retries a failed bulk enqueue and reports success once it lands', async () => {
+      insert.mockRejectedValueOnce(new Error('connection reset')).mockRejectedValueOnce(new Error('timeout'));
+
+      const result = sendBulkEsSyncJobs([{ segmentId: 1, operation: 'CREATE' }]);
+      await vi.runAllTimersAsync();
+
+      await expect(result).resolves.toBe(true);
+      expect(insert).toHaveBeenCalledTimes(3);
+    });
+
+    it('reports failure after the last attempt instead of pretending the jobs were queued', async () => {
+      insert.mockRejectedValue(new Error('database down'));
+
+      const result = sendBulkEsSyncJobs([
+        { segmentId: 1, operation: 'CREATE' },
+        { segmentId: 2, operation: 'UPDATE' },
+      ]);
+      await vi.runAllTimersAsync();
+
+      await expect(result).resolves.toBe(false);
+      expect(insert).toHaveBeenCalledTimes(8); // 4 attempts for each of the two queues
+    });
+
+    it('retries a single debounced enqueue too', async () => {
+      sendDebounced.mockRejectedValueOnce(new Error('connection reset'));
+
+      const result = sendEsSyncJob({ segmentId: 7, operation: 'UPDATE' });
+      await vi.runAllTimersAsync();
+
+      await expect(result).resolves.toBe('job-id');
+      expect(sendDebounced).toHaveBeenCalledTimes(2);
+    });
   });
 });

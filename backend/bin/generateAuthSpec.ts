@@ -9,6 +9,16 @@ import { openAPI } from 'better-auth/plugins';
 import { parse, stringify } from 'yaml';
 import { buildAuthOptions } from '@config/auth';
 
+// The server's boot handlers log an uncaught error and keep running, which is right for a server and wrong here:
+// without a database better-auth fails in the background, nothing is written, and the command still exited 0, so CI
+// checked a stale openapi-sdk.yaml and passed. Any such error now fails the command.
+for (const event of ['uncaughtException', 'unhandledRejection'] as const) {
+  process.on(event, () => {
+    console.error(`generate:auth-spec: ${event}; openapi-sdk.yaml was not regenerated`);
+    process.exit(1);
+  });
+}
+
 const DOCS_GENERATED = resolve(import.meta.dirname, '../docs/generated');
 const MAIN_BUNDLE = join(DOCS_GENERATED, 'openapi.yaml');
 const SDK_BUNDLE = join(DOCS_GENERATED, 'openapi-sdk.yaml');

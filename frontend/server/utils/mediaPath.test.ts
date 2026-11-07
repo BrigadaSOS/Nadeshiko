@@ -31,7 +31,7 @@ describe('resolveMediaFilePath', () => {
 
   it('resolves a file below the media root', async () => {
     const { media } = await mediaFixture();
-    await expect(resolveMediaFilePath(media, 'cover.webp')).resolves.toMatch(/\/media\/cover\.webp$/);
+    await expect(resolveMediaFilePath(media, 'cover.webp')).resolves.toBe(join(media, 'cover.webp'));
   });
 
   it('refuses the adjacent sibling a startsWith check would permit', async () => {
@@ -39,9 +39,15 @@ describe('resolveMediaFilePath', () => {
     await expect(resolveMediaFilePath(media, '../media-secret.txt')).rejects.toBeInstanceOf(MediaPathForbiddenError);
   });
 
-  it('refuses a symlink inside media that resolves outside it', async () => {
+  it('refuses a symlink inside media that resolves outside it', async (ctx) => {
     const { media, outside } = await mediaFixture();
-    await symlink(outside, join(media, 'escape.webp'));
+    try {
+      await symlink(outside, join(media, 'escape.webp'));
+    } catch (error) {
+      // Windows only lets administrators (or Developer Mode) create symlinks; the containment logic is covered on CI.
+      if ((error as NodeJS.ErrnoException).code === 'EPERM') return ctx.skip();
+      throw error;
+    }
     await expect(resolveMediaFilePath(media, 'escape.webp')).rejects.toBeInstanceOf(MediaPathForbiddenError);
   });
 });

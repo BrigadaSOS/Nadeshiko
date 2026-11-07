@@ -78,7 +78,12 @@ async function handleTokenParse(jobs: Job<TokenParseJobData>[]): Promise<void> {
   // Raw SQL bypasses TypeORM subscribers, so enqueue ES sync explicitly for rows actually updated; skipped rows already
   // have their own work.
   if (updated.length > 0) {
-    await sendBulkEsSyncJobs(updated.map((row) => ({ segmentId: row.id, operation: 'UPDATE' as const })));
+    const queued = await sendBulkEsSyncJobs(
+      updated.map((row) => ({ segmentId: row.id, operation: 'UPDATE' as const })),
+    );
+    // The tokens are saved but search would never see them; failing the job makes pg-boss run it again, and a
+    // re-parse of the same text is harmless.
+    if (!queued) throw new Error(`Could not enqueue the search update for ${updated.length} parsed segment(s)`);
   }
 }
 

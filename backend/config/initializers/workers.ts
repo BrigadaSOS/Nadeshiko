@@ -48,10 +48,13 @@ export const workersInitializer: RuntimeInitializer = {
       {
         name: ES_SYNC_CREATE_QUEUE,
         options: {
-          retryLimit: 5,
-          // pg-boss measures retryDelay in seconds, not milliseconds.
+          // pg-boss measures retryDelay in seconds, not milliseconds. Ten retries with backoff capped at five minutes
+          // ride out about twenty minutes of Elasticsearch trouble; five 1-2-4-8-16 s retries gave up after half a
+          // minute and left the batch out of search for good.
+          retryLimit: 10,
           retryDelay: 1,
           retryBackoff: true,
+          retryDelayMax: 300,
           expireInSeconds: 3600,
           retentionSeconds: 86400,
         },
@@ -59,16 +62,24 @@ export const workersInitializer: RuntimeInitializer = {
       {
         name: ES_SYNC_UPDATE_QUEUE,
         options: {
-          retryLimit: 5,
+          retryLimit: 10,
           retryDelay: 1,
           retryBackoff: true,
+          retryDelayMax: 300,
           expireInSeconds: 3600,
           retentionSeconds: 86400,
         },
       },
       {
         name: ES_SYNC_DELETE_QUEUE,
-        options: { retryLimit: 3, retryDelay: 1, retryBackoff: true, expireInSeconds: 3600, retentionSeconds: 86400 },
+        options: {
+          retryLimit: 10,
+          retryDelay: 1,
+          retryBackoff: true,
+          retryDelayMax: 300,
+          expireInSeconds: 3600,
+          retentionSeconds: 86400,
+        },
       },
       {
         name: EMAIL_SEND_QUEUE,

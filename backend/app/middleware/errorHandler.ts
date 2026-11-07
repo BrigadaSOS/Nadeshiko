@@ -86,9 +86,15 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
   return res.status(500).json(internalError.toJSON());
 }
 
+/** Codes any route can answer with whatever its spec lists: the rate limiters are global middleware that run before
+ * the route, so a limited call to a route that never documented 429 still has to say 429. Hiding it as a 500 told
+ * clients to retry an error that was really "slow down", and paged as a server failure. */
+const CROSS_CUTTING_CODES: ReadonlySet<string> = new Set(['RATE_LIMIT_EXCEEDED']);
+
 function isErrorCodeAllowedForRoute(errorCode: string, validCodes: ReadonlySet<string> | undefined): boolean {
   if (!validCodes) return true;
   if (validCodes.has(errorCode)) return true;
+  if (CROSS_CUTTING_CODES.has(errorCode)) return true;
 
   // Duplicate-key DB errors are semantically request validation conflicts.
   if (errorCode === 'DUPLICATE_KEY' && validCodes.has('INVALID_REQUEST')) {

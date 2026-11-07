@@ -73,6 +73,31 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    # `generate:auth-spec` builds a real better-auth instance, which refuses to start without a database whose schema
+    # matches. Without one it wrote nothing (and used to exit 0), so the committed SDK spec went stale unnoticed.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nadeshiko_codegen
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    # Real environment variables win over the committed .env.test the generator loads.
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: '5432'
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nadeshiko_codegen
+
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -92,6 +117,7 @@ jobs:
       - name: Regenerate
         run: |
           set -euo pipefail
+          (cd backend && node --env-file-if-exists=.env.test --import tsx bin/db.ts migrate)
           npm run generate:api --workspace backend
           npm run generate:auth-spec --workspace backend
           npm run sdk:codegen
