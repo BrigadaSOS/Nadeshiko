@@ -11,7 +11,7 @@ import ptBR from '../../../i18n/locales/pt-BR.json';
 import zhCN from '../../../i18n/locales/zh-CN.json';
 import zhHant from '../../../i18n/locales/zh-Hant.json';
 
-import { anilistAnimeUrl, imdbTitleUrl, tmdbUrl, youtubeChannelUrl } from '~/utils/media';
+import { anilistAnimeUrl, audibleUrl, imdbTitleUrl, isAudiobook, tmdbUrl, youtubeChannelUrl } from '~/utils/media';
 
 /** Use real catalog URL helpers to test link wiring, not a replacement implementation. */
 const startsOpen = ref(true);
@@ -43,6 +43,8 @@ vi.stubGlobal('anilistAnimeUrl', anilistAnimeUrl);
 vi.stubGlobal('tmdbUrl', tmdbUrl);
 vi.stubGlobal('imdbTitleUrl', imdbTitleUrl);
 vi.stubGlobal('youtubeChannelUrl', youtubeChannelUrl);
+vi.stubGlobal('audibleUrl', audibleUrl);
+vi.stubGlobal('isAudiobook', isAudiobook);
 
 import MediaHeader from './MediaHeader.vue';
 
@@ -179,6 +181,26 @@ describe('the facts row', () => {
     // No studio label for a work with no studio.
     expect(render().text()).not.toContain('modalMediaEdit.studio');
   });
+
+  test('an audiobook shows the year it came out, not an airing season or status', () => {
+    const wrapper = render({
+      category: 'AUDIOBOOK',
+      airingFormat: 'AUDIOBOOK',
+      seasonName: 'NONE',
+      seasonYear: 2019,
+      airingStatus: 'FINISHED',
+    });
+
+    expect(wrapper.text()).toContain('mediaHeader.published');
+    expect(wrapper.text()).toContain('2019');
+    expect(wrapper.text()).not.toContain('modalMediaEdit.seasonName');
+    expect(wrapper.text()).not.toContain('modalMediaEdit.airingStatus');
+  });
+
+  test('an audiobook without a year falls back to its start date, and to nothing', () => {
+    expect(render({ category: 'AUDIOBOOK', startDate: '2011-03-18' }).text()).toContain('2011');
+    expect(render({ category: 'AUDIOBOOK' }).text()).not.toContain('mediaHeader.published');
+  });
 });
 
 describe('the catalogue links', () => {
@@ -195,6 +217,14 @@ describe('the catalogue links', () => {
 
     expect(wrapper.find('[data-testid="media-anilist-link"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="media-tmdb-link"]').exists()).toBe(false);
+  });
+
+  test('sends an audiobook to its Audible page', () => {
+    const wrapper = render({ category: 'AUDIOBOOK', externalIds: { asin: 'B07PPMBZHX' } });
+
+    expect(wrapper.find('[data-testid="media-audible-link"]').attributes('href')).toBe(
+      'https://www.audible.co.jp/pd/B07PPMBZHX',
+    );
   });
 
   test('sends a film to TMDB’s movie path rather than its series one', () => {

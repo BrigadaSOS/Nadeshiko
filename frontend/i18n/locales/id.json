@@ -173,6 +173,7 @@
     "tmdbButton": "TMDB",
     "imdbButton": "IMDb",
     "youtubeButton": "YouTube",
+    "audibleButton": "Audible",
     "vocabularyButton": "Kosakata"
   },
   "hiddenCategories": {
@@ -1586,6 +1587,7 @@
     }
   },
   "mediaHeader": {
+    "published": "Terbit",
     "collapse": "Tutup detail judul",
     "expand": "Buka detail judul"
   },

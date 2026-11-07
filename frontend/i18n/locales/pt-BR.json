@@ -173,6 +173,7 @@
     "tmdbButton": "TMDB",
     "imdbButton": "IMDb",
     "youtubeButton": "YouTube",
+    "audibleButton": "Audible",
     "vocabularyButton": "Vocabulário"
   },
   "hiddenCategories": {
@@ -1586,6 +1587,7 @@
     }
   },
   "mediaHeader": {
+    "published": "Publicado",
     "collapse": "Fechar detalhes do título",
     "expand": "Abrir detalhes do título"
   },

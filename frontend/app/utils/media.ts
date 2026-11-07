@@ -334,6 +334,11 @@ export function youtubeChannelUrl(channelId: string): string {
   return `https://www.youtube.com/channel/${channelId}`;
 }
 
+/** Our audiobooks come from the Japanese Audible store, where an ASIN is the product page. */
+export function audibleUrl(asin: string): string {
+  return `https://www.audible.co.jp/pd/${encodeURIComponent(asin)}`;
+}
+
 export function anilistAnimeUrl(anilistId: string): string {
   return `https://anilist.co/anime/${anilistId}`;
 }

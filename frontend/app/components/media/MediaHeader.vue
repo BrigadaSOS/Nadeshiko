@@ -71,15 +71,28 @@ const season = computed(() => {
   return name || (seasonYear ? `${seasonYear}` : null);
 });
 
+/** A book has no airing season or status; its one date is the year it came out. */
+const publishedYear = computed(() => {
+  const { seasonYear, startDate } = props.media;
+  if (seasonYear) return `${seasonYear}`;
+  return startDate ? startDate.slice(0, 4) : null;
+});
+
 const facts = computed(() =>
-  [
-    { label: 'modalMediaEdit.studio', value: props.media.studio },
-    { label: 'modalMediaEdit.seasonName', value: season.value },
-    {
-      label: 'modalMediaEdit.airingStatus',
-      value: props.media.airingStatus ? t(`mediaMetadata.statuses.${props.media.airingStatus}`) : null,
-    },
-  ].filter((fact): fact is { label: string; value: string } => Boolean(fact.value)),
+  (isAudiobook(props.media)
+    ? [
+        { label: 'modalMediaEdit.studio', value: props.media.studio },
+        { label: 'mediaHeader.published', value: publishedYear.value },
+      ]
+    : [
+        { label: 'modalMediaEdit.studio', value: props.media.studio },
+        { label: 'modalMediaEdit.seasonName', value: season.value },
+        {
+          label: 'modalMediaEdit.airingStatus',
+          value: props.media.airingStatus ? t(`mediaMetadata.statuses.${props.media.airingStatus}`) : null,
+        },
+      ]
+  ).filter((fact): fact is { label: string; value: string } => Boolean(fact.value)),
 );
 
 const genres = computed(() => props.media.genres ?? []);
@@ -93,7 +106,12 @@ const catalogLinks = computed(() => {
   const ids = props.media.externalIds;
   const links: {
     href: string;
-    labelKey: 'animeList.anilistButton' | 'animeList.tmdbButton' | 'animeList.imdbButton' | 'animeList.youtubeButton';
+    labelKey:
+      | 'animeList.anilistButton'
+      | 'animeList.tmdbButton'
+      | 'animeList.imdbButton'
+      | 'animeList.youtubeButton'
+      | 'animeList.audibleButton';
     testId: string;
   }[] = [];
   if (ids?.anilist) {
@@ -122,6 +140,13 @@ const catalogLinks = computed(() => {
       href: youtubeChannelUrl(ids.youtube),
       labelKey: 'animeList.youtubeButton',
       testId: 'media-youtube-link',
+    });
+  }
+  if (ids?.asin) {
+    links.push({
+      href: audibleUrl(ids.asin),
+      labelKey: 'animeList.audibleButton',
+      testId: 'media-audible-link',
     });
   }
   return links;

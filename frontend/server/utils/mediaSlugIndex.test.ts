@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resetMediaSlugIndex, resolveMediaSlug } from './mediaSlugIndex';
+import { resetMediaSlugIndex, resolveMediaSlug, resolveStaleMediaSlug } from './mediaSlugIndex';
 
 /**
  * `useServerSdk` is a Nitro auto-import, so it is a bare global at runtime and
@@ -196,6 +196,37 @@ describe('resolveMediaSlug', () => {
     await resolveMediaSlug('probe-1');
     await resolveMediaSlug('probe-2');
     await resolveMediaSlug('probe-3');
+
+    expect(scan).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('resolveStaleMediaSlug', () => {
+  it('rebuilds and returns the new publicId of a title deleted and uploaded again under the same slug', async () => {
+    serveCatalogue(() => [{ slug: 'oregairu-1', publicId: 'oldoldoldold' }]);
+    await expect(resolveMediaSlug('oregairu-1')).resolves.toBe('oldoldoldold');
+
+    serveCatalogue(() => [{ slug: 'oregairu-1', publicId: 'newnewnewnew' }]);
+    await expect(resolveStaleMediaSlug('oregairu-1', 'oldoldoldold')).resolves.toBe('newnewnewnew');
+    // Later lookups get the new ID from the rebuilt index.
+    await expect(resolveMediaSlug('oregairu-1')).resolves.toBe('newnewnewnew');
+  });
+
+  it('returns null when the slug is gone or still points at the deleted ID', async () => {
+    serveCatalogue(() => [{ slug: 'oregairu-1', publicId: 'oldoldoldold' }]);
+    await resolveMediaSlug('oregairu-1');
+
+    serveCatalogue(() => [{ slug: 'oregairu-1', publicId: 'oldoldoldold' }]);
+    await expect(resolveStaleMediaSlug('oregairu-1', 'oldoldoldold')).resolves.toBeNull();
+  });
+
+  it('caps stale-triggered rebuilds', async () => {
+    serveCatalogue(() => [{ slug: 'oregairu-1', publicId: 'oldoldoldold' }]);
+    await resolveMediaSlug('oregairu-1');
+
+    const scan = serveCatalogue(() => [{ slug: 'oregairu-1', publicId: 'oldoldoldold' }]);
+    await resolveStaleMediaSlug('oregairu-1', 'oldoldoldold');
+    await resolveStaleMediaSlug('oregairu-1', 'oldoldoldold');
 
     expect(scan).toHaveBeenCalledTimes(1);
   });

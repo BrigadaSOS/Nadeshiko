@@ -87,4 +87,28 @@ export function resetMediaSlugIndex(): void {
   inflight = null;
   lastMissRebuildAt = 0;
   lastAgeRebuildAt = 0;
+  lastStaleRebuildAt = 0;
+}
+
+// A deleted title can be uploaded again under the same slug with a new publicId. Until the index is rebuilt it
+// still hands out the deleted ID, so the caller reports the dead ID here and gets the slug's current one. Only a
+// slug the index already knows can reach this, and the cooldown bounds rebuilds the same way misses are bounded.
+const STALE_REBUILD_COOLDOWN_MS = 60 * 1000;
+let lastStaleRebuildAt = 0;
+
+export async function resolveStaleMediaSlug(
+  slug: string,
+  deadPublicId: string,
+  event?: H3Event,
+): Promise<string | null> {
+  const current = cached?.bySlug.get(slug);
+  if (current && current !== deadPublicId) return current;
+
+  const now = Date.now();
+  if (now - lastStaleRebuildAt < STALE_REBUILD_COOLDOWN_MS) return null;
+  lastStaleRebuildAt = now;
+
+  const rebuilt = await refresh(event);
+  const fresh = rebuilt.bySlug.get(slug);
+  return fresh && fresh !== deadPublicId ? fresh : null;
 }

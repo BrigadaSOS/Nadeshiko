@@ -173,6 +173,7 @@
     "tmdbButton": "TMDB",
     "imdbButton": "IMDb",
     "youtubeButton": "YouTube",
+    "audibleButton": "Audible",
     "vocabularyButton": "語彙"
   },
   "hiddenCategories": {
@@ -1586,6 +1587,7 @@
     }
   },
   "mediaHeader": {
+    "published": "発売",
     "collapse": "作品情報を閉じる",
     "expand": "作品情報を開く"
   },
