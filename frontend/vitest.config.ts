@@ -28,7 +28,10 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./app', import.meta.url)),
     },
   },
-  plugins: [vue(), importMetaFlags()],
+  // `/assets/...` in a template is a public file served by Nuxt, which leaves absolute URLs alone. Without the same
+  // setting the plugin turns them into imports of `/assets/...` from the filesystem root: harmless on Linux, but on
+  // Windows `file:///assets/...` has no drive and the whole test file fails to load.
+  plugins: [vue({ template: { transformAssetUrls: { includeAbsolute: false } } }), importMetaFlags()],
   test: {
     include: ['app/**/*.test.ts', 'server/**/*.test.ts', 'shared/**/*.test.ts'],
     exclude: ['app/**/*.nuxt.test.ts', 'server/**/*.nuxt.test.ts'],

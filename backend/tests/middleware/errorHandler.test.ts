@@ -5,7 +5,7 @@ import { QueryFailedError, EntityNotFoundError, TypeORMError } from 'typeorm';
 import { ExpressRuntimeError, RequestInputType } from '@nahkies/typescript-express-runtime/errors';
 import { handleErrors } from '@app/middleware/errorHandler';
 import { requestIdMiddleware } from '@app/middleware/requestId';
-import { NotFoundError, InternalServerError } from '@app/errors';
+import { NotFoundError, InternalServerError, RateLimitExceededError } from '@app/errors';
 
 /** Use one mini Express app per route path with a swappable thrower. `req.route.path` must be set, and reusing
  * listening servers avoids the port churn that caused intermittent timeouts. */
@@ -95,6 +95,18 @@ describe('handleErrors', () => {
 
       expect(res.status).toBe(500);
       expect(res.body).toMatchObject({ code: 'INTERNAL_SERVER_EXCEPTION' });
+    });
+
+    it('lets a rate limit through as 429 even on a route that does not document it', async () => {
+      // The limiters run before any route, so every route can be rate limited; this route's spec has no 429.
+      const app = createErrorAppWithRoute('/v1/user/activity', () => {
+        throw new RateLimitExceededError('Too many requests');
+      });
+
+      const res = await request(app).get('/v1/user/activity');
+
+      expect(res.status).toBe(429);
+      expect(res.body).toMatchObject({ code: 'RATE_LIMIT_EXCEEDED' });
     });
 
     it('allows DUPLICATE_KEY when route documents INVALID_REQUEST', async () => {

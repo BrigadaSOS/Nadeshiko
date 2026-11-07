@@ -28,6 +28,7 @@ Examples:
   scripts/remote-db.sh staging reindex
   scripts/remote-db.sh staging reindex-media BKncctxoiaJH
   scripts/remote-db.sh prod status
+  scripts/remote-db.sh prod reindex-media BKncctxoiaJH ${PROD_FLAG}
   scripts/remote-db.sh prod audit-wakati
   scripts/remote-db.sh prod create-service-key ${PROD_FLAG} -- --user <id|email> --name roxy-moderation --permissions READ_MEDIA,UPDATE_MEDIA,READ_ADMIN
   scripts/remote-db.sh prod prepare ${PROD_FLAG}
@@ -39,6 +40,13 @@ EOF
 ENV="${1:-}"
 CMD="${2:-}"
 FLAG="${3:-}"
+
+# The prod confirmation may sit anywhere after the command, so commands that take their own argument in position 3
+# (reindex-media <publicId>) can still be confirmed for prod.
+ALLOW_PROD=false
+for arg in "${@:3}"; do
+  [[ "$arg" == "$PROD_FLAG" ]] && ALLOW_PROD=true
+done
 
 if [[ -z "$ENV" || -z "$CMD" ]]; then
   usage
@@ -63,7 +71,7 @@ esac
 
 # parse-corpus writes tokens for every row and therefore needs the production write flag; audit-wakati is read-only and
 # remains exempt so it can be run routinely.
-if [[ "$ENV" == "prod" && "$CMD" != "status" && "$CMD" != "audit-wakati" && "$FLAG" != "$PROD_FLAG" ]]; then
+if [[ "$ENV" == "prod" && "$CMD" != "status" && "$CMD" != "audit-wakati" && "$ALLOW_PROD" != true ]]; then
   echo "error: '$CMD' against prod requires $PROD_FLAG" >&2
   exit 1
 fi
@@ -158,9 +166,13 @@ case "$CMD" in
     run_with_env node --import tsx scripts/audit-wakati.ts "${@:3}"
     ;;
   reindex-media)
-    [[ -n "$FLAG" ]] || { echo "error: reindex-media needs a media publicId" >&2; exit 1; }
+    MEDIA_ID=""
+    for arg in "${@:3}"; do
+      [[ "$arg" != "$PROD_FLAG" ]] && { MEDIA_ID="$arg"; break; }
+    done
+    [[ -n "$MEDIA_ID" ]] || { echo "error: reindex-media needs a media publicId" >&2; exit 1; }
     # In-place repair for one media, affecting thousands of documents rather than the full index.
-    run_with_env node --import tsx scripts/reindex-media.ts --media "$FLAG"
+    run_with_env node --import tsx scripts/reindex-media.ts --media "$MEDIA_ID"
     ;;
   create-service-key)
     # Named command only, not arbitrary script execution: it prints a credential once, and prod still requires the

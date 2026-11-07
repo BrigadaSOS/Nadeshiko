@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   ASSET_ARCHIVE_RETENTION_DAYS,
@@ -73,7 +74,8 @@ describe('archivableAssetName', () => {
 
 describe('archivedAssetPath', () => {
   it('resolves a validated name inside the archive', () => {
-    expect(archivedAssetPath('/var/lib/assets', 'DrC9mS-I2.js')).toBe('/var/lib/assets/DrC9mS-I2.js');
+    // `resolve`, not a literal, so the expectation also holds on Windows, where the path gets a drive letter.
+    expect(archivedAssetPath('/var/lib/assets', 'DrC9mS-I2.js')).toBe(resolve('/var/lib/assets', 'DrC9mS-I2.js'));
   });
 
   // Recheck containment even for callers that bypass name validation.

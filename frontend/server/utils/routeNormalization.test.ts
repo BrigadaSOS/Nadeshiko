@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
+import { sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { LOCALES, normalizeRoute } from '~~/route-normalization.mjs';
@@ -115,7 +116,14 @@ function staticRoutesFromPages(): string[] {
   return (
     readdirSync(pagesDir, { recursive: true, encoding: 'utf8' })
       .filter((entry) => entry.endsWith('.vue'))
-      .map((entry) => `/${entry.replace(/\.vue$/, '').replace(/\/?index$/, '')}`)
+      // readdirSync joins nested entries with the platform separator (a backslash on Windows).
+      .map(
+        (entry) =>
+          `/${entry
+            .replaceAll(sep, '/')
+            .replace(/\.vue$/, '')
+            .replace(/\/?index$/, '')}`,
+      )
       // Dynamic segments are ROUTE_PATTERNS' job, asserted separately above.
       .filter((route) => !route.includes('['))
       .map((route) => (route === '/' ? route : route.replace(/\/$/, '')))
