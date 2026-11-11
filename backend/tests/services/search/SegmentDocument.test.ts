@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { client } from '@config/elasticsearch';
 import { InvalidRequestError } from '@app/errors';
-import { encodeKeysetCursor } from '@lib/cursor';
+import { decodeKeysetCursor, encodeKeysetCursor } from '@lib/cursor';
 import { CategoryType } from '@app/models';
 import { Cache } from '@lib/cache';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
@@ -31,6 +31,9 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
 
   beforeEach(() => {
     Cache.invalidate(MEDIA_INFO_CACHE);
+    // Round lists are keyed by the query, which is the same across tests that search the same word; a list left by a
+    // previous test points at segments that no longer exist.
+    Cache.invalidate(SegmentDocument.VARIETY_ROUNDS_CACHE);
   });
 
   describe('search()', () => {
@@ -309,9 +312,12 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       it('keeps honouring a keyset cursor issued before rounds existed', async () => {
         const { a } = await seedDominatedWord();
 
-        // A score above any real one: "everything after the top", in plain relevance order.
-        const result = await searchCat({ cursor: encodeKeysetCursor([1e9, 0, 0, 0, 0]) });
-        expect(result.segments.slice(0, 4).map((s) => s.mediaPublicId)).toEqual([a, a, a, a]);
+        // A score above any real one: "everything after the top", in plain relevance order -- A's short lines lead,
+        // where rounds would put B and C right after A's best.
+        const result = await searchCat({ take: 3, cursor: encodeKeysetCursor([1e9, 0, 0, 0, 0]) });
+        expect(result.segments.map((s) => s.mediaPublicId)).toEqual([a, a, a]);
+        // And it hands back a plain keyset cursor, so the rest of that scroll stays in the old order too.
+        expect(decodeKeysetCursor(result.pagination.cursor ?? undefined)).toHaveLength(5);
       });
     });
 
