@@ -84,11 +84,29 @@ const isWindowFocused = ref(true);
 onMounted(() => {
   isWindowFocused.value = document.hasFocus();
 });
+
+/**
+ * Set when the reader leaves the window or tab with the box focused. Coming
+ * back, the browser hands that focus back to the box and fires `focus` on it
+ * again, which is the browser restoring where they were, not the reader asking
+ * for their history -- without this the menu sprang open on every return to the
+ * tab. A menu that was already open when they left stays open regardless (see
+ * `onClickOutside` below); this only stops a closed one from opening.
+ *
+ * Cleared a task after the window regains focus, so if focus went somewhere
+ * else on the way back the flag cannot swallow a later, real focus.
+ */
+let restoringWindowFocus = false;
+
 useEventListener(window, 'focus', () => {
   isWindowFocused.value = true;
+  setTimeout(() => {
+    restoringWindowFocus = false;
+  }, 0);
 });
 useEventListener(window, 'blur', () => {
   isWindowFocused.value = false;
+  restoringWindowFocus = document.activeElement === inputRef.value;
 });
 
 /**
@@ -239,8 +257,9 @@ const clearRecents = async () => {
 };
 
 const onInputFocus = () => {
-  if (ignoreNextFocus) {
+  if (ignoreNextFocus || restoringWindowFocus) {
     ignoreNextFocus = false;
+    restoringWindowFocus = false;
     return;
   }
   openRecents();

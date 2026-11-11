@@ -18,7 +18,8 @@ vi.stubGlobal('useRoute', () => route);
 // it updates when a navigation is CONFIRMED rather than when it starts.
 vi.stubGlobal('useRouter', () => ({ push, replace: vi.fn(), currentRoute: shallowRef(route) }));
 vi.stubGlobal('useLocalePath', () => (p: unknown) => (typeof p === 'string' ? p : JSON.stringify(p)));
-vi.stubGlobal('useEventListener', vi.fn());
+const useEventListener = vi.fn();
+vi.stubGlobal('useEventListener', useEventListener);
 vi.stubGlobal('onClickOutside', vi.fn());
 vi.stubGlobal('useDebounceFn', (fn: unknown) => fn);
 vi.stubGlobal('navigateSearchSentence', vi.fn());
@@ -125,6 +126,41 @@ describe('opening the recents menu', () => {
     await input(wrapper).trigger('focus');
 
     expect(wrapper.find('[data-testid="recents"]').exists()).toBe(false);
+  });
+
+  describe('coming back to the tab', () => {
+    /** The component's own window listener, as registered through `useEventListener`. */
+    const windowHandler = (name: 'focus' | 'blur') => {
+      const calls = vi.mocked(useEventListener).mock.calls as unknown as [unknown, string, () => void][];
+      const call = calls.find(([target, event]) => target === window && event === name);
+      if (!call) throw new Error(`no window ${name} listener`);
+      return call[2];
+    };
+
+    test('the browser handing focus back to the box does not open it', async () => {
+      const wrapper = render([recent('猫')]);
+      (input(wrapper).element as HTMLInputElement).focus();
+      await new Promise((r) => setTimeout(r, 0));
+
+      windowHandler('blur')();
+      windowHandler('focus')();
+      await input(wrapper).trigger('focus');
+
+      expect(wrapper.find('[data-testid="recents"]').exists()).toBe(false);
+    });
+
+    test('a real focus afterwards still opens it', async () => {
+      const wrapper = render([recent('猫')]);
+      (input(wrapper).element as HTMLInputElement).focus();
+      await new Promise((r) => setTimeout(r, 0));
+
+      windowHandler('blur')();
+      windowHandler('focus')();
+      await new Promise((r) => setTimeout(r, 0));
+      await input(wrapper).trigger('focus');
+
+      expect(rowsShown(wrapper)).toEqual(['猫']);
+    });
   });
 
   test('an arrow opens it too', async () => {
