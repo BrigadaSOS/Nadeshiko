@@ -269,10 +269,13 @@ mechanism is process exit, not a health-check response.
 This covers applying migrations to an already-provisioned database. Creating a
 brand-new environment (role, database, grants) is still a one-time
 `npm run db:bootstrap` with admin credentials. To run migrations manually
-out of band, use `backend/scripts/remote-db.sh <env> migrate` (that script
-reaches the host over Tailscale and sources `.kamal/secrets.<env>`; `env` is
+out of band, use `backend/scripts/remote-db.sh <env> migrate` (`env` is
 `staging` (aliases `stg`, `dev`) or `prod`, and `prepare`/`migrate` against prod
-need `--allow-prod`).
+need `--allow-prod`). The script sources `.kamal/secrets.<env>` (so it needs the
+`aws` CLI with a live SSO session) and runs the command from your checkout with
+Node. Postgres and Elasticsearch publish on the host's `127.0.0.1` only, so it
+opens an SSH port-forward over Tailscale as `docker` (the Kamal user) on two
+free local ports, points the command at them and closes the tunnel on exit.
 
 ## Privileged service API keys
 
