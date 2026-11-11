@@ -162,6 +162,8 @@ accessories:
     env:
       secret:
         - ELASTICSEARCH_ADMIN_PASSWORD
+        # Read by the image's entrypoint to set the `elastic` password on a new volume. Don't override `cmd`: it skips that.
+        - ELASTIC_PASSWORD:ELASTICSEARCH_ADMIN_PASSWORD
       clear:
         discovery.type: single-node
         ES_JAVA_OPTS: "-Xms1g -Xmx1g"
@@ -173,11 +175,6 @@ accessories:
     volumes:
        # Override the volume for a pinned image during a migration; otherwise use the production data volume.
       - <%= ENV.fetch("ELASTICSEARCH_VOLUME", "nadeshiko-elasticsearch-v9-data") %>:/usr/share/elasticsearch/data
-    cmd: >
-      bash -c '
-        export ELASTIC_PASSWORD="$ELASTICSEARCH_ADMIN_PASSWORD";
-        ./bin/elasticsearch
-      '
     options:
       # Memory limit: 3.5GB (current ~2.7GB, 800MB headroom for growth)
       # JVM heap fixed at 1GB via ES_JAVA_OPTS; rest is Lucene off-heap
@@ -193,6 +190,9 @@ accessories:
   pg-backup:
     image: kartoza/pg-backup:17-3.5
     host: nadeshiko
+    # restore.sh reads the Postgres version from this file, which the image ships empty.
+    files:
+      - config/pg-backup/pg_version.txt:/tmp/pg_version.txt
     options:
       log-driver: json-file
       log-opt:
