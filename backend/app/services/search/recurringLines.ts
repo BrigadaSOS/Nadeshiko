@@ -1,6 +1,5 @@
-import { AppDataSource } from '@config/database';
 import { logger } from '@config/log';
-import { SegmentStatus } from '@app/models';
+import { Segment, SegmentStatus } from '@app/models';
 
 /**
  * Which segments search leaves out as repeats of a recurring line.
@@ -35,7 +34,9 @@ const ADVISORY_LOCK_NAMESPACE = 0x6e616465; // "nade"
  * that is hidden and later reactivated starts clean.
  */
 export async function recomputeRecurringRepeats(mediaId: number): Promise<number[]> {
-  return AppDataSource.transaction(async (manager) => {
+  // Through the Segment repository's connection, like the other Segment writers, rather than a data source imported
+  // here: tests run on their own connection, and this keeps the two the same.
+  return Segment.getRepository().manager.transaction(async (manager) => {
     await manager.query('SELECT pg_advisory_xact_lock($1, $2)', [ADVISORY_LOCK_NAMESPACE, mediaId]);
 
     const rows: Array<{ id: number }> = await manager.query(
