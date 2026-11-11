@@ -18,13 +18,12 @@ import { SegmentQuery, type QueryParserMode } from './segmentDocument/SegmentQue
 import { SegmentResponse } from './segmentDocument/SegmentResponse';
 import { isQuerySyntaxError, withSafeQueryFallback } from './segmentDocument/errors';
 import {
-  buildRounds,
+  buildRound,
   decodeVarietyCursor,
   encodeRestCursor,
   encodeRoundsCursor,
   indexAfterCursor,
   shouldDiversify,
-  VARIETY_CANDIDATES_PER_TITLE,
   VARIETY_MAX_GROUPS,
   type RoundEntry,
   type VarietyBlock,
@@ -457,10 +456,10 @@ export class SegmentDocument {
 }
 
 const VARIETY_ROUNDS_TTL_MS = 10 * 60 * 1000;
-/** A list whose duplicate lookup failed is still served, but only kept briefly, so the full one replaces it soon. */
+/** A round whose duplicate lookup failed is still served, but only kept briefly, so the full one replaces it soon. */
 const VARIETY_DEGRADED_TTL_MS = 15 * 1000;
 
-type CachedRounds = { rounds: RoundEntry[]; total: estypes.SearchHitsMetadata['total'] };
+type RoundList = { entries: RoundEntry[]; total: estypes.SearchHitsMetadata['total'] };
 
 /** Narrowing for one keyset page: sentences to leave out, and the block's title filter. */
 type KeysetRestriction = {
@@ -469,16 +468,37 @@ type KeysetRestriction = {
   mustNot?: estypes.QueryDslQueryContainer[];
 };
 
-/** Concurrent first requests for the same list share one computation instead of each running the collapse. */
-const roundsInFlight = new Map<string, Promise<CachedRounds>>();
+/** Concurrent requests for the same round share one computation instead of each running the collapse. */
+const roundsInFlight = new Map<string, Promise<RoundList>>();
 
-async function loadRounds(
+/**
+ * One round: the best sentence of every title not already placed by an earlier round, from a single collapse query.
+ *
+ * No inner hits. A collapse keeps each title's top hit in the same single pass as an ordinary search, where inner
+ * hits run one sub-search per title -- hundreds for a common word, which made the first page of a word like 私
+ * seconds slower on staging. Round 2 is the same query with round 1's sentences excluded, and is only computed when a
+ * reader pages that far: for a word in two hundred titles, round 1 alone is several pages.
+ *
+ * Round 1 needs no recurring-opening-line check: copies of one line score identically and the sort breaks the tie on
+ * episode, so a title's best copy is always its first, never the later copy that check drops. Round 2 can be that
+ * later copy, so it is checked there.
+ */
+async function loadRound(
   query: estypes.QueryDslQueryContainer,
   sort: estypes.Sort,
+  round: 1 | 2,
   dedupeOpeningLines: boolean,
-): Promise<CachedRounds> {
-  const cacheKey = createHash('sha1').update(JSON.stringify({ query, sort, dedupeOpeningLines })).digest('hex');
-  const cached = Cache.get<CachedRounds>(SegmentDocument.VARIETY_ROUNDS_CACHE, cacheKey);
+  placed: RoundEntry[] = [],
+): Promise<RoundList> {
+  const checkDuplicates = round > 1 && dedupeOpeningLines;
+  const roundQuery: estypes.QueryDslQueryContainer =
+    placed.length > 0
+      ? { bool: { must: [query], must_not: [buildIdsFilter(placed.map((entry) => entry.id))] } }
+      : query;
+  const cacheKey = createHash('sha1')
+    .update(JSON.stringify({ roundQuery, sort, round, checkDuplicates }))
+    .digest('hex');
+  const cached = Cache.get<RoundList>(SegmentDocument.VARIETY_ROUNDS_CACHE, cacheKey);
   if (cached) return cached;
   const pending = roundsInFlight.get(cacheKey);
   if (pending) return pending;
@@ -488,28 +508,21 @@ async function loadRounds(
       index: INDEX_NAME,
       size: VARIETY_MAX_GROUPS,
       sort,
-      query,
-      _source: false,
-      collapse: {
-        field: 'mediaId',
-        inner_hits: {
-          name: 'rounds',
-          size: VARIETY_CANDIDATES_PER_TITLE,
-          sort,
-          _source: ['mediaId', 'textJa', 'episode'],
-        },
-      },
+      query: roundQuery,
+      collapse: { field: 'mediaId' },
+      // Doc values, not `_source`: round 1 needs only the title, and reading two thousand sources would be the
+      // slowest part of an otherwise cheap query.
+      docvalue_fields: ['mediaId'],
+      _source: checkDuplicates ? ['mediaId', 'textJa', 'episode'] : false,
+      // Only round 1's total is reported.
+      track_total_hits: round === 1 ? undefined : false,
     });
 
-    // The same recurring-opening-line rule as the keyset pages, so a show's
-    // round slot is never an episode-five copy of its opening.
     let duplicates = new Set<string>();
     let degraded = false;
-    if (dedupeOpeningLines) {
-      const candidates = collapsed.hits.hits.flatMap((group) =>
-        (group.inner_hits?.rounds?.hits?.hits ?? []).flatMap((hit) =>
-          hit._source ? [hit._source as Pick<SegmentDocumentShape, 'mediaId' | 'textJa' | 'episode'>] : [],
-        ),
+    if (checkDuplicates) {
+      const candidates = collapsed.hits.hits.flatMap((hit) =>
+        hit._source ? [hit._source as Pick<SegmentDocumentShape, 'mediaId' | 'textJa' | 'episode'>] : [],
       );
       try {
         duplicates = new Set((await findLaterDuplicateSegmentIds(candidates)).map(String));
@@ -519,7 +532,7 @@ async function loadRounds(
       }
     }
 
-    const result = { rounds: buildRounds(collapsed, sort, duplicates), total: collapsed.hits.total };
+    const result: RoundList = { entries: buildRound(collapsed, round, duplicates), total: collapsed.hits.total };
     Cache.set(
       SegmentDocument.VARIETY_ROUNDS_CACHE,
       cacheKey,
@@ -540,10 +553,10 @@ async function loadRounds(
 /**
  * One page of a relevance search served in rounds by title (see ./segmentDocument/variety).
  *
- * The page walks a fixed sequence of stages -- the starred block's rounds, the starred block's rest, then the same
- * two for every other title -- picking up where the cursor left off and crossing into the next stage mid-page when
- * one runs out. Rest stages are the ordinary keyset search with every round sentence excluded, so nothing is shown
- * twice.
+ * The page walks a fixed sequence of stages -- for the starred block, round 1, round 2, then the rest of its
+ * sentences; then the same three for every other title -- picking up where the cursor left off and crossing into the
+ * next stage mid-page when one runs out. Rest stages are the ordinary keyset search with every round sentence
+ * excluded, so nothing is shown twice.
  */
 async function varietyPage(args: {
   take: number;
@@ -564,9 +577,9 @@ async function varietyPage(args: {
 }): Promise<SearchResponseOutput> {
   const { take, cursor, query, favorites, sort, highlightFields, dedupeOpeningLines, keysetPage, mediaInfo } = args;
 
-  let loaded: CachedRounds;
+  let round1: RoundList;
   try {
-    loaded = await loadRounds(query, sort, dedupeOpeningLines);
+    round1 = await loadRound(query, sort, 1, dedupeOpeningLines);
   } catch (error) {
     // Rounds are an enhancement. If Elasticsearch cannot compute them (a timeout, a breaker), a first page falls back
     // to the plain order -- its keyset cursor keeps the rest of that search plain too. Mid-scroll there is no plain
@@ -575,13 +588,23 @@ async function varietyPage(args: {
     logger.warn({ error }, 'Search rounds failed; serving the plain relevance order');
     return args.plainPage();
   }
-  const { rounds, total } = loaded;
+  let round2: RoundList | undefined;
+  const loadRound2 = async () => {
+    // Every title with a match has a round-1 entry, so an empty round 1 means there is nothing left for round 2.
+    round2 ??=
+      round1.entries.length === 0
+        ? { entries: [], total: round1.total }
+        : await loadRound(query, sort, 2, dedupeOpeningLines, round1.entries);
+    return round2;
+  };
 
   const favoriteIds = [...favorites];
   const blocks: VarietyBlock[] = favoriteIds.length > 0 ? ['fav', 'all'] : ['all'];
-  const stages = blocks.flatMap((block) => [
-    { block, phase: 'rounds' as const },
-    { block, phase: 'rest' as const },
+  type Stage = { block: VarietyBlock; phase: 'rounds'; round: 1 | 2 } | { block: VarietyBlock; phase: 'rest' };
+  const stages: Stage[] = blocks.flatMap((block): Stage[] => [
+    { block, phase: 'rounds', round: 1 },
+    { block, phase: 'rounds', round: 2 },
+    { block, phase: 'rest' },
   ]);
   const inBlock = (block: VarietyBlock, mediaId: number) =>
     block === 'fav' ? favorites.has(mediaId) : !favorites.has(mediaId);
@@ -589,14 +612,17 @@ async function varietyPage(args: {
     if (block === 'fav') return { filter: [{ terms: { mediaId: favoriteIds } }] };
     return favoriteIds.length > 0 ? { mustNot: [{ terms: { mediaId: favoriteIds } }] } : {};
   };
-  const roundIds = rounds.map((entry) => entry.id);
 
   // Resume at the cursor's stage. A starred-block cursor from a reader who has since unstarred everything resumes at
   // the start of the shared block rather than failing.
-  let stageIndex = cursor ? stages.findIndex((s) => s.block === cursor.block && s.phase === cursor.phase) : 0;
+  const matchesCursor = (stage: Stage, c: VarietyCursor) =>
+    stage.block === c.block &&
+    stage.phase === c.phase &&
+    (stage.phase === 'rest' || (c.phase === 'rounds' && stage.round === c.round));
+  let stageIndex = cursor ? stages.findIndex((stage) => matchesCursor(stage, cursor)) : 0;
   let stageCursor: VarietyCursor | undefined = cursor;
   if (stageIndex === -1) {
-    stageIndex = stages.findIndex((s) => s.block === 'all' && s.phase === 'rounds');
+    stageIndex = stages.findIndex((stage) => stage.block === 'all');
     stageCursor = undefined;
   }
 
@@ -610,7 +636,8 @@ async function varietyPage(args: {
     if (!stage) break;
 
     if (stage.phase === 'rounds') {
-      const entries = rounds.filter((entry) => inBlock(stage.block, entry.mediaId));
+      const list = stage.round === 1 ? round1 : await loadRound2();
+      const entries = list.entries.filter((entry) => inBlock(stage.block, entry.mediaId));
       const start = stageCursor?.phase === 'rounds' ? indexAfterCursor(entries, stageCursor, sort) : 0;
       const slice = entries.slice(start, start + remaining);
       for (const entry of slice) pieces.push({ entry });
@@ -621,8 +648,9 @@ async function varietyPage(args: {
         break;
       }
     } else {
+      const placed = [...round1.entries, ...(await loadRound2()).entries].map((entry) => entry.id);
       const after = stageCursor?.phase === 'rest' ? (stageCursor.after ?? undefined) : undefined;
-      const response = await keysetPage(remaining, after, { ...restrictFor(stage.block), excludedIds: roundIds });
+      const response = await keysetPage(remaining, after, { ...restrictFor(stage.block), excludedIds: placed });
       const hits = response.hits.hits;
       for (const hit of hits) pieces.push({ hit });
       const last = hits.at(-1);
@@ -659,7 +687,7 @@ async function varietyPage(args: {
     return hit ? [hit] : [];
   });
 
-  const combined = { hits: { total, hits } } as estypes.SearchResponse;
+  const combined = { hits: { total: round1.total, hits } } as estypes.SearchResponse;
   const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(combined, mediaResult);
   return {
     segments,

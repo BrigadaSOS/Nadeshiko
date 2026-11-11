@@ -21,19 +21,12 @@ import type { ResolvedFilters, SearchRequestInput } from './searchInputs';
  * Common words already come back spread over many titles, so for them this
  * changes nothing; it only acts where one title dominates.
  *
- * The rounds come from one collapse query over the query *without* the
- * reader's stars, so every reader shares one cached list; the stars only
+ * Each round is one collapse query (no inner hits) over the query *without*
+ * the reader's stars, so every reader shares the cached lists; the stars only
  * decide which block an entry falls in. "The rest" is the ordinary keyset
  * search with every round sentence excluded, so nothing appears twice.
  */
 export const VARIETY_ROUNDS = 2;
-
-/**
- * Best sentences fetched per title. More than `VARIETY_ROUNDS` so a title
- * whose top lines are a recurring opening still fills its rounds once those
- * repeats are dropped.
- */
-export const VARIETY_CANDIDATES_PER_TITLE = VARIETY_ROUNDS + 3;
 
 /** Titles taken into the rounds. Beyond this, a title's sentences simply arrive in the rest phase. */
 export const VARIETY_MAX_GROUPS = 2000;
@@ -102,33 +95,22 @@ export function compareSortValues(sort: estypes.Sort) {
 }
 
 /**
- * Turns a collapse response (one top-level hit per title, carrying its best
- * sentences as inner hits) into the ordered round list: every round-1 entry in
- * sort order, then every round-2 entry. Excluded sentences are skipped and the
- * title's next candidate takes the slot.
+ * Turns a collapse response -- one top-level hit per title, its best sentence,
+ * already in sort order -- into one round's entries. Excluded sentences are
+ * dropped, and their title simply has no entry in this round.
  */
-export function buildRounds(
+export function buildRound(
   response: estypes.SearchResponse,
-  sort: estypes.Sort,
+  round: number,
   excludedIds: ReadonlySet<string> = new Set(),
 ): RoundEntry[] {
-  const compare = compareSortValues(sort);
-  const rounds: RoundEntry[][] = Array.from({ length: VARIETY_ROUNDS }, () => []);
-
-  for (const group of response.hits.hits) {
-    const inner = group.inner_hits?.rounds?.hits?.hits ?? [];
-    let round = 0;
-    for (const hit of inner) {
-      if (round >= VARIETY_ROUNDS) break;
-      const mediaId = Number((hit._source as { mediaId?: unknown } | undefined)?.mediaId);
-      if (!hit._id || !hit.sort || !Number.isFinite(mediaId) || excludedIds.has(hit._id)) continue;
-      rounds[round]?.push({ id: hit._id, mediaId, round: round + 1, sort: hit.sort as estypes.FieldValue[] });
-      round++;
-    }
-  }
-
-  for (const list of rounds) list.sort((a, b) => compare(a.sort, b.sort));
-  return rounds.flat();
+  return response.hits.hits.flatMap((hit) => {
+    const fromFields = (hit.fields as { mediaId?: unknown[] } | undefined)?.mediaId?.[0];
+    const fromSource = (hit._source as { mediaId?: unknown } | undefined)?.mediaId;
+    const mediaId = Number(fromFields ?? fromSource);
+    if (!hit._id || !hit.sort || !Number.isFinite(mediaId) || excludedIds.has(hit._id)) return [];
+    return [{ id: hit._id, mediaId, round, sort: hit.sort as estypes.FieldValue[] }];
+  });
 }
 
 /** Index of the first entry after the one a rounds cursor points at. */

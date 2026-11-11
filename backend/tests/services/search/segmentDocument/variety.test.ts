@@ -3,7 +3,7 @@ import type { estypes } from '@elastic/elasticsearch';
 import { InvalidRequestError } from '@app/errors';
 import { encodeKeysetCursor } from '@lib/cursor';
 import {
-  buildRounds,
+  buildRound,
   compareSortValues,
   decodeVarietyCursor,
   encodeRestCursor,
@@ -25,25 +25,15 @@ const SORT: estypes.Sort = [
 const SORT_LENGTH = 5;
 const NO_FILTERS = {} as never;
 
-/** A collapse response: one group per title, each with its candidate sentences in order. */
-function collapsed(groups: Array<Array<{ id: string; score: number; media: number }>>): estypes.SearchResponse {
+/** A collapse response without inner hits: one top-level hit per title, in sort order, title from doc values. */
+function collapsed(hits: Array<{ id: string; score: number; media: number }>): estypes.SearchResponse {
   return {
     hits: {
-      hits: groups.map((inner) => ({
+      hits: hits.map((hit) => ({
         _index: 'i',
-        _id: inner[0]?.id,
-        inner_hits: {
-          rounds: {
-            hits: {
-              hits: inner.map((hit) => ({
-                _index: 'i',
-                _id: hit.id,
-                _source: { mediaId: hit.media },
-                sort: [hit.score, 10, hit.media, 1, Number(hit.id)],
-              })),
-            },
-          },
-        },
+        _id: hit.id,
+        fields: { mediaId: [hit.media] },
+        sort: [hit.score, 10, hit.media, 1, Number(hit.id)],
       })),
     },
   } as unknown as estypes.SearchResponse;
@@ -88,51 +78,45 @@ describe('compareSortValues', () => {
   });
 });
 
-describe('buildRounds', () => {
-  it('takes the best of every title, then the second best of every title', () => {
-    const rounds = buildRounds(
+describe('buildRound', () => {
+  it("keeps the collapse's order and tags each entry with its title and round", () => {
+    const entries = buildRound(
       collapsed([
-        [
-          { id: '1', score: 9, media: 1 },
-          { id: '2', score: 8, media: 1 },
-          { id: '6', score: 7.5, media: 1 },
-        ],
-        [
-          { id: '3', score: 5, media: 2 },
-          { id: '4', score: 1, media: 2 },
-        ],
-        [{ id: '5', score: 7, media: 3 }],
+        { id: '1', score: 9, media: 1 },
+        { id: '5', score: 7, media: 3 },
+        { id: '3', score: 5, media: 2 },
       ]),
-      SORT,
+      1,
     );
 
-    // Round 1 in relevance order (9, 7, 5), then round 2 (8, 1). Title 3 has
-    // only one sentence; title 1's third candidate is not a round entry.
-    expect(rounds.map((r) => r.id)).toEqual(['1', '5', '3', '2', '4']);
-    expect(rounds.map((r) => r.round)).toEqual([1, 1, 1, 2, 2]);
-    expect(rounds.map((r) => r.mediaId)).toEqual([1, 3, 2, 1, 2]);
+    expect(entries.map((e) => [e.id, e.mediaId, e.round])).toEqual([
+      ['1', 1, 1],
+      ['5', 3, 1],
+      ['3', 2, 1],
+    ]);
+    expect(entries[0]?.sort).toEqual([9, 10, 1, 1, 1]);
   });
 
-  it("fills a dropped sentence's slot with the title's next candidate", () => {
-    // A recurring opening: the episode-2 copy is excluded, the next line moves up.
-    const rounds = buildRounds(
+  it('drops an excluded sentence, leaving its title without an entry in that round', () => {
+    // A recurring opening's later copy in round 2: that title's other lines arrive in the rest.
+    const entries = buildRound(
       collapsed([
-        [
-          { id: '1', score: 9, media: 1 },
-          { id: '2', score: 9, media: 1 },
-          { id: '3', score: 4, media: 1 },
-        ],
+        { id: '2', score: 9, media: 1 },
+        { id: '4', score: 3, media: 2 },
       ]),
-      SORT,
+      2,
       new Set(['2']),
     );
-    expect(rounds.map((r) => [r.id, r.round])).toEqual([
-      ['1', 1],
-      ['3', 2],
-    ]);
+    expect(entries.map((e) => [e.id, e.round])).toEqual([['4', 2]]);
+  });
+
+  it('reads the title from the source when doc values are absent', () => {
+    const response = {
+      hits: { hits: [{ _index: 'i', _id: '7', _source: { mediaId: 4 }, sort: [1, 1, 4, 1, 7] }] },
+    } as unknown as estypes.SearchResponse;
+    expect(buildRound(response, 1).map((e) => e.mediaId)).toEqual([4]);
   });
 });
-
 describe('indexAfterCursor', () => {
   const rounds: RoundEntry[] = [
     { id: '1', mediaId: 1, round: 1, sort: [9, 10, 1, 1, 1] },
