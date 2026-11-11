@@ -3,6 +3,11 @@ import { Segment } from '@app/models';
 import { MEDIA_INFO_CACHE, type MediaInfoMapResult } from '@app/models/Media';
 import { Cache } from '@lib/cache';
 import { sendEsSyncJob } from '@app/workers/esSyncQueue';
+import { sendRecurringRecomputeJob } from '@app/workers/recurringLinesQueue';
+
+/** Columns the recurring-line rule reads (see `recurringLines.ts`): a change to any of them can make this or another
+ * segment of the same title a repeat, or stop it being one. */
+const RECURRING_RULE_COLUMNS = new Set(['contentJa', 'status', 'episode', 'position', 'mediaId']);
 
 @EventSubscriber()
 export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
@@ -14,6 +19,7 @@ export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
     if (event.entity) {
       invalidateMediaInfoForUnknownMedia(event.entity.mediaId);
       sendEsSyncJob({ segmentId: event.entity.id, operation: 'CREATE' });
+      void sendRecurringRecomputeJob(event.entity.mediaId);
     }
   }
 
@@ -24,6 +30,11 @@ export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
         Cache.invalidate(MEDIA_INFO_CACHE);
       }
       sendEsSyncJob({ segmentId: event.entity.id, operation: 'UPDATE' });
+
+      const ruleInputChanged =
+        event.updatedColumns?.some((col) => RECURRING_RULE_COLUMNS.has(col.propertyName)) ?? false;
+      const mediaId = event.entity.mediaId ?? event.databaseEntity?.mediaId;
+      if (ruleInputChanged && mediaId) void sendRecurringRecomputeJob(mediaId);
     }
   }
 
@@ -31,6 +42,7 @@ export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
     if (event.databaseEntity) {
       Cache.invalidate(MEDIA_INFO_CACHE);
       sendEsSyncJob({ segmentId: event.databaseEntity.id, operation: 'DELETE' });
+      void sendRecurringRecomputeJob(event.databaseEntity.mediaId);
     }
   }
 }

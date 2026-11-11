@@ -45,6 +45,7 @@ const REINDEX_SEGMENT_SELECT_FIELDS: ReadonlyArray<keyof Segment> = [
   'mediaId',
   'storageBasePath',
   'tokens',
+  'recurringRepeat',
 ] as const;
 
 export class SegmentIndexer {
@@ -314,6 +315,7 @@ export class SegmentIndexer {
       mediaId: segment.mediaId,
       storageBasePath: segment.storageBasePath,
       tokens: segment.tokens?.length ? segment.tokens : undefined,
+      recurringRepeat: segment.recurringRepeat ?? false,
     };
   }
 }

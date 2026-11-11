@@ -25,6 +25,9 @@ vi.mock('@app/services/reports/reportedContent', () => ({
 }));
 
 type MediaInfoMap = Awaited<ReturnType<typeof Media.getMediaInfoMap>>;
+
+/** The reader view leaves later copies of recurring opening/ending lines out (see recurringLines.ts). */
+const HIDE_REPEATS = { term: { recurringRepeat: true } };
 const emptyMediaInfoMap = { results: new Map() } as unknown as MediaInfoMap;
 
 type Scenario = {
@@ -74,7 +77,8 @@ describe('search, unhandled reports and preferences', () => {
     expect(query.function_score).toBeUndefined();
     expect(query.bool.filter).toContainEqual({ terms: { status: ['ACTIVE'] } });
     expect(query.bool.must[0].function_score.query.dis_max.queries[0].bool.must[0].query_string.query).toBe('ねこ');
-    expect(query.bool.must_not).toEqual([]);
+    // Only the recurring opening/ending repeats, which the reader view always leaves out.
+    expect(query.bool.must_not).toEqual([HIDE_REPEATS]);
   });
 
   it('keeps a reported segment out of results without demoting its title', async () => {
@@ -83,14 +87,14 @@ describe('search, unhandled reports and preferences', () => {
     const query = await searchQuery({ segmentIds: [11, 22] });
 
     expect(query.function_score).toBeUndefined();
-    expect(query.bool.must_not).toEqual([{ ids: { values: ['11', '22'] } }]);
+    expect(query.bool.must_not).toEqual([{ ids: { values: ['11', '22'] } }, HIDE_REPEATS]);
   });
 
   it('demotes reported titles without excluding them', async () => {
     const query = await searchQuery({ mediaWeights: [[5, 0.35]] });
 
     expect(query.function_score.functions).toEqual([{ filter: { terms: { mediaId: [5] } }, weight: 0.35 }]);
-    expect(query.function_score.query.bool.must_not).toEqual([]);
+    expect(query.function_score.query.bool.must_not).toEqual([HIDE_REPEATS]);
   });
 
   it('boosts the titles the reader prefers when browsing without a word', async () => {
@@ -114,6 +118,6 @@ describe('search, unhandled reports and preferences', () => {
     const query = await searchQuery({ mediaWeights: [[5, 0.2]], segmentIds: [11], preferMedia: ['8'] });
 
     expect(query.function_score.functions).toEqual([{ filter: { terms: { mediaId: [5] } }, weight: 0.2 }]);
-    expect(query.function_score.query.bool.must_not).toEqual([{ ids: { values: ['11'] } }]);
+    expect(query.function_score.query.bool.must_not).toEqual([{ ids: { values: ['11'] } }, HIDE_REPEATS]);
   });
 });

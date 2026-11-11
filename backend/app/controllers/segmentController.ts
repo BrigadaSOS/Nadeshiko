@@ -35,6 +35,7 @@ import {
 import { toSearchResponseDTO } from './mappers/searchMapper';
 import { sendBulkEsSyncJobs } from '@app/workers/esSyncQueue';
 import { sendBulkTokenParseJobs, sendTokenParseJob } from '@app/workers/tokenParseQueue';
+import { sendRecurringRecomputeJob } from '@app/workers/recurringLinesQueue';
 import { Cache } from '@lib/cache';
 import { logger } from '@config/log';
 import { assertUser } from '@app/middleware/authentication';
@@ -164,6 +165,10 @@ export const createSegmentsBatch: CreateSegmentsBatch = async ({ params, body },
     sendBulkTokenParseJobs(allIds).catch((error) => {
       logger.error({ err: error }, 'Failed to enqueue token parse jobs for batch segment creation');
     });
+
+    // A new or re-uploaded episode can make lines of earlier episodes repeats (or stop them being ones). The query
+    // builder upsert fires no subscriber, so this path queues the title's recompute itself.
+    void sendRecurringRecomputeJob(media.id);
 
     Cache.invalidate(MEDIA_INFO_CACHE);
   }

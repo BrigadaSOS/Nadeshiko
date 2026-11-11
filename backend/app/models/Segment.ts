@@ -127,6 +127,14 @@ export class Segment extends BaseEntity {
   @Column({ name: 'tokens', type: 'jsonb', nullable: true })
   tokens!: SlimToken[] | null;
 
+  /**
+   * A later copy of a line that recurs across this title's episodes as part of an opening, ending, recap or preview.
+   * Maintained per title by the recurring-lines job (`app/services/search/recurringLines.ts`), never by hand, and
+   * copied into the search index so search can leave these copies out without asking Postgres.
+   */
+  @Column({ name: 'recurring_repeat', type: 'boolean', default: false })
+  recurringRepeat!: boolean;
+
   @Column({ name: 'storage', type: 'enum', enum: SegmentStorage, default: SegmentStorage.R2 })
   storage!: SegmentStorage;
 
