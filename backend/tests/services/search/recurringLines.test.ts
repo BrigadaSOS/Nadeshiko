@@ -22,8 +22,9 @@ async function line(episode: number, position: number, contentJa: string, status
     startTimeMs: position * 1000,
     endTimeMs: position * 1000 + 900,
     contentJa,
-    contentEs: '',
-    contentEn: '',
+    // Translations must be non-empty (a check constraint); their text is irrelevant to the rule.
+    contentEs: 'línea',
+    contentEn: 'line',
     contentEsMt: false,
     contentEnMt: false,
     contentRating: 'SAFE',
