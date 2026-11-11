@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { client } from '@config/elasticsearch';
 import { InvalidRequestError } from '@app/errors';
-import { encodeKeysetCursor } from '@lib/cursor';
+import { decodeKeysetCursor, encodeKeysetCursor } from '@lib/cursor';
 import { CategoryType } from '@app/models';
 import { Cache } from '@lib/cache';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
@@ -31,6 +31,9 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
 
   beforeEach(() => {
     Cache.invalidate(MEDIA_INFO_CACHE);
+    // Round lists are keyed by the query, which is the same across tests that search the same word; a list left by a
+    // previous test points at segments that no longer exist.
+    Cache.invalidate(SegmentDocument.VARIETY_ROUNDS_CACHE);
   });
 
   describe('search()', () => {
@@ -185,6 +188,137 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
 
       expect(page2.segments).toHaveLength(1);
       expect(page2.segments[0].publicId).not.toBe(page1.segments[0].publicId);
+    });
+
+    describe('rounds by title (default order)', () => {
+      /**
+       * One title (A) that dominates the word with short, high-scoring lines,
+       * and two titles (B, C) with one longer line each. Plain relevance puts
+       * all of A first; rounds put B and C right after A's best line.
+       */
+      async function seedDominatedWord() {
+        const a = await seedSegmentsIntoEs({}, [
+          { contentJa: '猫が好き' },
+          { contentJa: '猫は可愛い' },
+          { contentJa: '猫と遊ぶ' },
+          { contentJa: '猫を見た' },
+        ]);
+        const b = await seedSegmentsIntoEs({}, [{ contentJa: '今日は公園でとても大きな猫を見ました' }]);
+        const c = await seedSegmentsIntoEs({}, [{ contentJa: '昨日は友達の家でとても小さな猫と遊びました' }]);
+        return { a: a.media.publicId, b: b.media.publicId, c: c.media.publicId, aId: a.media.id, cId: c.media.id };
+      }
+
+      const searchCat = (extra: Record<string, unknown> = {}, starred?: ReadonlySet<number>) =>
+        SegmentDocument.search(
+          { query: { search: '猫', exactMatch: false }, take: 25, ...extra } as never,
+          'strict',
+          starred,
+        );
+
+      it('serves every sentence of a starred title first, then the other titles in rounds', async () => {
+        const { a, b, c, aId } = await seedDominatedWord();
+
+        const titles = (await searchCat({}, new Set([aId]))).segments.map((s) => s.mediaPublicId);
+
+        // A is starred: all four of its lines lead, then B and C.
+        expect(titles.slice(0, 4)).toEqual([a, a, a, a]);
+        expect(new Set(titles.slice(4))).toEqual(new Set([b, c]));
+      });
+
+      it('keeps a starred title ahead even when another title has the better lines', async () => {
+        const { a, c, cId } = await seedDominatedWord();
+
+        const titles = (await searchCat({}, new Set([cId]))).segments.map((s) => s.mediaPublicId);
+
+        expect(titles[0]).toBe(c);
+        expect(titles[1]).toBe(a);
+        expect(titles).toHaveLength(6);
+      });
+
+      it('pages through a starred search exactly once each, whatever the page size', async () => {
+        const { aId, cId } = await seedDominatedWord();
+        const starred = new Set([aId, cId]);
+        const all = (await searchCat({}, starred)).segments.map((s) => s.publicId);
+        expect(new Set(all).size).toBe(6);
+
+        for (const take of [1, 2, 4]) {
+          const paged: string[] = [];
+          let cursor: string | undefined;
+          for (let page = 0; page < 20; page++) {
+            const result = await searchCat({ take, ...(cursor ? { cursor } : {}) }, starred);
+            paged.push(...result.segments.map((s) => s.publicId));
+            if (!result.pagination.hasMore || !result.pagination.cursor) break;
+            cursor = result.pagination.cursor;
+          }
+          expect(paged).toEqual(all);
+        }
+      });
+
+      it('survives the round list being rebuilt between pages', async () => {
+        await seedDominatedWord();
+        const all = (await searchCat()).segments.map((s) => s.publicId);
+
+        const paged: string[] = [];
+        let cursor: string | undefined;
+        for (let page = 0; page < 20; page++) {
+          Cache.invalidate(SegmentDocument.VARIETY_ROUNDS_CACHE);
+          const result = await searchCat({ take: 2, ...(cursor ? { cursor } : {}) });
+          paged.push(...result.segments.map((s) => s.publicId));
+          if (!result.pagination.hasMore || !result.pagination.cursor) break;
+          cursor = result.pagination.cursor;
+        }
+        expect(paged).toEqual(all);
+      });
+
+      it('puts the best line of every title first, then the second best', async () => {
+        const { a, b, c } = await seedDominatedWord();
+
+        const result = await searchCat();
+        const titles = result.segments.map((s) => s.mediaPublicId);
+
+        expect(titles).toHaveLength(6);
+        expect(titles[0]).toBe(a);
+        expect(new Set(titles.slice(0, 3))).toEqual(new Set([a, b, c]));
+        // Round 2 is A's second line; then the rest of A.
+        expect(titles.slice(3)).toEqual([a, a, a]);
+        expect(new Set(result.segments.map((s) => s.publicId)).size).toBe(6);
+      });
+
+      it('pages through every sentence exactly once, in the same order, whatever the page size', async () => {
+        await seedDominatedWord();
+        const all = (await searchCat()).segments.map((s) => s.publicId);
+
+        for (const take of [1, 2, 4]) {
+          const paged: string[] = [];
+          let cursor: string | undefined;
+          for (let page = 0; page < 20; page++) {
+            const result = await searchCat({ take, ...(cursor ? { cursor } : {}) });
+            paged.push(...result.segments.map((s) => s.publicId));
+            if (!result.pagination.hasMore || !result.pagination.cursor) break;
+            cursor = result.pagination.cursor;
+          }
+          expect(paged).toEqual(all);
+        }
+      });
+
+      it('keeps an explicit sort exactly as asked', async () => {
+        const { a } = await seedDominatedWord();
+
+        const result = await searchCat({ sort: { mode: 'asc' } });
+        // Shortest first: all four of A's short lines lead, unmixed.
+        expect(result.segments.slice(0, 4).map((s) => s.mediaPublicId)).toEqual([a, a, a, a]);
+      });
+
+      it('keeps honouring a keyset cursor issued before rounds existed', async () => {
+        const { a } = await seedDominatedWord();
+
+        // A score above any real one: "everything after the top", in plain relevance order -- A's short lines lead,
+        // where rounds would put B and C right after A's best.
+        const result = await searchCat({ take: 3, cursor: encodeKeysetCursor([1e9, 0, 0, 0, 0]) });
+        expect(result.segments.map((s) => s.mediaPublicId)).toEqual([a, a, a]);
+        // And it hands back a plain keyset cursor, so the rest of that scroll stays in the old order too.
+        expect(decodeKeysetCursor(result.pagination.cursor ?? undefined)).toHaveLength(5);
+      });
     });
 
     it('filters by segmentLengthChars', async () => {
@@ -399,7 +533,7 @@ describe('SegmentDocument (mocked)', () => {
       parseError.meta = {
         body: { error: { type: 'parse_exception', reason: 'failed to parse query' } },
       };
-      searchSpy.mockRejectedValueOnce(parseError).mockResolvedValueOnce({
+      searchSpy.mockRejectedValueOnce(parseError).mockResolvedValue({
         took: 5,
         timed_out: false,
         _shards: { total: 1, successful: 1, skipped: 0, failed: 0 },
@@ -412,7 +546,11 @@ describe('SegmentDocument (mocked)', () => {
       });
 
       expect(result.segments).toHaveLength(0);
-      expect(searchSpy).toHaveBeenCalledTimes(2);
+      // The strict round query fails; the safe retry computes the (empty) rounds and then the rest page.
+      expect(searchSpy).toHaveBeenCalledTimes(3);
+      const strictQuery = JSON.stringify((searchSpy.mock.calls[0]?.[0] as any)?.query);
+      const safeQuery = JSON.stringify((searchSpy.mock.calls[1]?.[0] as any)?.query);
+      expect(safeQuery).not.toEqual(strictQuery);
 
       searchSpy.mockRestore();
       getMediaInfoMapSpy.mockRestore();

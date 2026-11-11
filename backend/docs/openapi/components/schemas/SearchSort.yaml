@@ -5,7 +5,9 @@ properties:
     type: string
     description: |
       Sort mode.
-      - `RELEVANCE` (default): Elasticsearch relevance score
+      - `RELEVANCE` (default): Elasticsearch relevance score. With a search word, served in rounds by title
+        (the best segment of every title, then the second best of every title, then the rest), with
+        `preferMedia` titles as a first block; see `preferMedia`
       - `ASC` / `DESC`: by segment length (character count)
       - `TIME_ASC` / `TIME_DESC`: by episode & position within an episode
       - `RANDOM`: deterministic random order (pass `seed` for reproducibility)

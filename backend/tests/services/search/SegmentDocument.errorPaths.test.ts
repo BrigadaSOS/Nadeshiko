@@ -27,6 +27,13 @@ vi.mock('@app/services/reports/reportedContent', () => ({
   getUnhandledReports: async () => ({ segmentIds: new Set<number>(), mediaWeights: new Map<number, number>() }),
 }));
 
+// These cases script Elasticsearch call by call for the plain keyset path, which is where the recurring-line
+// dedupe loop lives (explicit sorts, and the rest phase of rounds). Rounds by title have their own suites.
+vi.mock('@app/services/search/segmentDocument/variety', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@app/services/search/segmentDocument/variety')>()),
+  shouldDiversify: () => false,
+}));
+
 type MediaInfoMap = Awaited<ReturnType<typeof Media.getMediaInfoMap>>;
 
 const emptyMediaInfoMap = { results: new Map() } as unknown as MediaInfoMap;

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { estypes } from '@elastic/elasticsearch';
 import { client, INDEX_NAME } from '@config/elasticsearch';
 import { Media, Segment, SegmentStatus } from '@app/models';
@@ -15,7 +16,20 @@ import type {
 import { getUnhandledReports } from '@app/services/reports/reportedContent';
 import { SegmentQuery, type QueryParserMode } from './segmentDocument/SegmentQuery';
 import { SegmentResponse } from './segmentDocument/SegmentResponse';
-import { withSafeQueryFallback } from './segmentDocument/errors';
+import { isQuerySyntaxError, withSafeQueryFallback } from './segmentDocument/errors';
+import {
+  buildRounds,
+  decodeVarietyCursor,
+  encodeRestCursor,
+  encodeRoundsCursor,
+  indexAfterCursor,
+  shouldDiversify,
+  VARIETY_CANDIDATES_PER_TITLE,
+  VARIETY_MAX_GROUPS,
+  type RoundEntry,
+  type VarietyBlock,
+  type VarietyCursor,
+} from './segmentDocument/variety';
 import {
   resolveSearchFilters,
   type ResolvedFilters,
@@ -114,6 +128,11 @@ export class SegmentDocument {
    * a panel they cannot render. */
   static readonly SEARCH_STATS_CACHE = createCacheNamespace('searchStats', 250);
 
+  /** Round lists per query (see `loadRounds`), so every page of one search reads the same list. Shared by every
+   * reader, since stars do not change the list. An entry is at most `2 * VARIETY_MAX_GROUPS` small objects, and most
+   * are a few dozen. */
+  static readonly VARIETY_ROUNDS_CACHE = createCacheNamespace('searchVarietyRounds', 256);
+
   static async search(
     request: SearchRequestInput,
     parserMode: QueryParserMode = 'strict',
@@ -160,7 +179,16 @@ export class SegmentDocument {
 
     const { filter, must_not } = SegmentQuery.buildCommonFilters(filters);
     const { sort, randomScoreQuery } = SegmentQuery.buildSortAndRandomScore(request, filters, isMatchAll);
-    const searchAfter = decodeKeysetCursor<estypes.FieldValue[]>(request.cursor);
+    // Rounds by title for the default order -- see ./segmentDocument/variety. Only on the public search (not
+    // `searchInIds`, which pages a collection), and not for a keyset cursor issued before rounds existed, which
+    // keeps paging in the order it started in.
+    const sortLength = (Array.isArray(sort) ? sort : [sort]).length;
+    const varietyCursor =
+      extraFilters.length === 0 && shouldDiversify(request, filters, hasQuery)
+        ? decodeVarietyCursor(request.cursor, sortLength)
+        : 'keyset';
+    const searchAfter =
+      varietyCursor === 'keyset' ? decodeKeysetCursor<estypes.FieldValue[]>(request.cursor) : undefined;
 
     if (searchAfter && searchAfter.length > 0) {
       const sortArray = Array.isArray(sort) ? sort : [sort];
@@ -205,56 +233,95 @@ export class SegmentDocument {
       filters.status?.length === 1 &&
       filters.status[0] === SegmentStatus.ACTIVE &&
       !filters.media?.include?.some((item) => item.episodes && item.episodes.length > 0);
-    const baseQuery = SegmentQuery.applyMediaScoreWeights(
-      { bool: { filter: [...filter, ...extraFilters], must, must_not: [...must_not, ...excludedByReport] } },
-      { demoted: reports.mediaWeights, preferred: preferredMediaIds },
-    );
+    const coreQuery: estypes.QueryDslQueryContainer = {
+      bool: { filter: [...filter, ...extraFilters], must, must_not: [...must_not, ...excludedByReport] },
+    };
+    // Plain order: reports demote titles and the reader's stars give a small boost.
+    const baseQuery = SegmentQuery.applyMediaScoreWeights(coreQuery, {
+      demoted: reports.mediaWeights,
+      preferred: preferredMediaIds,
+    });
+    // Rounds: stars decide the block a title falls in, not its score, so the
+    // query (and the cached round list) is the same for every reader.
+    const sharedQuery = SegmentQuery.applyMediaScoreWeights(coreQuery, { demoted: reports.mediaWeights });
 
     const mediaInfo = Media.getMediaInfoMap();
 
     return withSafeQueryFallback(
       async () => {
-        const searchPage = (excludedDuplicateIds: number[] = []) =>
-          client.search({
-            size: request.take,
-            sort,
-            index: INDEX_NAME,
-            highlight: { fields: highlightFields },
-            query:
-              excludedDuplicateIds.length === 0
-                ? baseQuery
-                : {
-                    bool: {
-                      must: [baseQuery],
-                      must_not: [buildIdsFilter(excludedDuplicateIds)],
-                    },
-                  },
-            search_after: searchAfter,
-          });
-        const [initialResponse, mediaResult] = await Promise.all([searchPage(), mediaInfo]);
-        let finalResponse = initialResponse;
-        if (dedupeOpeningLines) {
-          const excludedDuplicateIds = new Set<number>();
-          for (let pass = 0; pass < MAX_DUPLICATE_SEARCH_PASSES; pass += 1) {
-            const hits = finalResponse.hits.hits as estypes.SearchHit<SegmentDocumentShape>[];
-            let duplicateIds: number[];
-            try {
-              duplicateIds = await findLaterDuplicateSegmentIds(
-                hits.flatMap((hit) => (hit._source ? [hit._source] : [])),
-              );
-            } catch (error) {
-              // Filtering is an enhancement; an unavailable database must not
-              // turn an otherwise healthy Elasticsearch search into a failure.
-              logger.warn({ error }, 'Skipping duplicate subtitle filtering after database lookup failure');
-              break;
+        /** One keyset page in plain sort order, narrowed by `restrict`, with recurring opening lines filtered out. */
+        const keysetPage = async (
+          query: estypes.QueryDslQueryContainer,
+          size: number,
+          after: estypes.FieldValue[] | undefined,
+          restrict: KeysetRestriction = {},
+        ) => {
+          const searchPage = (excludedDuplicateIds: number[] = []) => {
+            const exclusions = [...(restrict.excludedIds ?? []), ...excludedDuplicateIds];
+            const mustNot = [
+              ...(restrict.mustNot ?? []),
+              ...(exclusions.length > 0 ? [buildIdsFilter(exclusions)] : []),
+            ];
+            const narrowing = restrict.filter ?? [];
+            return client.search({
+              size,
+              sort,
+              index: INDEX_NAME,
+              highlight: { fields: highlightFields },
+              query:
+                mustNot.length === 0 && narrowing.length === 0
+                  ? query
+                  : { bool: { must: [query], filter: narrowing, must_not: mustNot } },
+              search_after: after,
+            });
+          };
+          let finalResponse = await searchPage();
+          if (dedupeOpeningLines) {
+            const excludedDuplicateIds = new Set<number>();
+            for (let pass = 0; pass < MAX_DUPLICATE_SEARCH_PASSES; pass += 1) {
+              const hits = finalResponse.hits.hits as estypes.SearchHit<SegmentDocumentShape>[];
+              let duplicateIds: number[];
+              try {
+                duplicateIds = await findLaterDuplicateSegmentIds(
+                  hits.flatMap((hit) => (hit._source ? [hit._source] : [])),
+                );
+              } catch (error) {
+                // Filtering is an enhancement; an unavailable database must not
+                // turn an otherwise healthy Elasticsearch search into a failure.
+                logger.warn({ error }, 'Skipping duplicate subtitle filtering after database lookup failure');
+                break;
+              }
+              const newDuplicateIds = duplicateIds.filter((id) => !excludedDuplicateIds.has(id));
+              if (newDuplicateIds.length === 0) break;
+              for (const id of newDuplicateIds) excludedDuplicateIds.add(id);
+              finalResponse = await searchPage([...excludedDuplicateIds]);
             }
-            const newDuplicateIds = duplicateIds.filter((id) => !excludedDuplicateIds.has(id));
-            if (newDuplicateIds.length === 0) break;
-            for (const id of newDuplicateIds) excludedDuplicateIds.add(id);
-            finalResponse = await searchPage([...excludedDuplicateIds]);
           }
-        }
-        return SegmentResponse.buildSearch(finalResponse as estypes.SearchResponse, mediaResult);
+          return finalResponse;
+        };
+
+        const plainPage = async () => {
+          const [finalResponse, mediaResult] = await Promise.all([
+            keysetPage(baseQuery, request.take, searchAfter),
+            mediaInfo,
+          ]);
+          return SegmentResponse.buildSearch(finalResponse as estypes.SearchResponse, mediaResult);
+        };
+
+        if (varietyCursor === 'keyset') return plainPage();
+
+        return varietyPage({
+          take: request.take,
+          cursor: varietyCursor,
+          query: sharedQuery,
+          favorites: preferredMediaIds ?? new Set(),
+          sort,
+          highlightFields,
+          dedupeOpeningLines,
+          keysetPage: (size, after, restrict) => keysetPage(sharedQuery, size, after, restrict),
+          plainPage,
+          mediaInfo,
+        });
       },
       () => SegmentDocument.executeSearch(request, 'safe', extraFilters, preferredMediaIds),
       {
@@ -389,7 +456,219 @@ export class SegmentDocument {
   }
 }
 
-function buildIdsFilter(segmentIds: number[]): estypes.QueryDslQueryContainer {
+const VARIETY_ROUNDS_TTL_MS = 10 * 60 * 1000;
+/** A list whose duplicate lookup failed is still served, but only kept briefly, so the full one replaces it soon. */
+const VARIETY_DEGRADED_TTL_MS = 15 * 1000;
+
+type CachedRounds = { rounds: RoundEntry[]; total: estypes.SearchHitsMetadata['total'] };
+
+/** Narrowing for one keyset page: sentences to leave out, and the block's title filter. */
+type KeysetRestriction = {
+  excludedIds?: Array<number | string>;
+  filter?: estypes.QueryDslQueryContainer[];
+  mustNot?: estypes.QueryDslQueryContainer[];
+};
+
+/** Concurrent first requests for the same list share one computation instead of each running the collapse. */
+const roundsInFlight = new Map<string, Promise<CachedRounds>>();
+
+async function loadRounds(
+  query: estypes.QueryDslQueryContainer,
+  sort: estypes.Sort,
+  dedupeOpeningLines: boolean,
+): Promise<CachedRounds> {
+  const cacheKey = createHash('sha1').update(JSON.stringify({ query, sort, dedupeOpeningLines })).digest('hex');
+  const cached = Cache.get<CachedRounds>(SegmentDocument.VARIETY_ROUNDS_CACHE, cacheKey);
+  if (cached) return cached;
+  const pending = roundsInFlight.get(cacheKey);
+  if (pending) return pending;
+
+  const computation = (async () => {
+    const collapsed = await client.search({
+      index: INDEX_NAME,
+      size: VARIETY_MAX_GROUPS,
+      sort,
+      query,
+      _source: false,
+      collapse: {
+        field: 'mediaId',
+        inner_hits: {
+          name: 'rounds',
+          size: VARIETY_CANDIDATES_PER_TITLE,
+          sort,
+          _source: ['mediaId', 'textJa', 'episode'],
+        },
+      },
+    });
+
+    // The same recurring-opening-line rule as the keyset pages, so a show's
+    // round slot is never an episode-five copy of its opening.
+    let duplicates = new Set<string>();
+    let degraded = false;
+    if (dedupeOpeningLines) {
+      const candidates = collapsed.hits.hits.flatMap((group) =>
+        (group.inner_hits?.rounds?.hits?.hits ?? []).flatMap((hit) =>
+          hit._source ? [hit._source as Pick<SegmentDocumentShape, 'mediaId' | 'textJa' | 'episode'>] : [],
+        ),
+      );
+      try {
+        duplicates = new Set((await findLaterDuplicateSegmentIds(candidates)).map(String));
+      } catch (error) {
+        degraded = true;
+        logger.warn({ error }, 'Skipping duplicate subtitle filtering for search rounds after database lookup failure');
+      }
+    }
+
+    const result = { rounds: buildRounds(collapsed, sort, duplicates), total: collapsed.hits.total };
+    Cache.set(
+      SegmentDocument.VARIETY_ROUNDS_CACHE,
+      cacheKey,
+      result,
+      degraded ? VARIETY_DEGRADED_TTL_MS : VARIETY_ROUNDS_TTL_MS,
+    );
+    return result;
+  })();
+
+  roundsInFlight.set(cacheKey, computation);
+  try {
+    return await computation;
+  } finally {
+    roundsInFlight.delete(cacheKey);
+  }
+}
+
+/**
+ * One page of a relevance search served in rounds by title (see ./segmentDocument/variety).
+ *
+ * The page walks a fixed sequence of stages -- the starred block's rounds, the starred block's rest, then the same
+ * two for every other title -- picking up where the cursor left off and crossing into the next stage mid-page when
+ * one runs out. Rest stages are the ordinary keyset search with every round sentence excluded, so nothing is shown
+ * twice.
+ */
+async function varietyPage(args: {
+  take: number;
+  cursor: VarietyCursor | undefined;
+  query: estypes.QueryDslQueryContainer;
+  favorites: ReadonlySet<number>;
+  sort: estypes.Sort;
+  highlightFields: Record<string, estypes.SearchHighlightField>;
+  dedupeOpeningLines: boolean;
+  keysetPage: (
+    size: number,
+    after: estypes.FieldValue[] | undefined,
+    restrict?: KeysetRestriction,
+  ) => Promise<estypes.SearchResponse<unknown>>;
+  /** The plain order, for a first page whose rounds could not be computed. */
+  plainPage: () => Promise<SearchResponseOutput>;
+  mediaInfo: ReturnType<typeof Media.getMediaInfoMap>;
+}): Promise<SearchResponseOutput> {
+  const { take, cursor, query, favorites, sort, highlightFields, dedupeOpeningLines, keysetPage, mediaInfo } = args;
+
+  let loaded: CachedRounds;
+  try {
+    loaded = await loadRounds(query, sort, dedupeOpeningLines);
+  } catch (error) {
+    // Rounds are an enhancement. If Elasticsearch cannot compute them (a timeout, a breaker), a first page falls back
+    // to the plain order -- its keyset cursor keeps the rest of that search plain too. Mid-scroll there is no plain
+    // page to fall back to without repeating what was shown, and a query syntax error must reach the safe-parser retry.
+    if (cursor || isQuerySyntaxError(error)) throw error;
+    logger.warn({ error }, 'Search rounds failed; serving the plain relevance order');
+    return args.plainPage();
+  }
+  const { rounds, total } = loaded;
+
+  const favoriteIds = [...favorites];
+  const blocks: VarietyBlock[] = favoriteIds.length > 0 ? ['fav', 'all'] : ['all'];
+  const stages = blocks.flatMap((block) => [
+    { block, phase: 'rounds' as const },
+    { block, phase: 'rest' as const },
+  ]);
+  const inBlock = (block: VarietyBlock, mediaId: number) =>
+    block === 'fav' ? favorites.has(mediaId) : !favorites.has(mediaId);
+  const restrictFor = (block: VarietyBlock): KeysetRestriction => {
+    if (block === 'fav') return { filter: [{ terms: { mediaId: favoriteIds } }] };
+    return favoriteIds.length > 0 ? { mustNot: [{ terms: { mediaId: favoriteIds } }] } : {};
+  };
+  const roundIds = rounds.map((entry) => entry.id);
+
+  // Resume at the cursor's stage. A starred-block cursor from a reader who has since unstarred everything resumes at
+  // the start of the shared block rather than failing.
+  let stageIndex = cursor ? stages.findIndex((s) => s.block === cursor.block && s.phase === cursor.phase) : 0;
+  let stageCursor: VarietyCursor | undefined = cursor;
+  if (stageIndex === -1) {
+    stageIndex = stages.findIndex((s) => s.block === 'all' && s.phase === 'rounds');
+    stageCursor = undefined;
+  }
+
+  type Piece = { entry: RoundEntry } | { hit: estypes.SearchHit<unknown> };
+  const pieces: Piece[] = [];
+  let remaining = take;
+  let nextCursor: string | undefined;
+
+  while (remaining > 0 && stageIndex < stages.length) {
+    const stage = stages[stageIndex];
+    if (!stage) break;
+
+    if (stage.phase === 'rounds') {
+      const entries = rounds.filter((entry) => inBlock(stage.block, entry.mediaId));
+      const start = stageCursor?.phase === 'rounds' ? indexAfterCursor(entries, stageCursor, sort) : 0;
+      const slice = entries.slice(start, start + remaining);
+      for (const entry of slice) pieces.push({ entry });
+      remaining -= slice.length;
+      const last = slice.at(-1);
+      if (remaining === 0 && last) {
+        nextCursor = encodeRoundsCursor(stage.block, last);
+        break;
+      }
+    } else {
+      const after = stageCursor?.phase === 'rest' ? (stageCursor.after ?? undefined) : undefined;
+      const response = await keysetPage(remaining, after, { ...restrictFor(stage.block), excludedIds: roundIds });
+      const hits = response.hits.hits;
+      for (const hit of hits) pieces.push({ hit });
+      const last = hits.at(-1);
+      // A full page may have more behind it in this stage; a short one means the stage is done.
+      if (hits.length === remaining && last?.sort) {
+        nextCursor = encodeRestCursor(stage.block, last.sort as estypes.FieldValue[]);
+        remaining = 0;
+        break;
+      }
+      remaining -= hits.length;
+    }
+
+    stageIndex++;
+    stageCursor = undefined;
+  }
+
+  const roundEntries = pieces.flatMap((piece) => ('entry' in piece ? [piece.entry] : []));
+  const [roundsResponse, mediaResult] = await Promise.all([
+    roundEntries.length > 0
+      ? client.search({
+          index: INDEX_NAME,
+          size: roundEntries.length,
+          sort,
+          highlight: { fields: highlightFields },
+          query: { bool: { must: [query], filter: [buildIdsFilter(roundEntries.map((entry) => entry.id))] } },
+        })
+      : null,
+    mediaInfo,
+  ]);
+  const roundHitsById = new Map((roundsResponse?.hits.hits ?? []).map((hit) => [hit._id, hit]));
+  const hits = pieces.flatMap((piece) => {
+    if ('hit' in piece) return [piece.hit];
+    const hit = roundHitsById.get(piece.entry.id);
+    return hit ? [hit] : [];
+  });
+
+  const combined = { hits: { total, hits } } as estypes.SearchResponse;
+  const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(combined, mediaResult);
+  return {
+    segments,
+    includes: { media: mediaMap },
+    pagination: SegmentResponse.buildPagination(combined, nextCursor),
+  };
+}
+
+function buildIdsFilter(segmentIds: Array<number | string>): estypes.QueryDslQueryContainer {
   const values = segmentIds.map(String);
   if (values.length <= SEARCH_IN_IDS_CHUNK_SIZE) {
     return { ids: { values } };

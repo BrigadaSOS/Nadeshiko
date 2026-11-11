@@ -344,6 +344,22 @@ describe('safe search error rendering', () => {
     expect(fetchSentences).not.toHaveBeenCalled();
   });
 
+  test('never draws a sentence already on screen a second time', async () => {
+    const card = (publicId: string) => ({ media: {}, segment: { publicId } });
+    const wrapper = render({
+      sentenceData: { results: [card('a'), card('b')], pagination: { cursor: 'next', hasMore: true } },
+    });
+    fetchSentences.mockResolvedValueOnce({
+      status: 'ok',
+      data: { results: [card('b'), card('c')], pagination: { hasMore: false, cursor: null } },
+    });
+
+    wrapper.findComponent({ name: 'CommonInfiniteScrollObserver' }).vm.$emit('intersect');
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="search-results"]').text()).toBe('3');
+  });
+
   test('keeps previously loaded cards when pagination fails', async () => {
     const results = Array.from({ length: 30 }, () => ({ media: {}, segment: {} }));
     const wrapper = render({ sentenceData: { results, pagination: { cursor: 'next', hasMore: true } } });

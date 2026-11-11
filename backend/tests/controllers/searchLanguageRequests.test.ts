@@ -85,6 +85,7 @@ beforeEach(() => {
   mediaInfo.mockReset().mockResolvedValue({ results: new Map() } as any);
   reports.mockReset().mockResolvedValue({ segmentIds: new Set(), mediaWeights: new Map() });
   Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);
+  Cache.invalidate(SegmentDocument.VARIETY_ROUNDS_CACHE);
 });
 
 afterAll(() => {
@@ -176,7 +177,7 @@ describe('search language HTTP characterization', () => {
     const parseFailure = Object.assign(new Error('failed to parse query'), {
       meta: { body: { error: { type: 'parsing_exception', reason: 'failed to parse query' } } },
     });
-    esSearch.mockRejectedValueOnce(parseFailure).mockResolvedValueOnce(emptySearchResponse as any);
+    esSearch.mockRejectedValueOnce(parseFailure).mockResolvedValue(emptySearchResponse as any);
 
     const response = await postSearch({ languages: { exclude: ['es'] } });
 
@@ -186,14 +187,17 @@ describe('search language HTTP characterization', () => {
       pagination: { hasMore: false, estimatedTotalHits: 0, estimatedTotalHitsRelation: 'EXACT', cursor: null },
     });
     assertMatchesSchema(schemas.s_SearchResponse, response.body, 'safe fallback search');
-    expect(esSearch).toHaveBeenCalledTimes(2);
+    // A word search in the default order is served in rounds by title: the strict round query fails, then the safe
+    // retry computes the rounds and fetches the page.
+    expect(esSearch).toHaveBeenCalledTimes(3);
 
     const strictRequest = esSearch.mock.calls[0]![0] as any;
     const safeRequest = esSearch.mock.calls[1]![0] as any;
+    const safePage = esSearch.mock.calls[2]![0] as any;
     expect(exactTranslationFields(strictRequest.query)).toEqual([['textEn.exact^1']]);
     expect(exactTranslationFields(safeRequest.query)).toEqual([['textEn.exact^1']]);
-    expect(Object.keys(strictRequest.highlight.fields)).toEqual(['textJa', 'textEn']);
-    expect(Object.keys(safeRequest.highlight.fields)).toEqual(['textJa', 'textEn']);
+    expect(exactTranslationFields(safePage.query)).toEqual([['textEn.exact^1']]);
+    expect(Object.keys(safePage.highlight.fields)).toEqual(['textJa', 'textEn']);
     expect(Object.keys(strictRequest.query.bool.must[0].function_score.query.dis_max.queries[0])).toEqual([
       'query_string',
     ]);

@@ -650,10 +650,16 @@ const loadSentences = async ({ append }: { append: boolean }) => {
     };
   } else {
     const previousResults = sentenceData.value?.results || [];
+    // A sentence already on screen is never drawn twice. The backend pages
+    // without repeats; this only guards the rare page that crosses a content
+    // update, where a shifted page could hand one back.
+    const shown = new Set(previousResults.map((result) => result.segment?.publicId).filter(Boolean));
+    const isNew = (result: (typeof incomingResults)[number]) =>
+      !result.segment?.publicId || !shown.has(result.segment.publicId);
     sentenceData.value = {
       ...sentenceData.value,
       ...response,
-      results: [...previousResults, ...incomingResults],
+      results: [...previousResults, ...incomingResults.filter(isNew)],
     };
   }
 

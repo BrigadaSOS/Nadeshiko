@@ -564,12 +564,13 @@ describe('route-to-scope priming', () => {
       heading: '猫,犬' as string | false,
     },
     {
-      label: 'preferMedia, a dropped seed, and the reader default category',
+      // Only the stars: the study tally (fam-1) orders the media filter but is not sent with the search.
+      label: 'preferMedia (stars only), a dropped seed, and the reader default category',
       path: '/en/search',
       query: { seed: '-1', episode: 'banana' },
       setup: () => signedIn('liveaction'),
-      scope: { category: 'liveaction', preferMedia: ['fav-1', 'fav-2', 'fam-1'] },
-      wire: { preferMedia: ['fav-1', 'fav-2', 'fam-1'] },
+      scope: { category: 'liveaction', preferMedia: ['fav-1', 'fav-2'] },
+      wire: { preferMedia: ['fav-1', 'fav-2'] },
       filters: { category: ['JDRAMA'] },
       sentenceKey: 'search-sentence-outcomes-liveaction-banana',
       heading: false as string | false,
