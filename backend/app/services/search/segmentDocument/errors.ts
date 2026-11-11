@@ -13,7 +13,7 @@ export function isSuccessfulMsearchItem(
   return status === undefined || (status >= 200 && status < 300);
 }
 
-function isQuerySyntaxError(error: unknown): boolean {
+export function isQuerySyntaxError(error: unknown): boolean {
   const elasticError = error as {
     message?: string;
     meta?: {

@@ -47,17 +47,15 @@ const searchQuery = computed(() => {
 const { fetchSentences, fetchStats } = useSearchFetch();
 
 const { favoriteMediaIds } = useFavoriteMedia();
-const { entries: familiarMedia, load: loadFamiliarMedia } = useFamiliarMedia();
+// Still loaded here for the media filter's order; no longer sent with the search.
+const { load: loadFamiliarMedia } = useFamiliarMedia();
 
-// Break equal-ranked results toward starred and familiar titles; signed-out renders use neither.
-// Cold SSR uses favourites alone while the tally loads in parallel. Waiting for it
-// would add a round trip just to reorder ties; subsequent searches use the cached tally.
+// Starred titles come first in a word search (the backend serves them as their own block). Only the stars: they
+// are the reader's own choice, and unlike the study tally -- which loads after the first render -- they do not change
+// between page one and page two, which the rounds' cursor relies on.
 const preferMedia = computed<string[]>(() => {
   if (!userStore().isLoggedIn) return [];
-
-  const ids = new Set(favoriteMediaIds.value);
-  for (const entry of familiarMedia.value) ids.add(entry.media.publicId);
-  return [...ids];
+  return [...favoriteMediaIds.value];
 });
 
 const searchScope = computed<SearchScope>(() => ({
