@@ -38,6 +38,8 @@ vi.mock('@app/workers/emailLifecycleWorker', () => ({ registerEmailLifecycleWork
 vi.mock('@app/workers/activityRetentionWorker', () => ({ registerActivityRetentionWorker: vi.fn() }));
 vi.mock('@app/workers/affinityRetentionWorker', () => ({ registerAffinityRetentionWorker: vi.fn() }));
 vi.mock('@app/workers/tokenParseWorker', () => ({ registerTokenParseWorker: vi.fn() }));
+vi.mock('@app/workers/recurringLinesWorker', () => ({ registerRecurringLinesWorker: vi.fn() }));
+vi.mock('@app/workers/recurringLinesQueue', () => ({ sendRecurringSweepJob: vi.fn() }));
 
 import { workersInitializer } from '@config/initializers/workers';
 import { ES_SYNC_CREATE_QUEUE, ES_SYNC_DELETE_QUEUE, ES_SYNC_UPDATE_QUEUE } from '@app/workers/queueNames';

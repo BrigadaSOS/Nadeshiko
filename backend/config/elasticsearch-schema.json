@@ -783,6 +783,9 @@
       "tokens": {
         "type": "object",
         "enabled": false
+      },
+      "recurringRepeat": {
+        "type": "boolean"
       }
     }
   }

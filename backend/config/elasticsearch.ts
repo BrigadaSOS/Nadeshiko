@@ -159,6 +159,7 @@ export async function initializeElasticsearchIndex(esClient: Client = client): P
   if (aliasExists) {
     const physical = await resolvePhysicalIndex(esClient);
     logger.info({ alias: INDEX_NAME, physical }, 'Elasticsearch alias exists');
+    await addNewMappingFields(esClient);
     return;
   }
 
@@ -184,6 +185,25 @@ export async function initializeElasticsearchIndex(esClient: Client = client): P
   });
 
   logger.info({ index: physicalName, alias: INDEX_NAME }, 'Elasticsearch index created');
+}
+
+/**
+ * Fields added to the schema after indices already existed. An existing index only learns a schema change on a full
+ * reindex, so these are added to the live index in place at boot: adding a new field is allowed without a reindex,
+ * and putting an identical definition again is a no-op. Documents written before the field existed simply lack it.
+ * Only additive fields belong here -- changing an existing field still needs a reindex.
+ */
+const ADDITIVE_MAPPING_FIELDS = ['recurringRepeat'] as const;
+
+async function addNewMappingFields(esClient: Client): Promise<void> {
+  const properties = indexSchema.mappings.properties as Record<string, unknown>;
+  const added = Object.fromEntries(ADDITIVE_MAPPING_FIELDS.map((field) => [field, properties[field]]));
+  try {
+    await esClient.indices.putMapping({ index: INDEX_NAME, properties: added as never });
+  } catch (error) {
+    // Not fatal: until the field is mapped, Elasticsearch maps it dynamically on the first document that carries it.
+    logger.warn({ err: error, fields: ADDITIVE_MAPPING_FIELDS }, 'Could not add new mapping fields to the live index');
+  }
 }
 
 export async function resetElasticsearchIndex(): Promise<void> {

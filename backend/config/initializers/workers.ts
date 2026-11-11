@@ -5,6 +5,8 @@ import { registerEmailWorkers } from '@app/workers/emailWorker';
 import { registerEmailLifecycleWorker } from '@app/workers/emailLifecycleWorker';
 import { registerEsSyncWorkers } from '@app/workers/esSyncWorker';
 import { registerTokenParseWorker } from '@app/workers/tokenParseWorker';
+import { registerRecurringLinesWorker } from '@app/workers/recurringLinesWorker';
+import { sendRecurringSweepJob } from '@app/workers/recurringLinesQueue';
 import { setBossInstance } from '@app/workers/pgBossClient';
 import { registerQueueMetrics } from '@app/workers/workerInstrumentation';
 import {
@@ -18,6 +20,8 @@ import {
   ES_SYNC_UPDATE_QUEUE,
   TOKEN_PARSE_QUEUE,
   TOKEN_SWEEP_QUEUE,
+  RECURRING_RECOMPUTE_QUEUE,
+  RECURRING_SWEEP_QUEUE,
 } from '@app/workers/queueNames';
 import { getAppPostgresConfig } from '@config/postgresConfig';
 import { logger } from '@config/log';
@@ -148,6 +152,26 @@ export const workersInitializer: RuntimeInitializer = {
           retentionSeconds: 86400,
         },
       },
+      {
+        name: RECURRING_RECOMPUTE_QUEUE,
+        options: {
+          // A recompute is idempotent (it writes only changed rows), so retrying through a DB or queue blip is safe.
+          retryLimit: 5,
+          retryDelay: 30,
+          retryBackoff: true,
+          expireInSeconds: 1800,
+          retentionSeconds: 86400,
+        },
+      },
+      {
+        name: RECURRING_SWEEP_QUEUE,
+        options: {
+          retryLimit: 1,
+          retryDelay: 300,
+          expireInSeconds: 1800,
+          retentionSeconds: 86400,
+        },
+      },
     ];
 
     // `createQueue` leaves existing queues unchanged, so update each one to keep the stored options in sync.
@@ -164,6 +188,8 @@ export const workersInitializer: RuntimeInitializer = {
     await boss.schedule(EMAIL_LIFECYCLE_QUEUE, '0 5 * * *', {});
     // Run this last so it cannot queue work for rows the retention sweep is about to delete.
     await boss.schedule(TOKEN_SWEEP_QUEUE, '0 6 * * *', {});
+    // Repairs recurring-line flags a lost recompute or an unhooked write path left stale.
+    await boss.schedule(RECURRING_SWEEP_QUEUE, '30 6 * * *', { reason: 'nightly' });
     logger.info('PgBoss initialized, queues created, cron scheduled');
 
     setBossInstance(boss);
@@ -175,6 +201,10 @@ export const workersInitializer: RuntimeInitializer = {
     await registerActivityRetentionWorker(boss);
     await registerAffinityRetentionWorker(boss);
     await registerTokenParseWorker(boss);
+    await registerRecurringLinesWorker(boss);
+    // Also sweep at boot: the first deploy fills the flags with no manual step, and any later deploy converges them.
+    // Collapsed to one sweep per ten minutes, so a burst of restarts does not queue several.
+    await sendRecurringSweepJob('boot');
   },
   shutdown: async () => {
     if (boss) {

@@ -6,6 +6,7 @@ import { encodeKeysetCursor, decodeKeysetCursor } from '@lib/cursor';
 import { Cache } from '@lib/cache';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import { SegmentDocument } from '@app/services/search/SegmentDocument';
+import { sendRecurringRecomputeJob } from '@app/workers/recurringLinesQueue';
 
 /** Episode writes invalidate both caches because each contains per-media episode totals; media writes already follow
  * this rule. */
@@ -111,6 +112,9 @@ export const deleteEpisode: DeleteEpisode = async ({ params }, respond) => {
   await Episode.deleteOrFail({ where: { mediaId: media.id, episodeNumber: params.episodeNumber } });
 
   await enqueueSegmentEsDeletes(segmentIds);
+  // The episode's segments are gone by cascade, with no subscriber: a line may now recur in too few episodes, or have
+  // a different first episode, so the title's remaining segments are recomputed.
+  await sendRecurringRecomputeJob(media.id);
 
   invalidateEpisodeDerivedCaches();
 

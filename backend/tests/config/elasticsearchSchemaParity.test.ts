@@ -30,6 +30,7 @@ const REPRESENTATIVE_DOCUMENT: Required<SegmentDocumentShape> = {
   mediaId: 1,
   storageBasePath: '',
   tokens: [],
+  recurringRepeat: false,
 };
 
 describe('elasticsearch schema parity', () => {
