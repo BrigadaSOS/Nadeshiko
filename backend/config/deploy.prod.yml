@@ -162,10 +162,7 @@ accessories:
     env:
       secret:
         - ELASTICSEARCH_ADMIN_PASSWORD
-        # The image's own entrypoint reads ELASTIC_PASSWORD and sets the `elastic` password on an EMPTY data volume.
-        # It must run, so there is no `cmd` override here: the old `bash -c 'export ELASTIC_PASSWORD=...;
-        # ./bin/elasticsearch'` bypassed it, and a fresh volume came up with no usable admin. Staging had the same
-        # fix (#454) until its ES was retired; the 2026-11-11 rebuild rehearsal found production still had the bug.
+        # Read by the image's entrypoint to set the `elastic` password on a new volume. Don't override `cmd`: it skips that.
         - ELASTIC_PASSWORD:ELASTICSEARCH_ADMIN_PASSWORD
       clear:
         discovery.type: single-node
@@ -193,9 +190,7 @@ accessories:
   pg-backup:
     image: kartoza/pg-backup:17-3.5
     host: nadeshiko
-    # restore.sh reads the Postgres major version from /tmp/pg_version.txt, which this image ships EMPTY, so it looks
-    # for /usr/lib/postgresql//bin/pg_restore and fails. POSTGRES_MAJOR_VERSION below is not read by it. Found by the
-    # 2026-11-11 rebuild rehearsal; verify-backup.yml never noticed because it restores without this script.
+    # restore.sh reads the Postgres version from this file, which the image ships empty.
     files:
       - config/pg-backup/pg_version.txt:/tmp/pg_version.txt
     options:
