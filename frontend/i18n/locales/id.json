@@ -335,7 +335,12 @@
       "audiobook": "Buku audio"
     },
     "searchPlaceholder": "Cari judul",
-    "backToTitles": "Kembali ke daftar judul"
+    "backToTitles": "Kembali ke daftar judul",
+    "sort": {
+      "label": "Urutkan judul",
+      "alphabetical": "A–Z",
+      "matches": "Kalimat terbanyak"
+    }
   },
   "episodeFilter": {
     "noEpisodes": "Tidak ada episode yang ditemukan"

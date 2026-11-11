@@ -2,29 +2,40 @@
  * The order titles appear in inside the search media filter.
  *
  * The filter lists every title the current query matched, and a broad query
- * matches a lot of them, so the shows a reader actually knows are buried in an
- * alphabetical wall. This lifts those to the top -- it changes the ORDER of that
- * list and never its contents: a starred title the query did not match is not
- * absent by mistake, it simply has no results to offer.
+ * matches a lot of them. The reader picks one of two orders (see
+ * `useMediaFilterSort`); either way this changes the ORDER of that list and never
+ * its contents: a starred title the query did not match is not absent by
+ * mistake, it simply has no results to offer.
  *
- * Three tiers, in this order:
+ * `alphabetical` (the default) lifts the shows a reader knows out of an
+ * alphabetical wall, in three tiers:
  *
  *   0. starred by the reader, deliberately
  *   1. inferred from what the reader studies (see `useFamiliarMedia`)
  *   2. everything else
  *
- * Tier beats score, always, so a star is never overruled by the inference --
+ * Tier beats name, always, so a star is never overruled by the inference --
  * which is what makes the star worth having: it is the predictable half.
  *
+ * `matches` puts the titles with the most sentences first. A word with few
+ * results is often swamped by one show, and this makes that show easy to find
+ * and the single-line ones easy to scan. Stars still lead, because they are the
+ * reader's own choice; the inferred tier does not exist here, since a guess
+ * outranking the order the reader just asked for would contradict it.
+ *
  * Kept pure and free of Vue so the ordering is testable on its own, including
- * the property that matters most: with no favorites and nothing inferred, this
- * reproduces the plain alphabetical order the filter had before the feature
- * existed. That is what a signed-out reader gets, and it must be a no-op rather
- * than a degraded version of the signed-in list.
+ * the property that matters most: in `alphabetical` with no favorites and
+ * nothing inferred, this is the plain alphabetical list a signed-out reader has
+ * always had.
  */
+export const MEDIA_SORT_MODES = ['alphabetical', 'matches'] as const;
+export type MediaSortMode = (typeof MEDIA_SORT_MODES)[number];
+export const DEFAULT_MEDIA_SORT_MODE: MediaSortMode = 'alphabetical';
+
 export type SortableMediaRow = {
   mediaPublicId: string | null;
   displayNameLower: string;
+  matchCount: number;
 };
 
 export function mediaFilterTier(
@@ -38,12 +49,28 @@ export function mediaFilterTier(
   return 2;
 }
 
+function compareNames(a: SortableMediaRow, b: SortableMediaRow): number {
+  if (a.displayNameLower < b.displayNameLower) return -1;
+  if (a.displayNameLower > b.displayNameLower) return 1;
+  return 0;
+}
+
 export function compareMediaRows<T extends SortableMediaRow>(
   a: T,
   b: T,
   favoriteIds: ReadonlySet<string>,
   inferredRank: ReadonlyMap<string, number>,
+  mode: MediaSortMode = DEFAULT_MEDIA_SORT_MODE,
 ): number {
+  if (mode === 'matches') {
+    const starredA = !!a.mediaPublicId && favoriteIds.has(a.mediaPublicId);
+    const starredB = !!b.mediaPublicId && favoriteIds.has(b.mediaPublicId);
+    if (starredA !== starredB) return starredA ? -1 : 1;
+    if (a.matchCount !== b.matchCount) return b.matchCount - a.matchCount;
+    // Name breaks ties, so the order does not wobble between renders.
+    return compareNames(a, b);
+  }
+
   const tierA = mediaFilterTier(a.mediaPublicId, favoriteIds, inferredRank);
   const tierB = mediaFilterTier(b.mediaPublicId, favoriteIds, inferredRank);
   if (tierA !== tierB) return tierA - tierB;
@@ -59,7 +86,5 @@ export function compareMediaRows<T extends SortableMediaRow>(
   // Starred titles sort alphabetically rather than by when they were starred:
   // this is a list to find a title in, and "the order I happened to click stars
   // in months ago" reads as no order at all.
-  if (a.displayNameLower < b.displayNameLower) return -1;
-  if (a.displayNameLower > b.displayNameLower) return 1;
-  return 0;
+  return compareNames(a, b);
 }

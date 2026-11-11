@@ -335,7 +335,12 @@
       "audiobook": "オーディオブック"
     },
     "searchPlaceholder": "作品を検索",
-    "backToTitles": "作品一覧に戻る"
+    "backToTitles": "作品一覧に戻る",
+    "sort": {
+      "label": "作品の並び順",
+      "alphabetical": "名前順",
+      "matches": "例文が多い順"
+    }
   },
   "episodeFilter": {
     "noEpisodes": "エピソードが見つかりませんでした"

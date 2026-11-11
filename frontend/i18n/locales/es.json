@@ -335,7 +335,12 @@
       "audiobook": "Audiolibro"
     },
     "searchPlaceholder": "Buscar títulos",
-    "backToTitles": "Volver a la lista de títulos"
+    "backToTitles": "Volver a la lista de títulos",
+    "sort": {
+      "label": "Ordenar títulos",
+      "alphabetical": "A–Z",
+      "matches": "Más frases"
+    }
   },
   "episodeFilter": {
     "noEpisodes": "No se encontraron episodios"

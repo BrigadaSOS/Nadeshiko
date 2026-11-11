@@ -4,7 +4,7 @@ import { mdiChevronLeft } from '@mdi/js';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
 import { episodeLabel } from '~/utils/media';
 import { EPISODE_HITS_LOADING } from '~/composables/useSearchFetch';
-import { compareMediaRows } from '~/utils/mediaFilterSort';
+import { compareMediaRows, MEDIA_SORT_MODES, type MediaSortMode } from '~/utils/mediaFilterSort';
 import type { ResolvedMediaStats, SearchSidebarData } from '~/types/search';
 
 /** One title in the media filter list. */
@@ -29,6 +29,12 @@ const { mediaName: getMediaName } = useMediaName();
 // Only the ordering is needed here; the star itself owns toggling.
 const { favoriteMediaIds } = useFavoriteMedia();
 const { inferredRank } = useFamiliarMedia();
+const { mode: sortMode, setMode: setSortMode } = useMediaFilterSort();
+// Static keys, so the locale checker sees them used.
+const SORT_MODE_LABEL_KEYS: Record<MediaSortMode, string> = {
+  alphabetical: 'filterContent.sort.alphabetical',
+  matches: 'filterContent.sort.matches',
+};
 const props = defineProps<{
   searchData?: SearchSidebarData | null;
   categorySelected?: string | null;
@@ -123,11 +129,12 @@ const filteredMedia = computed<MediaFilterRow[]>(() => {
     return categoryFilter && (nameFilterEnglish || nameFilterJapanese || nameFilterRomaji);
   });
 
-  // Starred first, then what the reader studies, then the rest alphabetically.
-  // With neither -- a signed-out reader, or one who has starred nothing and has
-  // no tally -- this is byte-for-byte the alphabetical order the filter has
-  // always had.
-  return filteredItems.sort((a, b) => compareMediaRows(a, b, favoriteMediaIds.value, inferredRank.value));
+  // A–Z: starred first, then what the reader studies, then the rest by name.
+  // Most sentences: starred first, then everything else by count. See
+  // `compareMediaRows`.
+  return filteredItems.sort((a, b) =>
+    compareMediaRows(a, b, favoriteMediaIds.value, inferredRank.value, sortMode.value),
+  );
 });
 
 const selectedMediaId = computed(() => {
@@ -277,6 +284,27 @@ const applyPendingFocus = () => {
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                     </svg>
                 </div>
+            </div>
+            <!-- The list's own order, kept apart from the results sort above the
+                 card: this only reorders the titles, never the sentences. -->
+            <div
+                role="group"
+                :aria-label="$t('filterContent.sort.label')"
+                data-testid="media-filter-sort"
+                class="mt-3 flex gap-0.5 rounded-md border border-hairline p-0.5 text-xs">
+                <button
+                    v-for="option in MEDIA_SORT_MODES"
+                    :key="option"
+                    type="button"
+                    :aria-pressed="sortMode === option"
+                    :data-testid="`media-filter-sort-${option}`"
+                    class="flex-1 rounded px-2 py-1 transition-colors motion-reduce:transition-none"
+                    :class="sortMode === option
+                        ? 'bg-control-hover text-ink font-semibold shadow-sm'
+                        : 'text-ink-faint hover:text-ink'"
+                    @click="setSortMode(option)">
+                    {{ $t(SORT_MODE_LABEL_KEYS[option]) }}
+                </button>
             </div>
         </template>
 

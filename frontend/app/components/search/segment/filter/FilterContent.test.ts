@@ -27,6 +27,11 @@ vi.stubGlobal('useMediaName', () => ({
 }));
 vi.stubGlobal('useFavoriteMedia', () => ({ favoriteMediaIds }));
 vi.stubGlobal('useFamiliarMedia', () => ({ inferredRank }));
+const sortMode = ref<'alphabetical' | 'matches'>('alphabetical');
+const setSortMode = vi.fn((mode: 'alphabetical' | 'matches') => {
+  sortMode.value = mode;
+});
+vi.stubGlobal('useMediaFilterSort', () => ({ mode: sortMode, setMode: setSortMode }));
 
 import FilterContent from './FilterContent.vue';
 
@@ -104,6 +109,7 @@ beforeEach(() => {
   for (const key of Object.keys(routeParams)) delete routeParams[key];
   favoriteMediaIds.value = new Set();
   inferredRank.value = new Map();
+  sortMode.value = 'alphabetical';
 });
 
 afterEach(() => {
@@ -145,6 +151,43 @@ describe('the title list', () => {
     inferredRank.value = new Map([['Aaa', 1]]);
 
     expect(labels(render([media('Aaa'), media('Zzz')]))).toEqual(['Zzz', 'Aaa']);
+  });
+});
+
+describe('choosing the order', () => {
+  const ROWS = [
+    media('Aria', {}, { matchCount: 1 }),
+    media('Bocchi', {}, { matchCount: 40 }),
+    media('Clannad', {}, { matchCount: 7 }),
+  ];
+  const sortButton = (w: ReturnType<typeof render>, mode: string) =>
+    w.get(`[data-testid="media-filter-sort-${mode}"]`);
+
+  test('starts on A–Z, with that option marked as chosen', () => {
+    const wrapper = render(ROWS);
+
+    expect(labels(wrapper)).toEqual(['Aria', 'Bocchi', 'Clannad']);
+    expect(sortButton(wrapper, 'alphabetical').attributes('aria-pressed')).toBe('true');
+    expect(sortButton(wrapper, 'matches').attributes('aria-pressed')).toBe('false');
+  });
+
+  test('switching to most sentences reorders the list and remembers the choice', async () => {
+    const wrapper = render(ROWS);
+
+    await sortButton(wrapper, 'matches').trigger('click');
+
+    expect(setSortMode).toHaveBeenCalledWith('matches');
+    expect(labels(wrapper)).toEqual(['Bocchi', 'Clannad', 'Aria']);
+    expect(sortButton(wrapper, 'matches').attributes('aria-pressed')).toBe('true');
+  });
+
+  test('by most sentences, a star still leads but a studied title does not', () => {
+    sortMode.value = 'matches';
+    favoriteMediaIds.value = new Set(['Clannad']);
+    // Studied, but with the fewest sentences: A–Z would lift it to second.
+    inferredRank.value = new Map([['Aria', 0]]);
+
+    expect(labels(render(ROWS))).toEqual(['Clannad', 'Bocchi', 'Aria']);
   });
 });
 

@@ -335,7 +335,12 @@
       "audiobook": "有声书"
     },
     "searchPlaceholder": "搜索作品",
-    "backToTitles": "返回作品列表"
+    "backToTitles": "返回作品列表",
+    "sort": {
+      "label": "作品排序",
+      "alphabetical": "名称",
+      "matches": "例句最多"
+    }
   },
   "episodeFilter": {
     "noEpisodes": "未找到剧集"
