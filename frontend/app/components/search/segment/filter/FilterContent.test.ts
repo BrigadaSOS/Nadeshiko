@@ -160,8 +160,7 @@ describe('choosing the order', () => {
     media('Bocchi', {}, { matchCount: 40 }),
     media('Clannad', {}, { matchCount: 7 }),
   ];
-  const sortButton = (w: ReturnType<typeof render>, mode: string) =>
-    w.get(`[data-testid="media-filter-sort-${mode}"]`);
+  const sortButton = (w: ReturnType<typeof render>, mode: string) => w.get(`[data-testid="media-filter-sort-${mode}"]`);
 
   test('starts on A–Z, with that option marked as chosen', () => {
     const wrapper = render(ROWS);

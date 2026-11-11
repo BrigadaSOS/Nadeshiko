@@ -287,11 +287,10 @@ const applyPendingFocus = () => {
             </div>
             <!-- The list's own order, kept apart from the results sort above the
                  card: this only reorders the titles, never the sentences. -->
-            <div
-                role="group"
-                :aria-label="$t('filterContent.sort.label')"
+            <fieldset
                 data-testid="media-filter-sort"
-                class="mt-3 flex gap-0.5 rounded-md border border-hairline p-0.5 text-xs">
+                class="mt-3 flex min-w-0 gap-0.5 rounded-md border border-hairline p-0.5 text-xs">
+                <legend class="sr-only">{{ $t('filterContent.sort.label') }}</legend>
                 <button
                     v-for="option in MEDIA_SORT_MODES"
                     :key="option"
@@ -305,7 +304,7 @@ const applyPendingFocus = () => {
                     @click="setSortMode(option)">
                     {{ $t(SORT_MODE_LABEL_KEYS[option]) }}
                 </button>
-            </div>
+            </fieldset>
         </template>
 
         <Transition name="nd-drilldown" mode="out-in" @after-enter="applyPendingFocus">
