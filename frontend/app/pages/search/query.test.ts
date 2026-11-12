@@ -257,6 +257,19 @@ describe('what the page tells crawlers', () => {
       trail,
     });
   });
+
+  // Word x title x episode is a combinatorial URL space Google crawls and drops; the unscoped word
+  // page and the episode page are the ones meant to rank.
+  test.each([
+    { label: 'scoped to a title', query: { media: 'm1' }, rule: 'noindex, follow' },
+    { label: 'scoped to an episode', query: { media: 'm1', episode: '3' }, rule: 'noindex, follow' },
+    { label: 'with only a category', query: { category: 'anime' }, rule: undefined },
+  ])('a word search $label', async ({ query, rule }) => {
+    vi.stubGlobal('useI18n', () => mediaMetaI18n);
+    await render(hits(12), '/en/search/cat', query);
+
+    expect(capturedRobots).toEqual([rule]);
+  });
 });
 
 describe('the media breadcrumb trail', () => {

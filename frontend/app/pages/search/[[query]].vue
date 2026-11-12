@@ -199,7 +199,13 @@ const emptyResultPage = computed(() => {
   if (!searchQuery.value || data == null) return false;
   return (data.pagination?.estimatedTotalHits ?? data.results?.length ?? 0) === 0;
 });
-useRobotsRule(emptyResultPage.value ? 'noindex, follow' : undefined);
+// A word scoped to a title or episode multiplies into millions of URLs that Google crawls and then
+// drops ("Crawled - currently not indexed"), starving the media/episode pages of crawl. The
+// unscoped word page and /media/<slug>?episode=N carry those searches; follow keeps the links.
+const titleScopedWordSearch = computed(
+  () => !!searchQuery.value && (routeFilters.value.mediaPublicId != null || routeFilters.value.episode != null),
+);
+useRobotsRule(emptyResultPage.value || titleScopedWordSearch.value ? 'noindex, follow' : undefined);
 
 const requestOrigin = useRequestURL().origin;
 const metaTags = computed(() => {
