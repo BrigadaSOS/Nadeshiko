@@ -749,11 +749,13 @@ describe('minedWord surface form', () => {
     expect(mined.word).toBe('食べる');
     expect(mined.dictionaryForm).toBe('食べる');
     expect(mined.surface).toBe('食べた');
+    expect(mined.form).toBe('dictionary');
   });
 
   it('writes the sentence form to word, with its own reading and ruby', () => {
     const mined = minedWord(TABERU, TABETA, EN, '', undefined, 'surface');
     expect(mined.word).toBe('食べた');
+    expect(mined.form).toBe('surface');
     expect(mined.reading).toBe('たべた');
     expect(mined.furigana).toBe('食[た]べた');
     expect(mined.dictionaryForm).toBe('食べる');

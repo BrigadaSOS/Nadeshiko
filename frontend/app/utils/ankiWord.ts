@@ -135,6 +135,8 @@ export interface MinedWord {
   dictionaryForm: string;
   /** The word exactly as it appears in the sentence (`食べた`, `もしかして`), plain. */
   surface: string;
+  /** Which form `word` holds; reported with the export so the two buttons can be compared. */
+  form: MinedForm;
   /** Kana, plain. Empty when the headword is already kana. */
   reading: string;
   /** `手加減[てかげん]`, Anki's own ruby notation. */
@@ -208,6 +210,7 @@ function asSurface(mined: MinedWord, token: EnrichedToken): MinedWord {
   const reading = token.readingHiragana;
   return {
     ...mined,
+    form: 'surface',
     word: surface,
     reading: reading === surface ? '' : reading,
     furigana: furiganaNotation(token.furigana),
@@ -218,6 +221,7 @@ const EMPTY: MinedWord = {
   word: '',
   dictionaryForm: '',
   surface: '',
+  form: 'dictionary',
   reading: '',
   furigana: '',
   definition: '',
@@ -441,6 +445,7 @@ function minedDictionaryWord(
       word: headword,
       dictionaryForm: headword,
       surface,
+      form: 'dictionary',
       reading: reading === headword ? '' : reading,
       furigana: furiganaNotation([{ text: headword, reading: '' }]),
       // Marked even when the dictionary had nothing: which word the reader was
@@ -486,6 +491,7 @@ function minedDictionaryWord(
     word: headword,
     dictionaryForm: headword,
     surface,
+    form: 'dictionary',
     // A kana headword is its own reading, and printing it in both fields is a
     // card that says the same thing twice. Same rule the tooltip applies.
     reading: reading === headword ? '' : reading,

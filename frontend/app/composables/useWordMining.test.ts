@@ -260,6 +260,22 @@ describe('what the probe reports', () => {
     expect(posthog.capture).toHaveBeenCalledWith('word_card_mined_checked', { mined: true, lemma: '手加減' });
   });
 
+  test('a second instance on the same card reports nothing', async () => {
+    // The sentence-form button probes too; counting it would double the
+    // denominator of the mined rate for every inflected word.
+    const useWordMining = await loadComposable();
+    const quiet = useWordMining(
+      () => sentence,
+      () => '食べた',
+      () => null,
+      { reportProbes: false },
+    );
+
+    await quiet.probeMined();
+
+    expect(posthog.capture).not.toHaveBeenCalledWith('word_card_mined_checked', expect.anything());
+  });
+
   test('reports that it was not', async () => {
     await (await mining('手加減')).probeMined();
 

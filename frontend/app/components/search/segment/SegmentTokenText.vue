@@ -234,6 +234,7 @@ const {
   () => props.result,
   () => surfaceForm.value ?? '',
   () => minedSurfaceCard.value,
+  { reportProbes: false },
 );
 
 /** Ask Anki about both forms. A form that is not on offer asks nothing: its getter answers ''. */

@@ -1093,6 +1093,24 @@ describe('addResultToAnki: choosing what to write to', () => {
     );
   });
 
+  test('a word-card export says which form of the word went on the note', async () => {
+    queueFetch(ankiOk([{ noteId: 77, fields: {} }]), ankiOk(null));
+    const store = withProfile(
+      makeProfile({ fields: [{ key: 'W', value: '{word}' }], openBrowserOnExport: false } as never),
+    );
+
+    await store.addResultToAnki(asResult(sentence), {
+      noteId: 77,
+      method: 'word_card_note',
+      word: { word: '食べた', form: 'surface' } as never,
+    });
+
+    expect(posthog.capture).toHaveBeenCalledWith(
+      'anki_export_completed',
+      expect.objectContaining({ export_method: 'word_card_note', word_form: 'surface' }),
+    );
+  });
+
   test('the surface falls back to how the target was chosen for callers that do not say', async () => {
     queueFetch(ankiOk([{ noteId: 77, fields: {} }]), ankiOk(null));
     const store = withProfile(
