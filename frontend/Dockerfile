@@ -2,7 +2,7 @@
 
 # Build from the repository root for workspace manifests, lockfile and SDK sources:
 #   docker build -f frontend/Dockerfile .
-FROM node:26.13.0-slim@sha256:e4db4c914bf8ad241bd24804fc25d272d89bad97e68cdc8a1414862790a02c39 AS deps
+FROM node:26.13.0-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS deps
 WORKDIR /build
 # ca-certificates: the PostHog CLI that uploads sourcemaps in production builds is a Rust binary that reads the system
 # trust store, and the slim image ships without one.
@@ -61,25 +61,25 @@ RUN if [ "$NUXT_PUBLIC_ENVIRONMENT" = "production" ]; then \
   fi
 
 # --import loads OpenTelemetry before Nitro's bundle, so ship its SDK separately.
-FROM node:26.13.0-slim@sha256:e4db4c914bf8ad241bd24804fc25d272d89bad97e68cdc8a1414862790a02c39 AS otel-deps
+FROM node:26.13.0-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS otel-deps
 WORKDIR /deps
 # Pinned to the lockfile's versions: unpinned, every build resolved whatever was newest, so an upstream release
 # could break the image (api 1.10.0 did, against sdk-trace-node's peer range) or ship code nobody reviewed.
 RUN npm init -y >/dev/null \
   && npm install --omit=dev --no-audit --no-fund --save-exact \
     @opentelemetry/api@1.10.0 \
-    @opentelemetry/sdk-node@0.300.0 \
-    @opentelemetry/sdk-trace@3.0.0 \
-    @opentelemetry/exporter-trace-otlp-http@0.300.0 \
-    @opentelemetry/exporter-metrics-otlp-http@0.300.0 \
-    @opentelemetry/resources@3.0.0 \
-    @opentelemetry/sdk-metrics@3.0.0 \
-    @opentelemetry/instrumentation-http@0.300.0 \
-    @opentelemetry/instrumentation-undici@0.34.0 \
-    @opentelemetry/instrumentation-runtime-node@0.37.0 \
-    @opentelemetry/instrumentation-pino@0.70.0
+    @opentelemetry/sdk-node@0.301.0 \
+    @opentelemetry/sdk-trace@3.1.0 \
+    @opentelemetry/exporter-trace-otlp-http@0.301.0 \
+    @opentelemetry/exporter-metrics-otlp-http@0.301.0 \
+    @opentelemetry/resources@3.1.0 \
+    @opentelemetry/sdk-metrics@3.1.0 \
+    @opentelemetry/instrumentation-http@0.301.0 \
+    @opentelemetry/instrumentation-undici@0.35.0 \
+    @opentelemetry/instrumentation-runtime-node@0.38.0 \
+    @opentelemetry/instrumentation-pino@0.71.0
 
-FROM node:26.13.0-slim@sha256:e4db4c914bf8ad241bd24804fc25d272d89bad97e68cdc8a1414862790a02c39
+FROM node:26.13.0-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072
 WORKDIR /app
 COPY --from=build /build/frontend/.output ./.output
 RUN rm -rf .output/server/node_modules/@opentelemetry/api
