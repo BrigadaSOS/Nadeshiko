@@ -36,19 +36,21 @@ import { useDropdownState } from '~/composables/useDropdownState';
 vi.stubGlobal('useDropdownState', useDropdownState);
 vi.stubGlobal('onViewportWidthChange', vi.fn());
 vi.stubGlobal('userStore', () => ({ isLoggedIn: true, preferences: {}, shirabeGlossLanguages: [] }));
-vi.stubGlobal('useWordMining', () => ({
-  minedNoteId: ref(null),
+const fakeWordMining = (ready = false) => ({
+  minedNoteId: ref<number | null>(null),
   mining: ref(false),
-  canConfigureMine: ref(false),
-  canMine: ref(false),
+  canConfigureMine: ref(ready),
+  canMine: ref(ready),
   mineBlockedReason: ref(null),
-  mineReady: ref(false),
+  mineReady: ref(ready),
   mapsDefinition: ref(false),
   probeMined: vi.fn(),
   clearMined: vi.fn(),
   openMinedNote: vi.fn(),
   mineSentence: vi.fn(),
-}));
+});
+const unconfiguredWordMining = () => fakeWordMining();
+vi.stubGlobal('useWordMining', unconfiguredWordMining);
 
 // The card's own composables, registered REAL for the same reason the two
 // modules below are: they hold the card's state, and a stub would leave the
@@ -115,9 +117,9 @@ function candidate(name: string, pos = 'noun', over: Record<string, unknown> = {
 
 const mounted: { unmount: () => void }[] = [];
 
-function render(tokens: unknown[]) {
+function render(tokens: unknown[], result?: unknown) {
   const wrapper = mount(SegmentTokenText, {
-    props: { tokens } as never,
+    props: { tokens, result } as never,
     global: {
       mocks: { $t: (k: string) => k },
       stubs: {
@@ -271,5 +273,77 @@ describe('telling two candidates apart', () => {
     await nextTick();
 
     expect(document.querySelector('.token-tooltip__word')?.textContent).toContain('我');
+  });
+});
+
+describe('mining the form the sentence uses', () => {
+  /** One fake per `useWordMining` call: the headword's first, the surface form's second. */
+  let instances: { word: () => string; mining: ReturnType<typeof fakeWordMining> }[] = [];
+  const result = { segment: { textJa: { content: '食べた' } } };
+
+  beforeEach(() => {
+    instances = [];
+    vi.stubGlobal('useWordMining', (_result: unknown, word: () => string) => {
+      const mining = fakeWordMining(true);
+      instances.push({ word, mining });
+      return mining;
+    });
+  });
+
+  afterEach(() => {
+    vi.stubGlobal('useWordMining', unconfiguredWordMining);
+  });
+
+  test('an inflected word offers a second button that mines the sentence form', async () => {
+    peekWord.mockReturnValue({ candidates: [candidate('食べる', 'verb')], reason: null, nameOnly: false });
+    const wrapper = render([token('食べた', { d: '食べる', r: 'タベタ' })], result);
+
+    await clickableTokens(wrapper)[0]!.trigger('click');
+    await nextTick();
+
+    const button = document.querySelector<HTMLButtonElement>('[data-testid="word-mine-surface"]');
+    expect(button?.textContent).toContain('食べた');
+    expect(instances[0]!.word()).toBe('食べる');
+    expect(instances[1]!.word()).toBe('食べた');
+
+    button!.click();
+    expect(instances[1]!.mining.mineSentence).toHaveBeenCalled();
+    expect(instances[0]!.mining.mineSentence).not.toHaveBeenCalled();
+  });
+
+  test('both forms are checked against Anki when the card opens', async () => {
+    peekWord.mockReturnValue({ candidates: [candidate('食べる', 'verb')], reason: null, nameOnly: false });
+    const wrapper = render([token('食べた', { d: '食べる', r: 'タベタ' })], result);
+
+    await clickableTokens(wrapper)[0]!.trigger('click');
+
+    expect(instances[0]!.mining.probeMined).toHaveBeenCalled();
+    expect(instances[1]!.mining.probeMined).toHaveBeenCalled();
+  });
+
+  test('a word already in its dictionary form gets only the one button', async () => {
+    peekWord.mockReturnValue({ candidates: [candidate('猫')], reason: null, nameOnly: false });
+    const wrapper = render([token('猫')], result);
+
+    await clickableTokens(wrapper)[0]!.trigger('click');
+    await nextTick();
+
+    expect(document.querySelector('[data-testid="word-mine"]')).toBeTruthy();
+    expect(document.querySelector('[data-testid="word-mine-surface"]')).toBeNull();
+    expect(instances[1]!.word()).toBe('');
+  });
+
+  test('a surface form already in Anki shows as mined and opens its note', async () => {
+    peekWord.mockReturnValue({ candidates: [candidate('食べる', 'verb')], reason: null, nameOnly: false });
+    const wrapper = render([token('食べた', { d: '食べる', r: 'タベタ' })], result);
+
+    await clickableTokens(wrapper)[0]!.trigger('click');
+    instances[1]!.mining.minedNoteId.value = 42;
+    await nextTick();
+
+    const mined = document.querySelector<HTMLButtonElement>('[data-testid="word-mine-surface-mined"]');
+    expect(mined).toBeTruthy();
+    mined!.click();
+    expect(instances[1]!.mining.openMinedNote).toHaveBeenCalled();
   });
 });

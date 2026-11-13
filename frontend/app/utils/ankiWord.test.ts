@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   definitionHtml,
   definitionSourceHtml,
+  distinctSurface,
   escapeHtml,
   highlightedSentence,
   infoHtml,
@@ -728,5 +729,63 @@ describe('picking dictionaries', () => {
     );
 
     expect(pickedDictionaries).toBe(2);
+  });
+});
+
+describe('minedWord surface form', () => {
+  const TABETA = token({
+    displaySurface: '食べた',
+    dictForm: '食べる',
+    readingHiragana: 'たべた',
+    furigana: [
+      { text: '食', reading: 'た' },
+      { text: 'べた', reading: '' },
+    ],
+  });
+  const TABERU: ShirabeWord = { ...TEKAGEN, id: 'taberu', headword: '食べる', reading: 'たべる', furigana: [] };
+
+  it('mines the dictionary form by default, and carries both forms', () => {
+    const mined = minedWord(TABERU, TABETA, EN);
+    expect(mined.word).toBe('食べる');
+    expect(mined.dictionaryForm).toBe('食べる');
+    expect(mined.surface).toBe('食べた');
+  });
+
+  it('writes the sentence form to word, with its own reading and ruby', () => {
+    const mined = minedWord(TABERU, TABETA, EN, '', undefined, 'surface');
+    expect(mined.word).toBe('食べた');
+    expect(mined.reading).toBe('たべた');
+    expect(mined.furigana).toBe('食[た]べた');
+    expect(mined.dictionaryForm).toBe('食べる');
+    // Definitions and pitch describe the dictionary entry, whichever form is mined.
+    expect(mined.definition).toContain('allowance');
+    expect(mined.audioUrl).toBe('https://cdn.shirabe.org/pitch/tekagen-0.mp3');
+  });
+
+  it('leaves the reading empty for a kana surface', () => {
+    const kana = token({
+      displaySurface: 'もしかして',
+      dictForm: '若しかして',
+      readingHiragana: 'もしかして',
+      furigana: [{ text: 'もしかして', reading: '' }],
+    });
+    const mined = minedWord(null, kana, EN, '', undefined, 'surface');
+    expect(mined.word).toBe('もしかして');
+    expect(mined.reading).toBe('');
+    expect(mined.furigana).toBe('もしかして');
+    expect(mined.dictionaryForm).toBe('若しかして');
+  });
+
+  it('falls back to the dictionary form when the token has no surface', () => {
+    expect(minedWord(TABERU, token(), EN, '', undefined, 'surface').word).toBe('食べる');
+  });
+});
+
+describe('distinctSurface', () => {
+  it('offers the surface only when it differs from the headword', () => {
+    expect(distinctSurface(token({ displaySurface: '食べた' }), '食べる')).toBe('食べた');
+    expect(distinctSurface(token({ displaySurface: '食べる' }), '食べる')).toBeNull();
+    expect(distinctSurface(token({ displaySurface: '' }), '食べる')).toBeNull();
+    expect(distinctSurface(null, '食べる')).toBeNull();
   });
 });

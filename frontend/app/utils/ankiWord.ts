@@ -129,8 +129,12 @@ export function escapeHtml(value: string): string {
 /** Everything a mine can write about the open word. Every field is a finished
  *  string: the store substitutes, it does not format. */
 export interface MinedWord {
-  /** The dictionary form, plain. */
+  /** The form being mined, plain: the dictionary form, or the sentence's own form when mined that way. */
   word: string;
+  /** The dictionary form, plain, whichever form `word` holds. */
+  dictionaryForm: string;
+  /** The word exactly as it appears in the sentence (`食べた`, `もしかして`), plain. */
+  surface: string;
   /** Kana, plain. Empty when the headword is already kana. */
   reading: string;
   /** `手加減[てかげん]`, Anki's own ruby notation. */
@@ -179,8 +183,41 @@ export interface MinedWord {
 /** Shared empty selection avoids a fresh default identity on every hover recomputation. */
 const EMPTY_PICK: ReadonlySet<string> = new Set<string>();
 
+/**
+ * Which form a mine writes to `{word}`: the dictionary form (`食べる`), or the form the sentence
+ * uses (`食べた`, a kana spelling such as `もしかして`) for readers who study what they read.
+ */
+export type MinedForm = 'dictionary' | 'surface';
+
+/**
+ * The sentence's own form when it differs from `headword`, or null when there is only one form to
+ * offer. Drives whether the card shows a second mine button.
+ */
+export function distinctSurface(token: EnrichedToken | null, headword: string): string | null {
+  const surface = token?.displaySurface ?? '';
+  return surface && surface !== headword ? surface : null;
+}
+
+/**
+ * Rewrite the word fields for the sentence's form. The reading and ruby come from the token, which
+ * describes the surface; pitch, audio and definitions stay with the dictionary entry, which is what
+ * they describe.
+ */
+function asSurface(mined: MinedWord, token: EnrichedToken): MinedWord {
+  const surface = token.displaySurface;
+  const reading = token.readingHiragana;
+  return {
+    ...mined,
+    word: surface,
+    reading: reading === surface ? '' : reading,
+    furigana: furiganaNotation(token.furigana),
+  };
+}
+
 const EMPTY: MinedWord = {
   word: '',
+  dictionaryForm: '',
+  surface: '',
   reading: '',
   furigana: '',
   definition: '',
@@ -370,6 +407,8 @@ function headwordSegments(word: ShirabeWord): FuriganaSegment[] {
  * Use token headword and reading as fallback when lookup is absent. Dictionary-only fields stay empty so the
  * store preserves existing note content.
  * @param picked Dictionary keys to retain; an empty selection means all dictionaries.
+ * @param form   Which form goes in `word`; see `MinedForm`. Both forms are always available as
+ *               `dictionaryForm` and `surface`.
  */
 export function minedWord(
   word: ShirabeWord | null,
@@ -377,8 +416,21 @@ export function minedWord(
   preference: GlossPreference,
   sentenceText = '',
   picked: ReadonlySet<string> = EMPTY_PICK,
+  form: MinedForm = 'dictionary',
+): MinedWord {
+  const mined = minedDictionaryWord(word, token, preference, sentenceText, picked);
+  return form === 'surface' && token?.displaySurface ? asSurface(mined, token) : mined;
+}
+
+function minedDictionaryWord(
+  word: ShirabeWord | null,
+  token: EnrichedToken | null,
+  preference: GlossPreference,
+  sentenceText: string,
+  picked: ReadonlySet<string>,
 ): MinedWord {
   if (!word && !token) return EMPTY;
+  const surface = token?.displaySurface ?? '';
 
   const headword = word?.headword || token?.dictForm || '';
   const reading = word?.reading || token?.readingHiragana || '';
@@ -387,6 +439,8 @@ export function minedWord(
     return {
       ...EMPTY,
       word: headword,
+      dictionaryForm: headword,
+      surface,
       reading: reading === headword ? '' : reading,
       furigana: furiganaNotation([{ text: headword, reading: '' }]),
       // Marked even when the dictionary had nothing: which word the reader was
@@ -430,6 +484,8 @@ export function minedWord(
 
   return {
     word: headword,
+    dictionaryForm: headword,
+    surface,
     // A kana headword is its own reading, and printing it in both fields is a
     // card that says the same thing twice. Same rule the tooltip applies.
     reading: reading === headword ? '' : reading,
