@@ -686,7 +686,7 @@ export type t_SearchResponse = {
 };
 
 export type t_SearchSort = {
-  mode?: 'RELEVANCE' | 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM';
+  mode?: 'RELEVANCE' | 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'DIFFICULTY_ASC' | 'DIFFICULTY_DESC' | 'RANDOM';
   seed?: number;
 };
 

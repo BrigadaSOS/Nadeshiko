@@ -62,6 +62,8 @@ export interface SegmentDocumentShape {
   tokens?: SlimToken[];
   /** A later copy of a recurring opening/ending/recap line; search leaves these out. See `recurringLines.ts`. */
   recurringRepeat?: boolean;
+  /** Estimated vocabulary difficulty, 0–4030; absent when the segment has no content word. See `difficulty.ts`. */
+  difficulty?: number;
 }
 
 export interface ReindexMediaItem {

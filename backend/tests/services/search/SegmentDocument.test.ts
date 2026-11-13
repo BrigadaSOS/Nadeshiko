@@ -1,9 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { client } from '@config/elasticsearch';
 import { InvalidRequestError } from '@app/errors';
 import { decodeKeysetCursor, encodeKeysetCursor } from '@lib/cursor';
-import { CategoryType } from '@app/models';
+import { CategoryType, WordFrequency } from '@app/models';
+import type { SlimToken } from '@app/models/Segment';
+import { resetDifficultyLookup } from '@app/services/search/segmentDocument/difficultyLookup';
 import { Cache } from '@lib/cache';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import { setupSearchSuite } from '../../helpers/searchSetup';
@@ -188,6 +190,130 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
 
       expect(page2.segments).toHaveLength(1);
       expect(page2.segments[0].publicId).not.toBe(page1.segments[0].publicId);
+    });
+
+    describe('difficulty sort', () => {
+      const word = (d: string, b: number, p = '名詞'): SlimToken => ({
+        s: d,
+        d,
+        r: '',
+        b,
+        e: b + d.length,
+        p,
+        kind: 'word',
+      });
+      const particle = (s: string, b: number): SlimToken => ({
+        s,
+        d: s,
+        r: '',
+        b,
+        e: b + 1,
+        p: '助詞',
+        kind: 'function',
+      });
+
+      beforeEach(async () => {
+        await WordFrequency.query('DELETE FROM "WordFrequency"');
+        await WordFrequency.query(
+          `INSERT INTO "WordFrequency" (rank, word, form) VALUES
+             (100, '猫', 'ねこ'), (300, '使う', 'つかう'), (5000, '魔法', 'まほう')`,
+        );
+        resetDifficultyLookup();
+      });
+
+      afterEach(async () => {
+        await WordFrequency.query('DELETE FROM "WordFrequency"');
+        resetDifficultyLookup();
+      });
+
+      /** Easy (猫 only), middle (an unknown name, which counts as a rank-5,000 word), hard (魔法 at rank 5,000 plus
+       * 使う, which beats the name line on the second word) and two lines with no tokens at all, which sort
+       * after the rest in both directions and among themselves by length. */
+      async function seedByDifficulty() {
+        await seedSegmentsIntoEs({}, [
+          {
+            contentJa: '猫が魔法を使う',
+            tokens: [word('猫', 0), particle('が', 1), word('魔法', 2), particle('を', 4), word('使う', 5, '動詞')],
+          },
+          { contentJa: '猫だ', tokens: [word('猫', 0), { ...particle('だ', 1), p: '助動詞' }] },
+          { contentJa: '猫の鳴き声', tokens: null },
+          { contentJa: '猫がいる', tokens: null },
+          { contentJa: '猫とルーデウス', tokens: [word('猫', 0), particle('と', 1), word('ルーデウス', 2)] },
+        ]);
+      }
+
+      async function walk(mode: 'DIFFICULTY_ASC' | 'DIFFICULTY_DESC'): Promise<string[]> {
+        const seen: string[] = [];
+        let cursor: string | undefined;
+        for (let page = 0; page < 10; page++) {
+          const result = await SegmentDocument.search({
+            query: { search: '猫', exactMatch: false },
+            sort: { mode },
+            take: 1,
+            ...(cursor ? { cursor } : {}),
+          });
+          seen.push(...result.segments.map((s) => s.textJa.content));
+          if (!result.pagination.hasMore || !result.pagination.cursor) break;
+          cursor = result.pagination.cursor;
+        }
+        return seen;
+      }
+
+      it('pages easiest first, with the unscored line last', async () => {
+        await seedByDifficulty();
+
+        expect(await walk('DIFFICULTY_ASC')).toEqual([
+          '猫だ',
+          '猫とルーデウス',
+          '猫が魔法を使う',
+          '猫がいる',
+          '猫の鳴き声',
+        ]);
+      });
+
+      it('pages hardest first, still with the unscored line last', async () => {
+        await seedByDifficulty();
+
+        expect(await walk('DIFFICULTY_DESC')).toEqual([
+          '猫が魔法を使う',
+          '猫とルーデウス',
+          '猫だ',
+          '猫の鳴き声',
+          '猫がいる',
+        ]);
+      });
+
+      it('resumes from a cursor issued on an unscored line', async () => {
+        await seedByDifficulty();
+        const request = { query: { search: '猫', exactMatch: false }, sort: { mode: 'DIFFICULTY_ASC' as const } };
+
+        const first = await SegmentDocument.search({ ...request, take: 4 });
+        const values = decodeKeysetCursor<unknown[]>(first.pagination.cursor ?? undefined) ?? [];
+        const rest = await SegmentDocument.search({ ...request, take: 4, cursor: first.pagination.cursor as string });
+
+        expect(first.segments.at(-1)?.textJa.content).toBe('猫がいる');
+        // The explicit missing value, not `_last`'s Long.MAX_VALUE, which a JSON number cannot carry.
+        expect(values[0]).toBe(32767);
+        expect(values.every((value) => Number.isSafeInteger(value))).toBe(true);
+        expect(rest.segments.map((s) => s.textJa.content)).toEqual(['猫の鳴き声']);
+      });
+
+      it('changes the order, not the matches', async () => {
+        await seedByDifficulty();
+
+        const [byRelevance, byDifficulty] = await Promise.all([
+          SegmentDocument.search({ query: { search: '猫', exactMatch: false }, take: 25 }),
+          SegmentDocument.search({
+            query: { search: '猫', exactMatch: false },
+            sort: { mode: 'DIFFICULTY_DESC' },
+            take: 25,
+          }),
+        ]);
+
+        expect(byDifficulty.segments.map((s) => s.publicId).sort()).toEqual(
+          byRelevance.segments.map((s) => s.publicId).sort(),
+        );
+      });
     });
 
     describe('rounds by title (default order)', () => {

@@ -1,4 +1,6 @@
-/** Seeds WordFrequency from Jiten anime frequency CSV. Usage: `node --import tsx scripts/seed-word-frequency.ts`. */
+/** Seeds WordFrequency from the anime frequency-list CSV (`Word,Form,Rank`). Segment difficulty is computed from these
+ * ranks at index time, so a reseed must be followed by a full Elasticsearch reindex (`npm run es:reindex`). Usage:
+ * `node --import tsx scripts/seed-word-frequency.ts`. */
 
 import { AppDataSource } from '@config/database';
 
@@ -7,6 +9,7 @@ const JITEN_URL = 'https://api.jiten.moe/api/frequency-list/download?mediaType=a
 interface FreqWord {
   rank: number;
   word: string;
+  form: string | null;
 }
 
 const BATCH_SIZE = 1000;
@@ -24,11 +27,12 @@ function parseCsv(csv: string): FreqWord[] {
     if (parts.length < 3) continue;
 
     const word = parts[0];
+    const form = parts[1] || null;
 
     if (!word) continue;
 
     position++;
-    words.push({ rank: position, word });
+    words.push({ rank: position, word, form });
   }
 
   return words;
@@ -61,17 +65,18 @@ async function main() {
     const batch = words.slice(i, i + BATCH_SIZE);
 
     const values = batch.map((_, idx) => {
-      const base = idx * 2;
-      return `($${base + 1}, $${base + 2})`;
+      const base = idx * 3;
+      return `($${base + 1}, $${base + 2}, $${base + 3})`;
     });
 
-    const params = batch.flatMap((w) => [w.rank, w.word]);
+    const params = batch.flatMap((w) => [w.rank, w.word, w.form]);
 
     await AppDataSource.query(
-      `INSERT INTO "WordFrequency" ("rank", "word")
+      `INSERT INTO "WordFrequency" ("rank", "word", "form")
        VALUES ${values.join(', ')}
        ON CONFLICT ("rank") DO UPDATE SET
-         "word" = EXCLUDED."word"`,
+         "word" = EXCLUDED."word",
+         "form" = EXCLUDED."form"`,
       params,
     );
 

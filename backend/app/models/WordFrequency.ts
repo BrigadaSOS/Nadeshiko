@@ -22,6 +22,10 @@ export class WordFrequency extends BaseEntity {
   @Column({ type: 'varchar', length: 50 })
   word!: string;
 
+  /** The frequency list's kana form of `word`; the difficulty sort's fallback key for a kana-written token. */
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  form!: string | null;
+
   @Column({ name: 'match_count', type: 'int', default: 0 })
   matchCount!: number;
 

@@ -36,6 +36,8 @@ const SORT_MODES: Record<SortMode, true> = {
   DESC: true,
   TIME_ASC: true,
   TIME_DESC: true,
+  DIFFICULTY_ASC: true,
+  DIFFICULTY_DESC: true,
   RANDOM: true,
 };
 

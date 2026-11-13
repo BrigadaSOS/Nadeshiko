@@ -161,7 +161,7 @@ describe('resolvePreferredMediaIds', () => {
   it('ignores the list under any sort the caller asked for by name', async () => {
     mockMediaInfoMap([[7, { publicId: 'aaaaaaaaaaaa' }]]);
 
-    for (const mode of ['TIME_ASC', 'TIME_DESC', 'ASC', 'DESC', 'RANDOM']) {
+    for (const mode of ['TIME_ASC', 'TIME_DESC', 'ASC', 'DESC', 'DIFFICULTY_ASC', 'DIFFICULTY_DESC', 'RANDOM']) {
       expect(await resolvePreferredMediaIds({ mode }, ['aaaaaaaaaaaa'])).toEqual(new Set());
     }
   });

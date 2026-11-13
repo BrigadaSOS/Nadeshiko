@@ -761,6 +761,9 @@
       "characterCount": {
         "type": "short"
       },
+      "difficulty": {
+        "type": "short"
+      },
       "contentRating": {
         "type": "keyword"
       },

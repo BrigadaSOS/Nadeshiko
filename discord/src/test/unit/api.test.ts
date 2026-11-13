@@ -82,9 +82,12 @@ beforeEach(() => {
 });
 
 describe('parseSortMode', () => {
-  test.each(['RELEVANCE', 'ASC', 'DESC', 'TIME_ASC', 'TIME_DESC', 'RANDOM'])('accepts %s', (mode) => {
-    expect(parseSortMode(mode)).toBe(mode);
-  });
+  test.each(['RELEVANCE', 'ASC', 'DESC', 'TIME_ASC', 'TIME_DESC', 'DIFFICULTY_ASC', 'DIFFICULTY_DESC', 'RANDOM'])(
+    'accepts %s',
+    (mode) => {
+      expect(parseSortMode(mode)).toBe(mode);
+    },
+  );
 
   test('is case- and whitespace-insensitive, because the value arrives from user input', () => {
     expect(parseSortMode('  random  ')).toBe('RANDOM');
