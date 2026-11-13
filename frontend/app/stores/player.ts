@@ -34,6 +34,65 @@ export function isUnactionablePlaybackError(error: unknown): boolean {
   return name === 'AbortError' || name === 'NotAllowedError';
 }
 
+/** `MediaError.code` values, named so PostHog breakdowns read without a lookup table. */
+const MEDIA_ERROR_NAMES: Record<number, string> = {
+  1: 'MEDIA_ERR_ABORTED',
+  2: 'MEDIA_ERR_NETWORK',
+  3: 'MEDIA_ERR_DECODE',
+  4: 'MEDIA_ERR_SRC_NOT_SUPPORTED',
+};
+
+/**
+ * Element and connection state at the moment play() was refused. Every browser
+ * surfaces a failed download as `NotSupportedError` ("no supported sources",
+ * iOS: "The operation is not supported."), so the rejection alone cannot tell
+ * a broken file from a dropped connection. The element's own `MediaError` and
+ * the reader's connectivity can.
+ */
+export function describePlaybackFailure(
+  audio: Pick<HTMLMediaElement, 'error' | 'networkState' | 'readyState'>,
+  nav: { onLine?: boolean; connection?: { effectiveType?: string } } | undefined,
+): Record<string, string> {
+  const code = audio.error?.code;
+  return {
+    'media.error_code': code === undefined ? 'none' : (MEDIA_ERROR_NAMES[code] ?? String(code)),
+    'media.error_message': audio.error?.message ?? '',
+    'audio.network_state': String(audio.networkState),
+    'audio.ready_state': String(audio.readyState),
+    'network.online': nav?.onLine === undefined ? 'unknown' : String(nav.onLine),
+    'network.effective_type': nav?.connection?.effectiveType ?? '',
+  };
+}
+
+/** Bound the follow-up check so a stalled connection cannot hold the report back indefinitely. */
+export const AUDIO_PROBE_TIMEOUT_MS = 5000;
+
+/**
+ * Re-request a failed CDN clip and say what came back: an HTTP status,
+ * `network-error`, `timeout`, or `skipped` for sources that are not CDN
+ * objects (an expansion's blob url). Done after the failure, so a `200` means
+ * the object is fine now and the failure was transient or on the reader's side;
+ * an error status points at the CDN or R2. HEAD keeps it a CORS simple request
+ * and avoids downloading the clip again.
+ */
+export async function probeAudioSource(
+  source: string,
+  fetchImpl: typeof fetch = fetch,
+  timeoutMs = AUDIO_PROBE_TIMEOUT_MS,
+): Promise<string> {
+  if (!/^https?:\/\//i.test(source)) return 'skipped';
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetchImpl(source, { method: 'HEAD', cache: 'no-store', signal: controller.signal });
+    return String(response.status);
+  } catch {
+    return controller.signal.aborted ? 'timeout' : 'network-error';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Every superseding playback intent takes a new token, so stale play() settlements cannot alter
  * state or analytics. Module scope is safe because audio exists only on the client.
@@ -334,13 +393,21 @@ export const usePlayerStore = defineStore('player', {
         // above and never reaches here.
         if (isUnactionablePlaybackError(error)) return;
 
-        // What survives is a clip that genuinely would not decode. The source
+        // What survives is a clip that would not load or decode. The source
         // goes on the report because the segment id alone does not say which
         // url was tried: an expansion plays a blob built in the browser, and
         // it fails for reasons a CDN object never would.
-        reportError('player:audio-play-failed', error, {
+        //
+        // The element state is read now, before anything can reset it; the
+        // probe runs after, and the report waits for it (bounded by
+        // AUDIO_PROBE_TIMEOUT_MS) so one event carries the whole picture.
+        const attributes = {
           'segment.publicId': this.currentResult?.segment.publicId ?? '',
           'audio.source': audio.src,
+          ...describePlaybackFailure(audio, typeof navigator === 'undefined' ? undefined : navigator),
+        };
+        void probeAudioSource(audio.src).then((status) => {
+          reportError('player:audio-play-failed', error, { ...attributes, 'audio.probe_status': status });
         });
       };
 

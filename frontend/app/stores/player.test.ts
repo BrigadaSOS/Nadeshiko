@@ -5,8 +5,10 @@ import {
   PLAYABLE_WAIT_MS,
   PLAYBACK_RATES,
   clampVolume,
+  describePlaybackFailure,
   isUnactionablePlaybackError,
   normalizePlaybackRate,
+  probeAudioSource,
   resolveAudioSource,
   resolveClipWindow,
   whenPlayable,
@@ -312,5 +314,86 @@ describe('whenPlayable', () => {
 
     expect(audio.listenerCount('canplaythrough')).toBe(0);
     expect(audio.listenerCount('error')).toBe(0);
+  });
+});
+
+describe('describePlaybackFailure', () => {
+  it('names the MediaError code and records element and connection state', () => {
+    const audio = { error: { code: 2, message: 'net::ERR_CONNECTION_RESET' }, networkState: 3, readyState: 0 };
+    expect(
+      describePlaybackFailure(audio as unknown as HTMLMediaElement, {
+        onLine: false,
+        connection: { effectiveType: '3g' },
+      }),
+    ).toEqual({
+      'media.error_code': 'MEDIA_ERR_NETWORK',
+      'media.error_message': 'net::ERR_CONNECTION_RESET',
+      'audio.network_state': '3',
+      'audio.ready_state': '0',
+      'network.online': 'false',
+      'network.effective_type': '3g',
+    });
+  });
+
+  it('reports a missing MediaError and unknown connectivity explicitly', () => {
+    const audio = { error: null, networkState: 1, readyState: 4 };
+    expect(describePlaybackFailure(audio as unknown as HTMLMediaElement, undefined)).toMatchObject({
+      'media.error_code': 'none',
+      'media.error_message': '',
+      'network.online': 'unknown',
+      'network.effective_type': '',
+    });
+  });
+
+  it('keeps an unrecognised code as its number', () => {
+    const audio = { error: { code: 9, message: '' }, networkState: 0, readyState: 0 };
+    expect(describePlaybackFailure(audio as unknown as HTMLMediaElement, { onLine: true })['media.error_code']).toBe(
+      '9',
+    );
+  });
+});
+
+describe('probeAudioSource', () => {
+  it('returns the HTTP status of a HEAD request to the clip', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ status: 404 });
+    await expect(probeAudioSource('https://cdn.test/seg-1.mp3', fetchImpl as unknown as typeof fetch)).resolves.toBe(
+      '404',
+    );
+    expect(fetchImpl).toHaveBeenCalledWith(
+      'https://cdn.test/seg-1.mp3',
+      expect.objectContaining({ method: 'HEAD', cache: 'no-store' }),
+    );
+  });
+
+  it('skips blob urls, which only exist in this browser', async () => {
+    const fetchImpl = vi.fn();
+    await expect(probeAudioSource('blob:https://nadeshiko.co/abc', fetchImpl as unknown as typeof fetch)).resolves.toBe(
+      'skipped',
+    );
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('reports a failed request as network-error', async () => {
+    const fetchImpl = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(probeAudioSource('https://cdn.test/seg-1.mp3', fetchImpl as unknown as typeof fetch)).resolves.toBe(
+      'network-error',
+    );
+  });
+
+  it('gives up after the timeout', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchImpl = vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+          }),
+      );
+      const pending = probeAudioSource('https://cdn.test/seg-1.mp3', fetchImpl as unknown as typeof fetch, 1000);
+      await vi.advanceTimersByTimeAsync(1000);
+      await expect(pending).resolves.toBe('timeout');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
