@@ -29,6 +29,7 @@ import { fetchWord, peekWord, type WordLookup } from '~/utils/wordLookup';
 // use for adding, so the two places that mine agree with each other.
 import {
   mdiChevronLeft,
+  mdiCheck,
   mdiChevronRight,
   mdiFileDocumentCheckOutline,
   mdiFileDocumentPlusOutline,
@@ -918,7 +919,21 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                 words. Two bare icons side by side was the version that made
                 nobody sure which one they were about to press.
               -->
-              <template v-if="mineReady">
+              <!--
+                When the sentence uses a form other than the headword (食べた for
+                食べる, a kana もしかして), the control splits into one segment per
+                form, each named, each with its own mined state. The headword
+                segment keeps the menu below once that form is mined; the
+                sentence-form segment opens its note. A word with one form keeps
+                the single icon.
+              -->
+              <span
+                v-if="mineReady"
+                class="token-tooltip__mine"
+                :class="{ 'is-split': !!surfaceForm }"
+                :role="surfaceForm ? 'group' : undefined"
+                :aria-label="surfaceForm ? $t('tokenTooltip.mineForms') : undefined">
+              <svg v-if="surfaceForm" class="token-tooltip__mine-icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path :d="mdiFileDocumentPlusOutline" fill="currentColor" /></svg>
               <SearchDropdownContainer
                 v-if="minedNoteId !== null"
                 dropdownId="nd-word-mine"
@@ -927,14 +942,15 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                   <button
                     type="button"
                     data-testid="word-mined-menu"
-                    class="token-tooltip__tool is-mined"
+                    :class="surfaceForm ? 'token-tooltip__segment is-mined' : 'token-tooltip__tool is-mined'"
                     :disabled="mining"
                     :aria-expanded="isOpen"
                     :aria-label="$t('tokenTooltip.minedActions')"
                     :title="$t('tokenTooltip.minedActions')"
                     @click="toggle()">
                     <span v-if="mining" class="token-tooltip__spinner" />
-                    <svg v-else viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path :d="mdiFileDocumentCheckOutline" fill="currentColor" /></svg>
+                    <svg v-else viewBox="0 0 24 24" :width="surfaceForm ? 12 : 16" :height="surfaceForm ? 12 : 16" aria-hidden="true"><path :d="surfaceForm ? mdiCheck : mdiFileDocumentCheckOutline" fill="currentColor" /></svg>
+                    <span v-if="surfaceForm" lang="ja">{{ headword }}</span>
                   </button>
                 </template>
 
@@ -961,49 +977,44 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                 v-else
                 type="button"
                 data-testid="word-mine"
-                class="token-tooltip__tool"
+                :class="surfaceForm ? 'token-tooltip__segment' : 'token-tooltip__tool'"
                 :disabled="mining"
-                :aria-label="$t('tokenTooltip.mineToLastCard')"
-                :title="$t('tokenTooltip.mineToLastCard')"
+                :aria-label="surfaceForm ? $t('tokenTooltip.mineDictionaryForm', { form: headword }) : $t('tokenTooltip.mineToLastCard')"
+                :title="surfaceForm ? $t('tokenTooltip.mineDictionaryForm', { form: headword }) : $t('tokenTooltip.mineToLastCard')"
                 @click="mineThisSentence">
                 <span v-if="mining" class="token-tooltip__spinner" />
+                <span v-else-if="surfaceForm" lang="ja">{{ headword }}</span>
                 <svg v-else viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path :d="mdiFileDocumentPlusOutline" fill="currentColor" /></svg>
               </button>
 
-              <!-- The sentence's own form, offered only when it is not the
-                   headword. Named in the button, because "which form goes on
-                   the card" is the whole difference from the button beside it.
-                   Once mined it opens that note; the menu's other actions stay
-                   on the headword control. -->
               <template v-if="surfaceForm">
                 <button
                   v-if="surfaceMinedNoteId !== null"
                   type="button"
                   data-testid="word-mine-surface-mined"
-                  class="token-tooltip__tool token-tooltip__tool--form is-mined"
+                  class="token-tooltip__segment is-mined"
                   :disabled="surfaceMining"
                   :aria-label="$t('tokenTooltip.openSurfaceInAnki', { form: surfaceForm })"
                   :title="$t('tokenTooltip.openSurfaceInAnki', { form: surfaceForm })"
                   @click="viewSurfaceMinedNote">
                   <span v-if="surfaceMining" class="token-tooltip__spinner" />
-                  <svg v-else viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path :d="mdiFileDocumentCheckOutline" fill="currentColor" /></svg>
+                  <svg v-else viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path :d="mdiCheck" fill="currentColor" /></svg>
                   <span lang="ja">{{ surfaceForm }}</span>
                 </button>
                 <button
                   v-else
                   type="button"
                   data-testid="word-mine-surface"
-                  class="token-tooltip__tool token-tooltip__tool--form"
+                  class="token-tooltip__segment"
                   :disabled="surfaceMining"
                   :aria-label="$t('tokenTooltip.mineSurface', { form: surfaceForm })"
                   :title="$t('tokenTooltip.mineSurface', { form: surfaceForm })"
                   @click="mineSurface">
                   <span v-if="surfaceMining" class="token-tooltip__spinner" />
-                  <svg v-else viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path :d="mdiFileDocumentPlusOutline" fill="currentColor" /></svg>
-                  <span lang="ja">{{ surfaceForm }}</span>
+                  <span v-else lang="ja">{{ surfaceForm }}</span>
                 </button>
               </template>
-              </template>
+              </span>
 
               <button
                 v-else
@@ -1839,13 +1850,69 @@ a.token-tooltip__word:hover {
   opacity: 0.6;
 }
 
-.token-tooltip__tool--form {
-  width: auto;
-  gap: 4px;
-  padding: 0 9px 0 7px;
+/* Split control: one pill, an Anki glyph, then one named segment per form.
+   The segments share the pill's background and are divided by a hairline, so
+   the pair reads as one choice rather than two unrelated buttons. */
+.token-tooltip__mine {
+  display: inline-flex;
+  align-items: center;
+}
+
+.token-tooltip__mine.is-split {
+  height: 26px;
+  padding-left: 9px;
+  border-radius: 999px;
+  background: var(--surface-lift);
+  color: var(--ink-faint);
+  overflow: hidden;
+}
+
+.token-tooltip__mine-icon {
+  flex: 0 0 auto;
+  margin-right: 3px;
+}
+
+.token-tooltip__segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
   font-size: 12px;
   line-height: 1;
   white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+/* The divider between the two forms; the dropdown wraps the first segment
+   when it is mined, so match on the second segment's position instead. */
+[data-testid='word-mine-surface'],
+[data-testid='word-mine-surface-mined'] {
+  box-shadow: inset 1px 0 0 var(--line);
+}
+
+.token-tooltip__segment:hover:not(:disabled) {
+  background: color-mix(in srgb, white 14%, transparent);
+  color: var(--ink);
+}
+
+.token-tooltip__segment:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.token-tooltip__segment.is-mined {
+  background: color-mix(in srgb, var(--accent-soft) 18%, transparent);
+  color: var(--accent-soft);
+}
+
+.token-tooltip__segment.is-mined:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-soft) 30%, transparent);
+  color: var(--accent-soft);
 }
 
 .token-tooltip__tool.is-configuration-required {

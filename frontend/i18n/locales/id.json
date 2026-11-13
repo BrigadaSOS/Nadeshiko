@@ -1054,6 +1054,8 @@
     "mineToNote": "Ganti semua isi, termasuk definisi",
     "mineToLastCard": "Tambahkan kalimat, audio, dan gambar ini ke kartu Anki yang terakhir ditambahkan",
     "mineSurface": "Tambang “{form}” sesuai bentuk di kalimat",
+    "mineDictionaryForm": "Tambang “{form}”, bentuk kamusnya",
+    "mineForms": "Tambahkan ke Anki dalam salah satu bentuk ini",
     "openSurfaceInAnki": "Buka catatan untuk “{form}” di Anki",
     "otherMatches": "{count} lainnya",
     "showLess": "Tampilkan lebih sedikit",

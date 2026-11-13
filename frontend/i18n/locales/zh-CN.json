@@ -1054,6 +1054,8 @@
     "mineToNote": "替换全部内容，包括释义",
     "mineToLastCard": "将例句、音频和图片添加到 Anki 最近添加的卡片",
     "mineSurface": "按句中形式添加“{form}”",
+    "mineDictionaryForm": "按辞典形添加“{form}”",
+    "mineForms": "以其中一种形式添加到 Anki",
     "openSurfaceInAnki": "在 Anki 中打开“{form}”的笔记",
     "otherMatches": "另有 {count} 项",
     "showLess": "收起",

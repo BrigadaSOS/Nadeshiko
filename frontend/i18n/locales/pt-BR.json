@@ -1054,6 +1054,8 @@
     "mineToNote": "Substituir tudo, incluindo as definições",
     "mineToLastCard": "Adicionar frase, áudio e imagem ao último cartão adicionado ao Anki",
     "mineSurface": "Minerar “{form}” como aparece na frase",
+    "mineDictionaryForm": "Minerar “{form}”, a forma de dicionário",
+    "mineForms": "Adicionar ao Anki em uma destas formas",
     "openSurfaceInAnki": "Abrir no Anki a nota de “{form}”",
     "otherMatches": "Mais {count}",
     "showLess": "Mostrar menos",

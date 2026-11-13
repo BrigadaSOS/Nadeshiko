@@ -1054,6 +1054,8 @@
     "mineToNote": "Replace everything, including the definitions",
     "mineToLastCard": "Add this sentence, audio and image to your last added Anki card",
     "mineSurface": "Mine “{form}”, as it appears in the sentence",
+    "mineDictionaryForm": "Mine “{form}”, the dictionary form",
+    "mineForms": "Add to Anki, as one of these forms",
     "openSurfaceInAnki": "Open the note for “{form}” in Anki",
     "otherMatches": "{count} more",
     "showLess": "Show fewer",

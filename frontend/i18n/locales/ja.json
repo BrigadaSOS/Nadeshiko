@@ -1054,6 +1054,8 @@
     "mineToNote": "ノート全体を置き換える（語義も含む）",
     "mineToLastCard": "例文・音声・画像を最後に追加したAnkiカードに書き出す",
     "mineSurface": "「{form}」を文中の形のままAnkiに追加",
+    "mineDictionaryForm": "「{form}」を辞書形でAnkiに追加",
+    "mineForms": "どちらかの形でAnkiに追加",
     "openSurfaceInAnki": "「{form}」のノートをAnkiで開く",
     "otherMatches": "ほか{count}件",
     "showLess": "折りたたむ",
