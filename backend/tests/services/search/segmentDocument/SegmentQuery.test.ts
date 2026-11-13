@@ -96,12 +96,15 @@ describe('SegmentQuery.buildSortAndRandomScore', () => {
   const lengthDescending = [{ characterCount: { order: 'desc', unmapped_type: 'short' } }, ...tieBreakers];
   // Unscored segments carry an explicit sort value past 0–4030 so they come last both ways, and the keyset cursor
   // stays a plain JSON number (`_last` would hand back Long.MIN/MAX).
+  const fragmentsLast = { fragment: { order: 'asc', missing: 1, unmapped_type: 'byte' } };
   const difficultyAscending = [
+    fragmentsLast,
     { difficulty: { order: 'asc', missing: 32767, unmapped_type: 'short' } },
     { characterCount: { order: 'asc', unmapped_type: 'short' } },
     ...tieBreakers,
   ];
   const difficultyDescending = [
+    fragmentsLast,
     { difficulty: { order: 'desc', missing: -1, unmapped_type: 'short' } },
     { characterCount: { order: 'desc', unmapped_type: 'short' } },
     ...tieBreakers,

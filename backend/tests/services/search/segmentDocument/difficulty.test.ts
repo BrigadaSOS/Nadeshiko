@@ -4,9 +4,11 @@ import {
   computeDifficulty,
   EXPRESSION_TIER_CAP,
   isContentToken,
+  isFragment,
   lookupRank,
   MAX_DIFFICULTY,
   MAX_RANK_TIER,
+  NAME_RANK_CAP,
   rankTier,
   UNKNOWN_TIER,
 } from '@app/services/search/segmentDocument/difficulty';
@@ -184,5 +186,58 @@ describe('computeDifficulty', () => {
 
     expect(computeDifficulty([tok('稀'), tok('珍')], rarest)).toBe(MAX_DIFFICULTY);
     expect(MAX_DIFFICULTY).toBeLessThanOrEqual(32767);
+  });
+});
+
+describe('buildRankLookup', () => {
+  it('caps a proper name at the same rank as an unlisted word, whether it is rarer or not', () => {
+    const names = buildRankLookup([
+      { rank: 9258, word: '田中', form: 'たなか', isName: true },
+      { rank: 2954, word: 'でした', form: 'でした', isName: true },
+      { rank: 9000, word: '駆ける', form: 'かける', isName: false },
+    ]);
+
+    expect(names.word.get('田中')).toBe(NAME_RANK_CAP);
+    expect(names.form.get('たなか')).toBe(NAME_RANK_CAP);
+    // A common entry the dictionaries happen to list as a name keeps its own, easier rank.
+    expect(names.word.get('でした')).toBe(2954);
+    expect(names.word.get('駆ける')).toBe(9000);
+  });
+});
+
+describe('isFragment', () => {
+  const sentence = [tok('猫'), particle('が'), tok('魔法'), particle('を'), tok('使う', { p: '動詞' })];
+
+  it('is false for a full sentence', () => {
+    expect(isFragment(sentence, '猫が魔法を使う')).toBe(false);
+  });
+
+  it('is undefined without tokens, like the difficulty itself', () => {
+    expect(isFragment(null, '猫')).toBeUndefined();
+    expect(isFragment([], '猫')).toBeUndefined();
+  });
+
+  it('flags a line with fewer than two distinct content words', () => {
+    expect(isFragment([tok('大丈夫'), punctuation('！')], '大丈夫！')).toBe(true);
+    expect(isFragment([tok('先生'), tok('先生')], '先生、先生')).toBe(true);
+  });
+
+  it('flags a line with fewer than six distinct characters', () => {
+    expect(isFragment([tok('猫'), tok('犬')], '猫と犬')).toBe(true);
+  });
+
+  it('flags a line cut off on a case or binding particle, ignoring trailing punctuation', () => {
+    const cut = [tok('猫'), particle('が'), tok('魔法'), particle('を'), punctuation('…')];
+
+    expect(isFragment(cut, '猫が魔法を…')).toBe(true);
+  });
+
+  it('keeps a line that ends on a sentence-final or conjunctive particle', () => {
+    expect(isFragment([...sentence, particle('よ')], '猫が魔法を使うよ')).toBe(false);
+    expect(isFragment([...sentence, particle('から')], '猫が魔法を使うから')).toBe(false);
+  });
+
+  it('flags a line ending on a comma', () => {
+    expect(isFragment([tok('猫'), particle('が'), tok('魔法'), tok('使う')], '猫が魔法使う、')).toBe(true);
   });
 });

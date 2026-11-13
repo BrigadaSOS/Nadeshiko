@@ -156,6 +156,9 @@ export class SegmentQuery {
     } else if (sortMode === 'difficulty_asc' || sortMode === 'difficulty_desc') {
       const order: estypes.SortOrder = sortMode === 'difficulty_asc' ? 'asc' : 'desc';
       sort = [
+        // Full sentences before one-word and cut-off lines in both directions, so "easiest first" does not open on
+        // hundreds of bare 大丈夫. Missing (no tokens) counts as a fragment.
+        { fragment: { order: 'asc', missing: 1, unmapped_type: 'byte' } },
         // Unscored segments (no content word) sort last both ways. An explicit number rather than `_last`, which
         // Elasticsearch returns as Long.MIN/MAX: those overflow a JSON number and break the keyset cursor.
         {

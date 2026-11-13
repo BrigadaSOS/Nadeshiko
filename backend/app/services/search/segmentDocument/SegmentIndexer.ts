@@ -4,7 +4,7 @@ import { Media, Segment } from '@app/models';
 import { In, type SelectQueryBuilder } from 'typeorm';
 import type { SegmentDocumentShape, ReindexMediaItem } from '../SegmentDocument';
 import { isElasticsearchNotFound } from '@lib/elasticsearchErrors';
-import { computeDifficulty, type RankLookup } from './difficulty';
+import { computeDifficulty, isFragment, type RankLookup } from './difficulty';
 import { loadDifficultyLookup } from './difficultyLookup';
 
 interface BulkResult {
@@ -295,6 +295,13 @@ export class SegmentIndexer {
     }
   }
 
+  /** 1 for a one-word, very short or cut-off line, 0 for a full sentence, absent without tokens. A number rather than
+   * a boolean so its sort value and the keyset cursor stay plain integers. */
+  private static fragmentFlag(segment: Segment): 0 | 1 | undefined {
+    const fragment = isFragment(segment.tokens, segment.contentJa);
+    return fragment === undefined ? undefined : fragment ? 1 : 0;
+  }
+
   private static buildDocument(segment: Segment, media: Media, lookup: RankLookup): SegmentDocumentShape {
     return {
       uuid: segment.uuid,
@@ -321,6 +328,7 @@ export class SegmentIndexer {
       tokens: segment.tokens?.length ? segment.tokens : undefined,
       recurringRepeat: segment.recurringRepeat ?? false,
       difficulty: computeDifficulty(segment.tokens, lookup),
+      fragment: SegmentIndexer.fragmentFlag(segment),
     };
   }
 }

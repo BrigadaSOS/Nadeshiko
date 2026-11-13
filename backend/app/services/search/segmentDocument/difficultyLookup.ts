@@ -13,8 +13,8 @@ let pending: Promise<RankLookup> | null = null;
 
 async function load(): Promise<RankLookup> {
   try {
-    const rows: { rank: number; word: string; form: string | null }[] = await WordFrequency.query(
-      'SELECT rank, word, form FROM "WordFrequency"',
+    const rows: { rank: number; word: string; form: string | null; isName: boolean }[] = await WordFrequency.query(
+      'SELECT rank, word, form, is_name AS "isName" FROM "WordFrequency"',
     );
     const lookup = buildRankLookup(rows);
     cached = { lookup, loadedAt: Date.now() };

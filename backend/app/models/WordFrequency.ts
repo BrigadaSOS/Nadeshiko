@@ -26,6 +26,10 @@ export class WordFrequency extends BaseEntity {
   @Column({ type: 'varchar', length: 50, nullable: true })
   form!: string | null;
 
+  /** Only a proper name (in JMnedict, not JMdict); the difficulty sort counts it as moderately rare at most. */
+  @Column({ name: 'is_name', type: 'boolean', default: false })
+  isName!: boolean;
+
   @Column({ name: 'match_count', type: 'int', default: 0 })
   matchCount!: number;
 

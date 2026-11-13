@@ -20,6 +20,9 @@ export const MAX_RANK_TIER = 62;
  * these are mostly character names, which a reader learns from the show, and counting them as the rarest filled
  * "hardest first" with name-heavy lines. */
 export const UNKNOWN_TIER = rankTier(5000);
+/** A proper name on the list (田中, ナルト) is ranked by how often it occurs, which says nothing about how hard it is
+ * to read: it counts at most as the same rank-5,000 word as an unlisted name. */
+export const NAME_RANK_CAP = 5000;
 /** Expressions (連語: のだ, そうだ, すると...) are split into pieces by the frequency list, so their own rank reads far rarer than
  * the words they are made of. They count at most as a rank-5,000 word. */
 export const EXPRESSION_TIER_CAP = rankTier(5000);
@@ -170,8 +173,43 @@ export function computeDifficulty(
   return hardest * 64 + second;
 }
 
-/** Builds the lookup from `WordFrequency` rows, keeping the lowest rank per key. */
-export function buildRankLookup(rows: Iterable<{ rank: number; word: string; form: string | null }>): RankLookup {
+/** Case and binding particles a line does not end on unless it was cut mid-sentence across subtitle cues
+ * (猫が… / これは). Sentence-final particles (よ, ね, か, の) and conjunctive ones (から, けど, て) end real lines. */
+const DANGLING_PARTICLES = new Set(['が', 'を', 'に', 'へ', 'で', 'と', 'は', 'も']);
+const MIN_CONTENT_WORDS = 2;
+const MIN_DISTINCT_CHARACTERS = 6;
+
+/**
+ * Whether a line is too small or too cut off to be a useful example: fewer than two distinct content words (大丈夫,
+ * 先生!), fewer than six distinct characters, or ending on a dangling particle or a comma. The difficulty sorts put
+ * these after every complete sentence, so "easiest first" does not open on hundreds of one-word lines. Undefined
+ * without tokens: such a segment has no difficulty either and sorts last.
+ */
+export function isFragment(tokens: readonly DifficultyToken[] | null | undefined, text: string): boolean | undefined {
+  if (!tokens?.length) return undefined;
+
+  const lemmas = new Set<string>();
+  let last: DifficultyToken | undefined;
+  for (const raw of tokens) {
+    const token = stripBidi(raw);
+    if (isContentToken(token)) lemmas.add(token.d);
+    if (token.kind !== 'symbol' && token.p !== '補助記号' && token.p !== '記号' && token.s.trim()) last = token;
+  }
+  if (lemmas.size < MIN_CONTENT_WORDS) return true;
+
+  const characters = new Set(text.replace(BIDI_MARKS, '').replace(/\s/g, ''));
+  if (characters.size < MIN_DISTINCT_CHARACTERS) return true;
+
+  if (/[、，,]\s*$/.test(text)) return true;
+  if (!last) return false;
+  return (last.kind === 'function' || last.p === '助詞') && DANGLING_PARTICLES.has(last.s);
+}
+
+/** Builds the lookup from `WordFrequency` rows, keeping the lowest rank per key and capping names at
+ * `NAME_RANK_CAP`. */
+export function buildRankLookup(
+  rows: Iterable<{ rank: number; word: string; form: string | null; isName?: boolean }>,
+): RankLookup {
   const word = new Map<string, number>();
   const form = new Map<string, number>();
   const keep = (map: Map<string, number>, key: string, rank: number) => {
@@ -179,9 +217,10 @@ export function buildRankLookup(rows: Iterable<{ rank: number; word: string; for
     if (previous === undefined || rank < previous) map.set(key, rank);
   };
   for (const row of rows) {
-    keep(word, row.word, row.rank);
-    keep(form, row.word, row.rank);
-    if (row.form) keep(form, row.form, row.rank);
+    const rank = row.isName ? Math.min(row.rank, NAME_RANK_CAP) : row.rank;
+    keep(word, row.word, rank);
+    keep(form, row.word, rank);
+    if (row.form) keep(form, row.form, rank);
   }
   return { word, form };
 }

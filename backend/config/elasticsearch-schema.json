@@ -764,6 +764,9 @@
       "difficulty": {
         "type": "short"
       },
+      "fragment": {
+        "type": "byte"
+      },
       "contentRating": {
         "type": "keyword"
       },

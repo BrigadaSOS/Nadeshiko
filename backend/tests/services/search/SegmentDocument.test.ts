@@ -216,7 +216,8 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
         await WordFrequency.query('DELETE FROM "WordFrequency"');
         await WordFrequency.query(
           `INSERT INTO "WordFrequency" (rank, word, form) VALUES
-             (100, '猫', 'ねこ'), (300, '使う', 'つかう'), (5000, '魔法', 'まほう')`,
+             (50, '見る', 'みる'), (80, '来る', 'くる'), (100, '猫', 'ねこ'), (120, '好き', 'すき'),
+             (300, '使う', 'つかう'), (5000, '魔法', 'まほう')`,
         );
         resetDifficultyLookup();
       });
@@ -226,9 +227,10 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
         resetDifficultyLookup();
       });
 
-      /** Easy (猫 only), middle (an unknown name, which counts as a rank-5,000 word), hard (魔法 at rank 5,000 plus
-       * 使う, which beats the name line on the second word) and two lines with no tokens at all, which sort
-       * after the rest in both directions and among themselves by length. */
+      /** Three full sentences: easy (common words only), middle (an unknown name, which counts as a rank-5,000 word)
+       * and hard (魔法 at rank 5,000 plus 使う, which beats the name line on the second word). Then a one-word line,
+       * which goes after every full sentence, and two lines with no tokens at all, which go last in both directions
+       * and among themselves by length. */
       async function seedByDifficulty() {
         await seedSegmentsIntoEs({}, [
           {
@@ -238,7 +240,29 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
           { contentJa: '猫だ', tokens: [word('猫', 0), { ...particle('だ', 1), p: '助動詞' }] },
           { contentJa: '猫の鳴き声', tokens: null },
           { contentJa: '猫がいる', tokens: null },
-          { contentJa: '猫とルーデウス', tokens: [word('猫', 0), particle('と', 1), word('ルーデウス', 2)] },
+          {
+            contentJa: '猫を見るのが好きだ',
+            tokens: [
+              word('猫', 0),
+              particle('を', 1),
+              word('見る', 2, '動詞'),
+              particle('の', 4),
+              particle('が', 5),
+              word('好き', 6, '形状詞'),
+              { ...particle('だ', 8), p: '助動詞' },
+            ],
+          },
+          {
+            contentJa: '猫とルーデウスが来た',
+            tokens: [
+              word('猫', 0),
+              particle('と', 1),
+              word('ルーデウス', 2),
+              particle('が', 7),
+              { ...word('来る', 8, '動詞'), s: '来' },
+              { ...particle('た', 9), p: '助動詞' },
+            ],
+          },
         ]);
       }
 
@@ -259,24 +283,26 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
         return seen;
       }
 
-      it('pages easiest first, with the unscored line last', async () => {
+      it('pages easiest first: full sentences, then the one-word line, then the unscored ones', async () => {
         await seedByDifficulty();
 
         expect(await walk('DIFFICULTY_ASC')).toEqual([
-          '猫だ',
-          '猫とルーデウス',
+          '猫を見るのが好きだ',
+          '猫とルーデウスが来た',
           '猫が魔法を使う',
+          '猫だ',
           '猫がいる',
           '猫の鳴き声',
         ]);
       });
 
-      it('pages hardest first, still with the unscored line last', async () => {
+      it('pages hardest first, still with the one-word and unscored lines after the full sentences', async () => {
         await seedByDifficulty();
 
         expect(await walk('DIFFICULTY_DESC')).toEqual([
           '猫が魔法を使う',
-          '猫とルーデウス',
+          '猫とルーデウスが来た',
+          '猫を見るのが好きだ',
           '猫だ',
           '猫の鳴き声',
           '猫がいる',
@@ -287,13 +313,14 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
         await seedByDifficulty();
         const request = { query: { search: '猫', exactMatch: false }, sort: { mode: 'DIFFICULTY_ASC' as const } };
 
-        const first = await SegmentDocument.search({ ...request, take: 4 });
+        const first = await SegmentDocument.search({ ...request, take: 5 });
         const values = decodeKeysetCursor<unknown[]>(first.pagination.cursor ?? undefined) ?? [];
-        const rest = await SegmentDocument.search({ ...request, take: 4, cursor: first.pagination.cursor as string });
+        const rest = await SegmentDocument.search({ ...request, take: 5, cursor: first.pagination.cursor as string });
 
         expect(first.segments.at(-1)?.textJa.content).toBe('猫がいる');
-        // The explicit missing value, not `_last`'s Long.MAX_VALUE, which a JSON number cannot carry.
-        expect(values[0]).toBe(32767);
+        // The explicit missing values (fragment, then difficulty), not `_last`'s Long.MAX_VALUE, which a JSON number
+        // cannot carry.
+        expect(values.slice(0, 2)).toEqual([1, 32767]);
         expect(values.every((value) => Number.isSafeInteger(value))).toBe(true);
         expect(rest.segments.map((s) => s.textJa.content)).toEqual(['猫の鳴き声']);
       });

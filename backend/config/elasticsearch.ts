@@ -193,7 +193,7 @@ export async function initializeElasticsearchIndex(esClient: Client = client): P
  * and putting an identical definition again is a no-op. Documents written before the field existed simply lack it.
  * Only additive fields belong here -- changing an existing field still needs a reindex.
  */
-const ADDITIVE_MAPPING_FIELDS = ['recurringRepeat', 'difficulty'] as const;
+const ADDITIVE_MAPPING_FIELDS = ['recurringRepeat', 'difficulty', 'fragment'] as const;
 
 async function addNewMappingFields(esClient: Client): Promise<void> {
   const properties = indexSchema.mappings.properties as Record<string, unknown>;

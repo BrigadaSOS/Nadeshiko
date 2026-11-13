@@ -31,24 +31,33 @@ Code: `app/services/search/segmentDocument/difficulty.ts`.
 3. **Tier.** `tier = min(62, floor(4 * log2(rank)))`, so there are four tiers per doubling of rank.
    A word with no match counts as a rank-5,000 word (tier 49), not the rarest: most of these are character names,
    which a reader picks up from the show, and counting them as the rarest filled "hardest first" with
-   name-heavy lines. Expressions (連語 such
+   name-heavy lines. Listed proper names are capped the same way: the seed marks entries that are only names
+   (in JMnedict but not JMdict, such as 田中 or ナルト) and their rank counts as at most 5,000, since how often a
+   name occurs says nothing about how hard it is to read. Expressions (連語 such
    as のだ, そうだ, すると) are capped at the tier of rank 5,000, because the list splits them into
    their parts and lists the whole far rarer than the words in it.
 4. **Score.** Take the two hardest *distinct* lemmas: `difficulty = hardest * 64 + second`, where
    `second` is 0 when there is only one content word. The range is 0–4030, stored as an
    Elasticsearch `short`. Every search result contains the searched word, so this keeps together the
    sentences where only that word is hard and orders them by everything else.
-5. **Sort.** `difficulty`, then `characterCount` in the same direction, then the usual tie-breakers
+5. **Fragments.** A line is a fragment when it has fewer than two distinct content words (大丈夫！), fewer
+   than six distinct characters, or ends on a comma or on a case or binding particle (が, を, に, へ, で, と,
+   は, も), which is usually a sentence cut across subtitle cues. Sentence-final and conjunctive particles
+   (よ, ね, か, から, けど) end real lines and do not count. Indexed as `fragment` (`byte`, 1 or 0).
+6. **Sort.** `fragment` ascending in both directions (full sentences first), then `difficulty`, then
+   `characterCount` in the same direction, then the usual tie-breakers
    (`mediaId`, `episode`, `position`). Difficulty sorts are explicit sorts, so there is no rounds-by-title
    diversification and `preferMedia` is ignored.
 
 ## Unscored segments
 
-A segment with no tokens or no content word gets no `difficulty` field. The sort sets an explicit
+A segment with no tokens or no content word gets no `difficulty` field, and without tokens no
+`fragment` either. The sort treats a missing `fragment` as 1 and sets an explicit `difficulty`
 `missing` value (32767 ascending, -1 descending), so these segments come last in both directions.
 Do not use `_last`: Elasticsearch returns it as Long.MAX/MIN, which a JSON number cannot carry,
-and that breaks the keyset cursor. The field also has `unmapped_type: 'short'`, so an index that
-predates the field still sorts.
+and that breaks the keyset cursor. Both fields also have an `unmapped_type`, so an index that
+predates them still sorts. `fragment` is a number rather than a boolean for the same reason: its
+sort value goes into the cursor.
 
 When `WordFrequency` is empty (it was never seeded), every segment is indexed without a difficulty
 instead of every word counting as unknown.
@@ -61,7 +70,9 @@ instead of every word counting as unknown.
   `npm run es:reindex` (or `scripts/remote-db.sh <env> reindex`).
 - The seed stores the list's `Form` column in `WordFrequency.form` (migration `1790300000000`). The kana
   reading fallback needs it.
-- `difficulty` is in `ADDITIVE_MAPPING_FIELDS`, so a live index gets the mapping at boot. Documents
+- The seed also downloads JMnedict and JMdict from EDRDG (about 23 MB, CC BY-SA 4.0) to set
+  `WordFrequency.is_name`. On the current list that marks about 43,000 entries, almost all past rank 20,000.
+- `difficulty` and `fragment` are in `ADDITIVE_MAPPING_FIELDS`, so a live index gets the mapping at boot. Documents
   only get values once they are indexed again, so a full reindex is what makes the sort useful.
 
 ## Measurements (staging, 2026-11-13)
