@@ -738,6 +738,8 @@ export const ankiStore = defineStore('anki', {
           'word-frequency',
           'word-jlpt',
           'word-pitch-categories',
+          'word-surface',
+          'word-dictionary',
           'sentence-furigana',
           'definition',
           'definition-first',
@@ -752,7 +754,7 @@ export const ankiStore = defineStore('anki', {
          * eligible for context-only exports.
          */
         const WORD_PLACEHOLDER =
-          /^\{(?:definition|definition:[^}]+|definition-first|word|word-reading|word-furigana|word-audio|word-pitch|word-pitch-num|word-pitch-categories|word-frequency|word-jlpt|word-info)\}$/;
+          /^\{(?:definition|definition:[^}]+|definition-first|word|word-reading|word-furigana|word-audio|word-pitch|word-pitch-num|word-pitch-categories|word-frequency|word-jlpt|word-info|word-surface|word-dictionary)\}$/;
 
         /**
          * undefined supplies no replacement; an empty string deliberately clears. Missing word
@@ -828,6 +830,10 @@ export const ankiStore = defineStore('anki', {
               return word(plain(minedWord?.word));
             case 'word-reading':
               return word(plain(minedWord?.reading));
+            case 'word-surface':
+              return word(plain(minedWord?.surface));
+            case 'word-dictionary':
+              return word(plain(minedWord?.dictionaryForm));
             case 'word-furigana':
               return word(plain(minedWord?.furigana));
             case 'definition':
@@ -970,6 +976,9 @@ export const ankiStore = defineStore('anki', {
           export_method: exportMethod,
           // Measure dictionary-pick usage separately from context-only exports.
           picked_dictionaries: withWordFields ? (minedWord?.pickedDictionaries ?? 0) : 0,
+          // Which word-card button made it (#541): the dictionary form or the
+          // sentence's own form. Null when no word fields were written.
+          word_form: withWordFields ? (minedWord?.form ?? null) : null,
         });
 
         useToastSuccess($i18n.t('anki.toast.cardAdded'));

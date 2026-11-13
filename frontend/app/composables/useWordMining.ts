@@ -39,6 +39,12 @@ export function useWordMining(
   currentResult: () => SearchResult | undefined,
   currentWord: () => string,
   currentMined: () => MinedWord | null = () => null,
+  /**
+   * False for a second instance on the same card (the sentence-form button): one
+   * card open must stay one `word_card_mined_checked`, or the mined rate's
+   * denominator doubles whenever a word is inflected.
+   */
+  { reportProbes = true }: { reportProbes?: boolean } = {},
 ) {
   const anki = ankiStore();
   const user = userStore();
@@ -164,7 +170,7 @@ export function useWordMining(
     // ago. Same reduction the last-added-card export uses.
     minedNoteId.value = ids.length > 0 ? Math.max(...ids) : null;
 
-    if (report) reportProbe(word, minedNoteId.value !== null);
+    if (report && reportProbes) reportProbe(word, minedNoteId.value !== null);
   }
 
   /**

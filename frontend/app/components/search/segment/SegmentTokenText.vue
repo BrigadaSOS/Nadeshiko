@@ -16,7 +16,7 @@ import {
   type ShirabeLinkSurface,
 } from '~/utils/wordCard';
 import type { DictionaryId } from '~/composables/useDictionaryLinks';
-import { minedWord } from '~/utils/ankiWord';
+import { distinctSurface, minedWord } from '~/utils/ankiWord';
 import { createSegmentTaps } from '~/utils/segmentTaps';
 import { fetchWord, peekWord, type WordLookup } from '~/utils/wordLookup';
 // Two different verbs, so two different shapes. These sit side by side at 16px,
@@ -29,6 +29,7 @@ import { fetchWord, peekWord, type WordLookup } from '~/utils/wordLookup';
 // use for adding, so the two places that mine agree with each other.
 import {
   mdiChevronLeft,
+  mdiCheck,
   mdiChevronRight,
   mdiFileDocumentCheckOutline,
   mdiFileDocumentPlusOutline,
@@ -135,7 +136,7 @@ const { candidates, picked, othersOpen, wordState, word, clearLookup, lookUp, ca
     // when the card OPENS, which is before the lookup lands, so it asks about the
     // token's own dictionary form; without this follow-up a word the reader
     // already had read as new whenever AnkiConnect answered before Shirabe did.
-    () => void probeMined(),
+    () => probeForms(),
   );
 
 const headword = computed(() => cardHeadword(word.value, hoveredToken.value?.dictForm));
@@ -202,6 +203,45 @@ const {
   () => miningWord.value,
   () => minedCard.value,
 );
+
+/**
+ * The form the sentence uses (`食べた`, a kana `もしかして`), when it is not the headword. A second
+ * mine button writes it to `{word}` for readers who study the exact form they read; the headword
+ * button stays the default. Each has its own "already mined" state, so the same lemma can be on
+ * one note under each form.
+ */
+const surfaceForm = computed(() => distinctSurface(hoveredToken.value, headword.value));
+
+const minedSurfaceCard = computed(() =>
+  minedWord(
+    word.value,
+    hoveredToken.value,
+    glossLanguages.value,
+    props.result?.segment.textJa.content ?? '',
+    pickedForExport.value,
+    'surface',
+  ),
+);
+
+const {
+  minedNoteId: surfaceMinedNoteId,
+  mining: surfaceMining,
+  probeMined: probeSurfaceMined,
+  clearMined: clearSurfaceMined,
+  openMinedNote: openSurfaceMinedNote,
+  mineSentence: mineSurfaceSentence,
+} = useWordMining(
+  () => props.result,
+  () => surfaceForm.value ?? '',
+  () => minedSurfaceCard.value,
+  { reportProbes: false },
+);
+
+/** Ask Anki about both forms. A form that is not on offer asks nothing: its getter answers ''. */
+function probeForms(): void {
+  void probeMined();
+  void probeSurfaceMined();
+}
 
 /** How many distinct words the reader has opened in THIS sentence, which is the
  *  number that decides whether the lookup should batch. One per component
@@ -340,7 +380,7 @@ const onTokenEnter = (token: EnrichedToken, event: MouseEvent | KeyboardEvent) =
   // different services (ours, and Anki on this machine) and neither waits on the
   // other, so a card whose definition is still in flight can already say the
   // word is mined.
-  void probeMined();
+  probeForms();
 
   // Only a keyboard opener gets its focus moved. Doing it for a mouse click
   // would paint a focus ring on a card nobody navigated to, and take focus off
@@ -378,6 +418,7 @@ const closeTooltip = () => {
   revealDefinitions.value = false;
   cancelPending();
   clearMined();
+  clearSurfaceMined();
 };
 
 /** A pick controls both displayed word and mined note. Do not persist it: dictionary rankings and identity
@@ -415,7 +456,9 @@ const pickCandidate = (index: number) => {
   // moving the pick does not re-probe on its own -- and a star left over from
   // the previous candidate is a claim about the reader's collection that is
   // simply untrue. Its own staleness guards drop whichever probe lands late.
-  void probeMined();
+  // The surface form can change with the pick too, since it is offered only
+  // when it differs from the chosen headword.
+  probeForms();
 };
 
 /** Clicking a list choice collapses to chips; arrow-key picks keep the list mounted so keyboard focus is not
@@ -633,6 +676,15 @@ const viewMinedNote = () => {
 
 const mineThisSentence = () => {
   void mineSentence();
+};
+
+const mineSurface = () => {
+  void mineSurfaceSentence();
+};
+
+const viewSurfaceMinedNote = () => {
+  posthog.capture('anki_note_viewed_from_card', { lemma: miningWord.value, form: 'surface' });
+  void openSurfaceMinedNote();
 };
 
 /** The sentence, its audio and its still, without touching the word's own
@@ -868,7 +920,21 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                 words. Two bare icons side by side was the version that made
                 nobody sure which one they were about to press.
               -->
-              <template v-if="mineReady">
+              <!--
+                When the sentence uses a form other than the headword (食べた for
+                食べる, a kana もしかして), the control splits into one segment per
+                form, each named, each with its own mined state. The headword
+                segment keeps the menu below once that form is mined; the
+                sentence-form segment opens its note. A word with one form keeps
+                the single icon.
+              -->
+              <span
+                v-if="mineReady"
+                class="token-tooltip__mine"
+                :class="{ 'is-split': !!surfaceForm }"
+                :role="surfaceForm ? 'group' : undefined"
+                :aria-label="surfaceForm ? $t('tokenTooltip.mineForms') : undefined">
+              <svg v-if="surfaceForm" class="token-tooltip__mine-icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path :d="mdiFileDocumentPlusOutline" fill="currentColor" /></svg>
               <SearchDropdownContainer
                 v-if="minedNoteId !== null"
                 dropdownId="nd-word-mine"
@@ -877,14 +943,15 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                   <button
                     type="button"
                     data-testid="word-mined-menu"
-                    class="token-tooltip__tool is-mined"
+                    :class="surfaceForm ? 'token-tooltip__segment is-mined' : 'token-tooltip__tool is-mined'"
                     :disabled="mining"
                     :aria-expanded="isOpen"
                     :aria-label="$t('tokenTooltip.minedActions')"
                     :title="$t('tokenTooltip.minedActions')"
                     @click="toggle()">
                     <span v-if="mining" class="token-tooltip__spinner" />
-                    <svg v-else viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path :d="mdiFileDocumentCheckOutline" fill="currentColor" /></svg>
+                    <svg v-else viewBox="0 0 24 24" :width="surfaceForm ? 12 : 16" :height="surfaceForm ? 12 : 16" aria-hidden="true"><path :d="surfaceForm ? mdiCheck : mdiFileDocumentCheckOutline" fill="currentColor" /></svg>
+                    <span v-if="surfaceForm" lang="ja">{{ headword }}</span>
                   </button>
                 </template>
 
@@ -911,15 +978,44 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                 v-else
                 type="button"
                 data-testid="word-mine"
-                class="token-tooltip__tool"
+                :class="surfaceForm ? 'token-tooltip__segment' : 'token-tooltip__tool'"
                 :disabled="mining"
-                :aria-label="$t('tokenTooltip.mineToLastCard')"
-                :title="$t('tokenTooltip.mineToLastCard')"
+                :aria-label="surfaceForm ? $t('tokenTooltip.mineDictionaryForm', { form: headword }) : $t('tokenTooltip.mineToLastCard')"
+                :title="surfaceForm ? $t('tokenTooltip.mineDictionaryForm', { form: headword }) : $t('tokenTooltip.mineToLastCard')"
                 @click="mineThisSentence">
                 <span v-if="mining" class="token-tooltip__spinner" />
+                <span v-else-if="surfaceForm" lang="ja">{{ headword }}</span>
                 <svg v-else viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path :d="mdiFileDocumentPlusOutline" fill="currentColor" /></svg>
               </button>
+
+              <template v-if="surfaceForm">
+                <button
+                  v-if="surfaceMinedNoteId !== null"
+                  type="button"
+                  data-testid="word-mine-surface-mined"
+                  class="token-tooltip__segment is-mined"
+                  :disabled="surfaceMining"
+                  :aria-label="$t('tokenTooltip.openSurfaceInAnki', { form: surfaceForm })"
+                  :title="$t('tokenTooltip.openSurfaceInAnki', { form: surfaceForm })"
+                  @click="viewSurfaceMinedNote">
+                  <span v-if="surfaceMining" class="token-tooltip__spinner" />
+                  <svg v-else viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path :d="mdiCheck" fill="currentColor" /></svg>
+                  <span lang="ja">{{ surfaceForm }}</span>
+                </button>
+                <button
+                  v-else
+                  type="button"
+                  data-testid="word-mine-surface"
+                  class="token-tooltip__segment"
+                  :disabled="surfaceMining"
+                  :aria-label="$t('tokenTooltip.mineSurface', { form: surfaceForm })"
+                  :title="$t('tokenTooltip.mineSurface', { form: surfaceForm })"
+                  @click="mineSurface">
+                  <span v-if="surfaceMining" class="token-tooltip__spinner" />
+                  <span v-else lang="ja">{{ surfaceForm }}</span>
+                </button>
               </template>
+              </span>
 
               <button
                 v-else
@@ -1753,6 +1849,71 @@ a.token-tooltip__word:hover {
 .token-tooltip__tool:disabled {
   cursor: default;
   opacity: 0.6;
+}
+
+/* Split control: one pill, an Anki glyph, then one named segment per form.
+   The segments share the pill's background and are divided by a hairline, so
+   the pair reads as one choice rather than two unrelated buttons. */
+.token-tooltip__mine {
+  display: inline-flex;
+  align-items: center;
+}
+
+.token-tooltip__mine.is-split {
+  height: 26px;
+  padding-left: 9px;
+  border-radius: 999px;
+  background: var(--surface-lift);
+  color: var(--ink-faint);
+  overflow: hidden;
+}
+
+.token-tooltip__mine-icon {
+  flex: 0 0 auto;
+  margin-right: 3px;
+}
+
+.token-tooltip__segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+/* The divider between the two forms; the dropdown wraps the first segment
+   when it is mined, so match on the second segment's position instead. */
+[data-testid='word-mine-surface'],
+[data-testid='word-mine-surface-mined'] {
+  box-shadow: inset 1px 0 0 var(--line);
+}
+
+.token-tooltip__segment:hover:not(:disabled) {
+  background: color-mix(in srgb, white 14%, transparent);
+  color: var(--ink);
+}
+
+.token-tooltip__segment:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.token-tooltip__segment.is-mined {
+  background: color-mix(in srgb, var(--accent-soft) 18%, transparent);
+  color: var(--accent-soft);
+}
+
+.token-tooltip__segment.is-mined:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-soft) 30%, transparent);
+  color: var(--accent-soft);
 }
 
 .token-tooltip__tool.is-configuration-required {

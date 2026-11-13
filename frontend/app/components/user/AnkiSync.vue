@@ -725,6 +725,10 @@ watch(canEditProfile, (editable) => {
                                   :text="$t('searchpage.main.buttons.wordreading')" :iconPath="mdiText" />
                                 <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-furigana}')"
                                   :text="$t('searchpage.main.buttons.wordfurigana')" :iconPath="mdiText" />
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-surface}')"
+                                  :text="$t('searchpage.main.buttons.wordsurface')" :iconPath="mdiText" />
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-dictionary}')"
+                                  :text="$t('searchpage.main.buttons.worddictionary')" :iconPath="mdiText" />
                                 <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-audio}')"
                                   :text="$t('searchpage.main.buttons.wordaudio')" :iconPath="mdiVolumeHigh" />
                                 <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{definition}')"

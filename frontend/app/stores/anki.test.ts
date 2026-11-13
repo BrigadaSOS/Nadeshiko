@@ -1093,6 +1093,24 @@ describe('addResultToAnki: choosing what to write to', () => {
     );
   });
 
+  test('a word-card export says which form of the word went on the note', async () => {
+    queueFetch(ankiOk([{ noteId: 77, fields: {} }]), ankiOk(null));
+    const store = withProfile(
+      makeProfile({ fields: [{ key: 'W', value: '{word}' }], openBrowserOnExport: false } as never),
+    );
+
+    await store.addResultToAnki(asResult(sentence), {
+      noteId: 77,
+      method: 'word_card_note',
+      word: { word: '食べた', form: 'surface' } as never,
+    });
+
+    expect(posthog.capture).toHaveBeenCalledWith(
+      'anki_export_completed',
+      expect.objectContaining({ export_method: 'word_card_note', word_form: 'surface' }),
+    );
+  });
+
   test('the surface falls back to how the target was chosen for callers that do not say', async () => {
     queueFetch(ankiOk([{ noteId: 77, fields: {} }]), ankiOk(null));
     const store = withProfile(
@@ -1304,6 +1322,8 @@ describe('addResultToAnki: the rest of the word placeholders', () => {
     pitchCategories: 'nakadaka',
     info: 'godan verb',
     sentenceHighlight: '<b>食べ</b>たい',
+    dictionaryForm: '食べる',
+    surface: '食べ',
   } as never;
 
   /**
@@ -1330,6 +1350,8 @@ describe('addResultToAnki: the rest of the word placeholders', () => {
     ['{word-jlpt}', 'N5'],
     ['{word-pitch-categories}', 'nakadaka'],
     ['{word-info}', 'godan verb'],
+    ['{word-surface}', '食べ'],
+    ['{word-dictionary}', '食べる'],
   ])('%s writes the value the card showed', async (placeholder, expected) => {
     expect(await exportField(placeholder)).toEqual({ F: expected });
   });
@@ -1345,6 +1367,8 @@ describe('addResultToAnki: the rest of the word placeholders', () => {
     ['{word-pitch}'],
     ['{word-frequency}'],
     ['{word-jlpt}'],
+    ['{word-surface}'],
+    ['{word-dictionary}'],
     ['{content_jp_highlight}'],
   ])('%s is left ALONE when no word was mined', async (placeholder) => {
     // On a Yomitan-made note these hold what the reader wrote. Blanking them is
