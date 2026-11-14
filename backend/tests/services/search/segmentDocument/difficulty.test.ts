@@ -389,6 +389,14 @@ describe('sentenceQuality', () => {
     expect(sentenceQuality(name, 'もう来たよ アルフォンス様...')).toBe(SENTENCE_QUALITY.MARGINAL);
   });
 
+  it('is marginal for three or more sentences in one segment, counting !? and !! once', () => {
+    const several = words('大丈夫', '海人', 'おう', '旦那');
+    expect(sentenceQuality(several, '大丈夫なわけあるか! 海人! おう! 朔!? 旦那!')).toBe(SENTENCE_QUALITY.MARGINAL);
+    expect(sentenceQuality(several, '大丈夫なわけあるか!? おう 旦那!!')).toBe(SENTENCE_QUALITY.GOOD);
+    expect(sentenceQuality(several, 'えっ 本当? 大丈夫だよ。')).toBe(SENTENCE_QUALITY.GOOD);
+    expect(sentenceQuality(several, 'えっ! 本当? 大丈夫だよ。')).toBe(SENTENCE_QUALITY.MARGINAL);
+  });
+
   it('does not take a long vowel or a doubled 々 for a stutter', () => {
     expect(sentenceQuality(words('すごい', '本当'), '本当にすごーーーい')).toBe(SENTENCE_QUALITY.GOOD);
     expect(sentenceQuality(words('人々', '時々'), '人々は時々笑う')).toBe(SENTENCE_QUALITY.GOOD);

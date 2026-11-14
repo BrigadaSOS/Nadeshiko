@@ -68,7 +68,9 @@ Code: `app/services/search/segmentDocument/difficulty.ts`.
    in けど... (only for other reasons).
 7. **Quality.** Each segment gets a `quality` (`byte`): 0 for a full sentence of ordinary length (6 to 40
    letters and digits, so punctuation and spaces do not count), 1 for a full sentence that is shorter (先生これ,
-   食べていい), longer (several sentences in one segment, a transcript paragraph), stuttered (the same kana or
+   食べていい), longer (a transcript paragraph), made of three or more sentences (runs of 。, ! or ?, so !? counts
+   once: 大丈夫なわけあるか! 海人! おう! 朔!?, short lines of several speakers that fit the length but add up in
+   "hardest first"), stuttered (the same kana or
    kanji three times in a row, as in せせせせ... 先生!, or the same word three times) or trailing off after a
    noun (本当にごめん…, often a full noun sentence, sometimes a cut one), 2 for a fragment. On staging the first
    difficulty sort opened on two-word lines for 43% of its top results, and "hardest first" on multi-sentence
