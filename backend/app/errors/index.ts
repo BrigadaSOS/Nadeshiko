@@ -9,6 +9,7 @@ export { AuthCredentialsExpiredError } from './authCredentialsExpiredError';
 export { AccessDeniedError } from './accessDeniedError';
 export { InsufficientPermissionsError } from './insufficientPermissionsError';
 export { NotFoundError } from './notFoundError';
+export { DuplicateKeyError } from './duplicateKeyError';
 export { RateLimitExceededError } from './rateLimitExceededError';
 export { QuotaExceededError } from './quotaExceededError';
 export { ServiceOverloadedError } from './serviceOverloadedError';
