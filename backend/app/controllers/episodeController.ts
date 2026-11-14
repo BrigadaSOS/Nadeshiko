@@ -55,8 +55,7 @@ export const createEpisode: CreateEpisode = async ({ params, body }, respond) =>
       return respond.with201().body(toEpisodeDTO(existing, media.publicId));
     }
 
-    // A new video must not take a number another video already has: the save below is an upsert on
-    // (mediaId, episodeNumber), so it would silently replace that episode and keep its segments.
+    // Only for a clearer message: the insert below is what guarantees the 409.
     const taken = await Episode.findOne({ where: { mediaId: media.id, episodeNumber: body.episodeNumber } });
     if (taken) {
       throw new DuplicateKeyError(
@@ -66,7 +65,10 @@ export const createEpisode: CreateEpisode = async ({ params, body }, respond) =>
     }
   }
 
-  const episode = await Episode.save({
+  // Insert, never upsert: an episode number that is already taken answers 409 DUPLICATE_KEY (Postgres unique
+  // violation on the primary key) instead of replacing that episode, which kept its segments and silently took
+  // another video's. Atomic, so it also holds for concurrent creates and for creates without externalVideoId.
+  await Episode.insert({
     mediaId: media.id,
     episodeNumber: body.episodeNumber,
     titleEn: body.titleEn,
@@ -78,6 +80,7 @@ export const createEpisode: CreateEpisode = async ({ params, body }, respond) =>
     thumbnailUrl: body.thumbnailUrl,
     externalVideoId: body.externalVideoId,
   });
+  const episode = await Episode.findOneByOrFail({ mediaId: media.id, episodeNumber: body.episodeNumber });
 
   invalidateEpisodeDerivedCaches();
 

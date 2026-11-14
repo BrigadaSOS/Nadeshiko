@@ -230,6 +230,24 @@ describe('POST /v1/media/:mediaId/episodes', () => {
 
     await request(app).post(url).send({ episodeNumber: 2, externalVideoId: 'vidB' }).expect(201);
   });
+
+  it('refuses a taken episode number without externalVideoId too, instead of overwriting it', async () => {
+    const fixtures = await loadFixtures(['singleMedia']);
+    const media = fixtures.media.testShow;
+    const url = `/v1/media/${media.publicId}/episodes`;
+
+    await request(app).post(url).send({ episodeNumber: 4, titleEn: 'Original' }).expect(201);
+    await assertNoDifference(
+      () => Episode.count(),
+      async () => {
+        const res = await request(app).post(url).send({ episodeNumber: 4, titleEn: 'Replacement' });
+        expect(res.status).toBe(409);
+        expect(res.body).toMatchObject({ code: 'DUPLICATE_KEY' });
+      },
+    );
+    const kept = await Episode.findOneBy({ mediaId: media.id, episodeNumber: 4 });
+    expect(kept?.titleEn).toBe('Original');
+  });
 });
 
 describe('GET /v1/media/:mediaId/episodes/:episodeNumber', () => {
