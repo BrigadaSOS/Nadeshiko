@@ -436,6 +436,7 @@
         "episode": "Episode {number}",
         "movie": "Movie",
         "chapter": "Chapter {number}",
+        "video": "Video {number}",
         "hiddenMediaBadge": "Hidden",
         "hiddenMediaBadgeTitle": "This title is on your hidden list",
         "searchmain": "Search a title here...",
@@ -1318,6 +1319,7 @@
       "defaultDescription": "Search over 1 million Japanese sentences with English translations from a wide variety of anime and J-dramas.",
       "episode": "Episode {n}",
       "chapter": "Chapter {n}",
+      "video": "Video {n}",
       "pageTitle": "「{sentence}」 ({media})"
     },
     "collection": {

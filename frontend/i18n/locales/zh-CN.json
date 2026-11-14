@@ -436,6 +436,7 @@
         "episode": "第 {number} 集",
         "movie": "电影",
         "chapter": "第 {number} 章",
+        "video": "视频 {number}",
         "hiddenMediaBadge": "已隐藏",
         "hiddenMediaBadgeTitle": "你已将此作品设为隐藏",
         "searchmain": "搜索作品…",
@@ -1318,6 +1319,7 @@
       "defaultDescription": "搜索众多动画和日剧中的百万余条日语例句，译文目前支持英语和西班牙语。",
       "episode": "第 {n} 集",
       "chapter": "第 {n} 章",
+      "video": "视频 {n}",
       "pageTitle": "「{sentence}」（{media}）"
     },
     "collection": {

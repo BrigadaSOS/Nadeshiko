@@ -4,14 +4,26 @@ import {
   circledNumber,
   episodeLabel,
   episodeLabelKey,
+  episodeUnitName,
   isAudiobook,
+  isYoutube,
   parseChapterTitle,
+  seoEpisodeLabel,
+  seoEpisodeLabelKey,
+  withChapterTitle,
 } from '~/utils/media';
 
 describe('episodeLabelKey', () => {
   test('an audiobook is split into chapters', () => {
     expect(isAudiobook({ category: 'AUDIOBOOK' })).toBe(true);
     expect(episodeLabelKey({ category: 'AUDIOBOOK' })).toBe('searchpage.main.labels.chapter');
+  });
+
+  test('a YouTube channel is split into videos', () => {
+    expect(isYoutube({ category: 'YOUTUBE' })).toBe(true);
+    expect(episodeLabelKey({ category: 'YOUTUBE' })).toBe('searchpage.main.labels.video');
+    expect(seoEpisodeLabelKey({ category: 'YOUTUBE' })).toBe('seo.sentence.video');
+    expect(episodeUnitName({ category: 'YOUTUBE' })).toBe('Video');
   });
 
   test('everything else keeps episodes, including a missing media', () => {
@@ -41,6 +53,37 @@ describe('episodeLabel', () => {
 
   test('anime keeps "Episode N" even when its episode has a title', () => {
     expect(episodeLabel(t, { category: 'ANIME' }, 1, 'Pilot')).toBe('searchpage.main.labels.episode:1');
+  });
+
+  test('a YouTube video is named by its full title, as YouTube shows it', () => {
+    // "EP03-4" is the channel's own numbering: no chapter parsing, nothing cut.
+    const title = "Let's Play Phoenix Wright Ace Attorney EP03-4 | Advanced Japanese Comprehensible Input (CI)";
+    expect(episodeLabel(t, { category: 'YOUTUBE' }, 4, `  ${title} `)).toBe(title);
+  });
+
+  test('a video title that starts with a number keeps it', () => {
+    expect(episodeLabel(t, { category: 'YOUTUBE' }, 2, '1. はじめての日本語')).toBe('1. はじめての日本語');
+  });
+
+  test('a video without a title, or a blank one, falls back to "Video N"', () => {
+    expect(episodeLabel(t, { category: 'YOUTUBE' }, 5, null)).toBe('searchpage.main.labels.video:5');
+    expect(episodeLabel(t, { category: 'YOUTUBE' }, 5, ' ')).toBe('searchpage.main.labels.video:5');
+  });
+});
+
+describe('seoEpisodeLabel', () => {
+  const t = (key: string, values?: Record<string, unknown>) => `${key}:${values?.n}`;
+
+  test('uses the seo keys, with the same titles as the page', () => {
+    expect(seoEpisodeLabel(t, { category: 'ANIME' }, 3, 'Pilot')).toBe('seo.sentence.episode:3');
+    expect(seoEpisodeLabel(t, { category: 'AUDIOBOOK' }, 3, null)).toBe('seo.sentence.chapter:3');
+    expect(seoEpisodeLabel(t, { category: 'AUDIOBOOK' }, 3, '第2章 雨')).toBe('② 雨');
+    expect(seoEpisodeLabel(t, { category: 'YOUTUBE' }, 3, null)).toBe('seo.sentence.video:3');
+    expect(seoEpisodeLabel(t, { category: 'YOUTUBE' }, 3, 'EP01 | CI')).toBe('EP01 | CI');
+  });
+
+  test('withChapterTitle leaves the label alone for media with no category', () => {
+    expect(withChapterTitle('Episode 1', null, 'Pilot')).toBe('Episode 1');
   });
 });
 

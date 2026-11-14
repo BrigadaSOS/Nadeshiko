@@ -436,6 +436,7 @@
         "episode": "Episode {number}",
         "movie": "Film",
         "chapter": "Bab {number}",
+        "video": "Video {number}",
         "hiddenMediaBadge": "Disembunyikan",
         "hiddenMediaBadgeTitle": "Judul ini ada dalam daftar yang Anda sembunyikan",
         "searchmain": "Cari judul…",
@@ -1318,6 +1319,7 @@
       "defaultDescription": "Cari lebih dari satu juta kalimat bahasa Jepang dari berbagai anime dan drama Jepang. Terjemahan tersedia dalam bahasa Inggris dan Spanyol.",
       "episode": "Episode {n}",
       "chapter": "Bab {n}",
+      "video": "Video {n}",
       "pageTitle": "「{sentence}」 ({media})"
     },
     "collection": {

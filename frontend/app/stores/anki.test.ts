@@ -943,6 +943,36 @@ describe('addResultToAnki: which fields get written', () => {
     expect(update.params.note.fields.Info).not.toContain('Episode');
   });
 
+  test('a YouTube video is named by its title', async () => {
+    const video = {
+      ...sentence,
+      segment: { ...sentence.segment, episodeTitle: 'EP03-4 | Comprehensible Input' },
+      media: { ...mediaEntry, category: 'YOUTUBE' },
+    };
+    const store = withProfile(
+      makeProfile({ fields: [{ key: 'Info', value: '{sentence-info}' }], openBrowserOnExport: false } as never),
+    );
+    queueFetch(ankiOk([12]), ankiOk([{ noteId: 12, fields: {} }]), ankiOk(null));
+
+    await store.addResultToAnki(asResult(video), {});
+
+    const info = ankiCall('updateNoteFields')!.params.note.fields.Info;
+    expect(info).toContain('EP03-4 | Comprehensible Input');
+    expect(info).not.toContain('Episode');
+  });
+
+  test('a YouTube video without a title is "Video N", not an episode', async () => {
+    const video = { ...sentence, media: { ...mediaEntry, category: 'YOUTUBE' } };
+    const store = withProfile(
+      makeProfile({ fields: [{ key: 'Info', value: '{sentence-info}' }], openBrowserOnExport: false } as never),
+    );
+    queueFetch(ankiOk([12]), ankiOk([{ noteId: 12, fields: {} }]), ankiOk(null));
+
+    await store.addResultToAnki(asResult(video), {});
+
+    expect(ankiCall('updateNoteFields')!.params.note.fields.Info).toContain('Video 3');
+  });
+
   test('an unmapped field is skipped rather than written empty', async () => {
     expect(await exportWith({ Unset: '' })).toEqual({});
   });

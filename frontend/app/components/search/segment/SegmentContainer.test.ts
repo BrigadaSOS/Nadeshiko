@@ -36,7 +36,7 @@ vi.stubGlobal('useSegmentConcatenation', () => ({
 vi.stubGlobal('useYoutubeSegmentPlayer', () => ({
   activeSegmentId: ref(null),
   clipProgress: ref(0),
-  hostId: ref('yt-host'),
+  hostId: (publicId: string) => `yt-host-${publicId}`,
   preload: vi.fn(),
   play: vi.fn(),
   pause: vi.fn(),
@@ -380,5 +380,45 @@ describe('the existing no-results view', () => {
     expect(wrapper.text()).not.toContain('SQL');
     expect(wrapper.text()).not.toContain('secret-token');
     expect(wrapper.find('script').exists()).toBe(false);
+  });
+});
+
+describe('a YouTube segment names its video', () => {
+  const youtube = (over: Record<string, unknown> = {}) =>
+    segment('yt1', {
+      media: { publicId: 'c1', nameEn: 'にほんごのじかん', slug: 'nihongo', category: 'YOUTUBE' },
+      segment: {
+        publicId: 'yt1',
+        contentRating: 'SAFE',
+        textJa: { content: '日本語', highlight: null },
+        textEn: { content: 'english' },
+        textEs: { content: 'espanol' },
+        episode: 4,
+        startTimeMs: 12_000,
+        endTimeMs: 13_000,
+        urls: { imageUrl: 'i.png', audioUrl: 'a.mp3', videoUrl: null },
+        ...over,
+      },
+    });
+
+  test('by its title, next to the link out to YouTube', () => {
+    const w = render([youtube({ episodeTitle: 'EP03-4 | Comprehensible Input', externalVideoId: '3NDqIz2jJGA' })]);
+
+    const episode = w.get('[data-testid="segment-episode-link"]');
+    expect(episode.text()).toBe('EP03-4 | Comprehensible Input');
+    // The row cuts a long title to one line; the full title stays in the tooltip.
+    expect(episode.attributes('title')).toBe('EP03-4 | Comprehensible Input');
+    expect(episode.classes()).toContain('truncate');
+    expect(w.get('[data-testid="segment-youtube-link"]').attributes('href')).toBe(
+      youtubeWatchUrl('3NDqIz2jJGA', 12_000),
+    );
+  });
+
+  test('as "Video N" without a title, with no stray separator when there is no video id', () => {
+    const w = render([youtube()]);
+
+    expect(w.get('[data-testid="segment-episode-link"]').text()).toBe('searchpage.main.labels.video');
+    expect(w.find('[data-testid="segment-youtube-link"]').exists()).toBe(false);
+    expect(w.get('[data-testid="segment-media-info"]').text()).not.toMatch(/•\s*•/);
   });
 });
