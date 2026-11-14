@@ -424,7 +424,7 @@
         "sorttime_desc": "Dari akhir episode",
         "sortdifficulty_asc": "Termudah dulu",
         "sortdifficulty_desc": "Tersulit dulu",
-        "sortdifficulty_hint": "Diperkirakan dari seberapa jarang kata-katanya muncul di anime. Tidak mengukur tata bahasa atau kecepatan bicara.",
+        "sortdifficulty_hint": "Diperkirakan dari seberapa jarang kata-katanya muncul di anime dan seberapa lanjut tata bahasanya. Tidak mengukur kecepatan bicara.",
         "sortrandom": "Acak",
         "wordfrequency": "Peringkat frekuensi",
         "wordjlpt": "Level JLPT",

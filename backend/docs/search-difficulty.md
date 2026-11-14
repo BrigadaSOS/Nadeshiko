@@ -4,11 +4,11 @@ Search can order sentences by estimated difficulty: `DIFFICULTY_ASC` (easiest fi
 `DIFFICULTY_DESC` (hardest first), issue #542. It is free for everyone.
 
 Readers were already using "shortest first" as a stand-in for "easy sentences" (it is the most
-used non-default sort). Difficulty orders by how rare a sentence's words are, so a short line
-full of rare words no longer counts as easy.
+used non-default sort). Difficulty orders by how rare a sentence's words are and how advanced its
+conjugations are, so a short line full of rare words or causative-passives no longer counts as easy.
 
-It measures **vocabulary rarity only**. It does not know about grammar, speaking speed, or which
-words a particular reader already knows. The tooltip in the sort menu says so.
+It does **not** measure speaking speed or which words a particular reader already knows. The tooltip
+in the sort menu says so.
 
 ## The rule
 
@@ -38,18 +38,31 @@ Code: `app/services/search/segmentDocument/difficulty.ts`.
    name occurs says nothing about how hard it is to read. Expressions (連語 such
    as のだ, そうだ, すると) are capped at the tier of rank 5,000, because the list splits them into
    their parts and lists the whole far rarer than the words in it.
-4. **Score.** Take the two hardest *distinct* lemmas: `difficulty = hardest * 64 + second`, where
-   `second` is 0 when there is only one content word. The range is 0–4030, stored as an
+4. **Grammar.** Shirabe labels each conjugated token with its steps (`inflection.labels`, such as
+   `past`, `potential / passive`, `causative`). Graded constructions count like a word of matching rarity
+   (`GRAMMAR_RANKS`): elementary ones (〜たら, 〜ば, passive, potential, 〜てくれる, 〜てみる, 〜ちゃう…)
+   like rank 1,000, intermediate ones (causative, 〜ていただく, 〜てくださる, 〜べき, 〜ぬ, Kansai
+   dialect…) like rank 5,000, and literary ones (〜ざる, 〜まい, 〜かねる, 〜つつ) like rank 15,000.
+   Causative plus passive on one verb (食べさせられた) is 15,000; any other two graded constructions on one
+   verb go one level up. Basic forms (past, て-form, negative, polite, progressive, たい, volitional) and
+   their colloquial spellings add nothing, and neither does a label the table does not know, so a new
+   parser label cannot make sentences harder until someone classifies it. Each construction competes with
+   the words for the two places below; the same construction twice counts once.
+
+   On 50,000 staging lines, 51% carry a conjugation; grammar changes 7.7% of the scores and is the hardest
+   item in 3.3% (させていただけないでしょうか, 使わせてもらってます, 教えてくださらなかった).
+5. **Score.** Take the two hardest *distinct* items, words and grammar points together:
+   `difficulty = hardest * 64 + second`, where `second` is 0 when there is only one. The range is 0–4030, stored as an
    Elasticsearch `short`. Every search result contains the searched word, so this keeps together the
    sentences where only that word is hard and orders them by everything else.
-5. **Fragments.** A line is a fragment when it has fewer than two distinct content words (大丈夫！), or
+6. **Fragments.** A line is a fragment when it has fewer than two distinct content words (大丈夫！), or
    ends on a comma, or ends on a case or binding particle (が, を, に, へ, で, と, は, も) without a closing
    `?` or `!`, which is usually a sentence cut across subtitle cues (記録上 あの子は幼いころに). With the mark
    it is an inverted or elliptical sentence and is kept (何を?, なんだ… これは!, 学校で!). Sentence-final and
    conjunctive particles (よ, ね, か, から, けど) end real lines and do not count. There is no minimum length:
    on staging a six-distinct-character threshold mostly caught short full sentences (ただの無謀だ). Indexed as
    `fragment` (`byte`, 1 or 0).
-6. **Sort.** `fragment` ascending in both directions (full sentences first), then `difficulty`, then
+7. **Sort.** `fragment` ascending in both directions (full sentences first), then `difficulty`, then
    `characterCount` in the same direction, then the usual tie-breakers
    (`mediaId`, `episode`, `position`). Difficulty sorts are explicit sorts, so there is no rounds-by-title
    diversification and `preferMedia` is ignored.

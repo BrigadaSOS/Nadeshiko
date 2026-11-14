@@ -424,7 +424,7 @@
         "sorttime_desc": "Reverse",
         "sortdifficulty_asc": "Easiest first",
         "sortdifficulty_desc": "Hardest first",
-        "sortdifficulty_hint": "Estimated from how rare the words are in anime. It doesn't measure grammar or speaking speed.",
+        "sortdifficulty_hint": "Estimated from how rare the words are in anime and how advanced the grammar is. It doesn't measure speaking speed.",
         "sortrandom": "Random",
         "wordfrequency": "Frequency rank",
         "wordjlpt": "JLPT level",

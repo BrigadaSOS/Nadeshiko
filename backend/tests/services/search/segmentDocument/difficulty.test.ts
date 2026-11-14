@@ -3,6 +3,7 @@ import {
   buildRankLookup,
   computeDifficulty,
   EXPRESSION_TIER_CAP,
+  grammarTier,
   isContentToken,
   isFragment,
   lookupRank,
@@ -254,5 +255,70 @@ describe('isFragment', () => {
 
   it('flags a line ending on a comma', () => {
     expect(isFragment([tok('猫'), particle('が'), tok('魔法'), tok('使う')], '猫が魔法使う、')).toBe(true);
+  });
+});
+
+describe('grammarTier', () => {
+  const inflected = (...labels: string[]) => ({ inflection: { labels, base: '' } });
+
+  it('adds nothing for basic forms, however many steps they chain', () => {
+    expect(grammarTier(inflected('past'))).toBeUndefined();
+    // 思っていました
+    expect(grammarTier(inflected('past', 'polite', 'progressive', 'te-form'))).toBeUndefined();
+    expect(grammarTier({})).toBeUndefined();
+  });
+
+  it('ignores a label it does not know, so a new parser label cannot make sentences harder', () => {
+    expect(grammarTier(inflected('some future label'))).toBeUndefined();
+  });
+
+  it('grades elementary, intermediate and advanced constructions', () => {
+    expect(grammarTier(inflected('conditional (〜たら)'))?.tier).toBe(rankTier(1000));
+    expect(grammarTier(inflected('causative'))?.tier).toBe(rankTier(5000));
+    expect(grammarTier(inflected('negative volitional (〜まい)'))?.tier).toBe(rankTier(15000));
+  });
+
+  it('makes causative plus passive advanced', () => {
+    // 食べさせられた
+    expect(grammarTier(inflected('past', 'potential / passive', 'causative'))?.tier).toBe(rankTier(15000));
+  });
+
+  it('raises two other graded constructions on one verb by a level', () => {
+    // 助けられてしまった
+    expect(grammarTier(inflected('past', 'completive (〜しまう)', 'potential / passive'))?.tier).toBe(rankTier(5000));
+  });
+
+  it('does not double-count the なきゃ contraction', () => {
+    expect(grammarTier(inflected('conditional contraction (〜ゃ)', 'provisional (〜ば)', 'negative'))?.tier).toBe(
+      rankTier(1000),
+    );
+  });
+});
+
+describe('computeDifficulty with grammar', () => {
+  it('lets a grammar point outrank common words', () => {
+    const tokens = [
+      tok('猫'),
+      particle('に'),
+      tok('食べる', {
+        s: '食べさせられた',
+        p: '動詞',
+        kind: 'inflected',
+        inflection: { labels: ['past', 'potential / passive', 'causative'], base: '食べる' },
+      }),
+    ];
+
+    expect(computeDifficulty(tokens, lookup)).toBe(rankTier(15000) * 64 + rankTier(197));
+  });
+
+  it('counts the same construction twice only once', () => {
+    const tara = { labels: ['conditional (〜たら)'], base: '' };
+    const tokens = [
+      tok('食べる', { p: '動詞', kind: 'inflected', inflection: tara }),
+      tok('猫'),
+      tok('勝つ', { p: '動詞', kind: 'inflected', inflection: tara }),
+    ];
+
+    expect(computeDifficulty(tokens, lookup)).toBe(rankTier(1000) * 64 + rankTier(1000));
   });
 });

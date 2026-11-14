@@ -424,7 +424,7 @@
         "sorttime_desc": "按时间倒序",
         "sortdifficulty_asc": "由易到难",
         "sortdifficulty_desc": "由难到易",
-        "sortdifficulty_hint": "根据词语在动画中的罕见程度估算，不考虑语法或语速。",
+        "sortdifficulty_hint": "根据词语在动画中的罕见程度和语法难度估算，不考虑语速。",
         "sortrandom": "随机排序",
         "wordfrequency": "词频排名",
         "wordjlpt": "JLPT 等级",

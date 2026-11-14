@@ -425,7 +425,7 @@
         "sorttime_desc": "Cronológico inverso",
         "sortdifficulty_asc": "Más fáciles primero",
         "sortdifficulty_desc": "Más difíciles primero",
-        "sortdifficulty_hint": "Estimado según lo poco comunes que son las palabras en el anime. No mide la gramática ni la velocidad del habla.",
+        "sortdifficulty_hint": "Estimado según lo poco comunes que son las palabras en el anime y lo avanzada que es la gramática. No mide la velocidad del habla.",
         "wordfrequency": "Posición en la lista de frecuencia",
         "wordjlpt": "Nivel JLPT",
         "wordpitchcategories": "Patrón de acento tonal",

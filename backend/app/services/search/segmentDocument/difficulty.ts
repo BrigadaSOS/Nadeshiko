@@ -1,7 +1,7 @@
 /** Estimated sentence difficulty for the `DIFFICULTY_ASC` / `DIFFICULTY_DESC` sorts (#542), from how rare a sentence's
- * words are on the anime frequency list in `WordFrequency`. Pure: the indexer loads the rank lookup once and passes it in. It
- * measures vocabulary rarity only, not grammar, speech speed or what a given reader knows. The rule and the numbers
- * behind it are in `docs/search-difficulty.md`. */
+ * words are on the anime frequency list in `WordFrequency` and how advanced its conjugations are. Pure: the indexer
+ * loads the rank lookup once and passes it in. It does not measure speech speed or what a given reader knows. The rule
+ * and the numbers behind it are in `docs/search-difficulty.md`. */
 
 import type { SlimToken } from '@app/models/Segment';
 
@@ -12,7 +12,7 @@ export interface RankLookup {
   form: ReadonlyMap<string, number>;
 }
 
-type DifficultyToken = Pick<SlimToken, 's' | 'd' | 'r' | 'p' | 'kind' | 'parts'>;
+type DifficultyToken = Pick<SlimToken, 's' | 'd' | 'r' | 'p' | 'kind' | 'parts' | 'inflection'>;
 
 /** Highest tier a listed word can reach; rank 46,341 and rarer all land here. */
 export const MAX_RANK_TIER = 62;
@@ -142,6 +142,100 @@ function tokenTier(token: DifficultyToken, lookup: RankLookup): number {
 }
 
 /**
+ * Grammar levels for the inflection labels Shirabe attaches to a conjugated token (`inflection.labels`, outermost
+ * first). Each level counts like a word of the given rank, so 食べさせられた weighs like a rare word even though 食べる
+ * is common. Basic forms (past, te-form, negative, polite, progressive, たい, volitional, imperative...) are not
+ * listed and add nothing, nor are colloquial spellings of them: the 〜ん negative, and the 〜ゃ contraction, which
+ * Shirabe labels alongside the 〜ば it shortens (なきゃ), so listing it would double-count one construction. A label this table does not know also adds nothing, so a new Shirabe label cannot make
+ * sentences look harder until it is classified here.
+ */
+const GRAMMAR_RANKS: Readonly<Record<string, number>> = {
+  // Elementary (around JLPT N4): conditionals, potential/passive, auxiliary verbs after the te-form.
+  'conditional (〜たら)': 1000,
+  'conditional (〜なら)': 1000,
+  'provisional (〜ば)': 1000,
+  potential: 1000,
+  'potential / passive': 1000,
+  passive: 1000,
+  'progression toward (〜てくる)': 1000,
+  'progression away (〜ていく)': 1000,
+  'done for me (〜てくれる)': 1000,
+  'doing for someone (〜てあげる)': 1000,
+  'doing for someone, plain (〜てやる)': 1000,
+  'having someone do (〜てもらう)': 1000,
+  'attempt (〜てみる)': 1000,
+  'preparatory (〜おく)': 1000,
+  'completive (〜しまう)': 1000,
+  'completive (〜ちゃう)': 1000,
+  'completive (〜ちまう)': 1000,
+  'representative (〜たり)': 1000,
+  'looks like (〜そう)': 1000,
+  'simultaneous (〜ながら)': 1000,
+  'obligation (must)': 1000,
+  'permission (may)': 1000,
+  'prohibition (must not)': 1000,
+  'exemption (need not)': 1000,
+  'contracted (〜ちゃ)': 1000,
+  'negative (〜ず)': 1000,
+  'easy to (〜やすい)': 1000,
+  'hard to (〜にくい)': 1000,
+  'excessive (〜過ぎる)': 1000,
+  'begin (〜始める)': 1000,
+  'finish (〜終わる)': 1000,
+  'continue (〜続ける)': 1000,
+  'resultant state (〜てある)': 1000,
+  'nominalization (〜さ)': 1000,
+  'showing signs (〜がる)': 1000,
+  // Intermediate (around N3): causatives, honorific giving/receiving, literary negatives, dialect.
+  causative: 5000,
+  'short causative': 5000,
+  'having someone do, humble (〜ていただく)': 5000,
+  'done for me, honorific (〜てくださる)': 5000,
+  'obligation (〜べき)': 5000,
+  'contemptuous (〜やがる)': 5000,
+  'negative (〜ぬ)': 5000,
+  'negative conditional (〜ねば)': 5000,
+  'potential (ら抜き)': 5000,
+  'kansai dialect': 5000,
+  'concessive (〜たって)': 5000,
+  'tends to (〜がち)': 5000,
+  'left as it is (〜っぱなし)': 5000,
+  'appearance (〜げ)': 5000,
+  // Advanced (N2 and above): literary and written forms.
+  'negative (〜ざる)': 15000,
+  'negative volitional (〜まい)': 15000,
+  'cannot (〜かねる)': 15000,
+  'simultaneous (〜つつ)': 15000,
+  'attributive (〜き)': 15000,
+};
+/** Causative and passive stacked on one verb (食べさせられる) is advanced. Any other two graded constructions on one
+ * verb (助けられてしまった: passive + しまう) count one level above the harder of them. Basic steps never stack:
+ * 思っていました is four steps and still basic. */
+const STACKED_GRAMMAR_RANK = 15000;
+const NEXT_GRAMMAR_RANK: Readonly<Record<number, number>> = { 1000: 5000, 5000: 15000, 15000: 15000 };
+
+/** The grammar point a conjugated token adds, as a pseudo-lemma and its tier, or undefined for basic forms. */
+export function grammarTier(token: Pick<DifficultyToken, 'inflection'>): { key: string; tier: number } | undefined {
+  const labels = token.inflection?.labels;
+  if (!labels?.length) return undefined;
+
+  const graded = [...new Set(labels)].filter((label) => GRAMMAR_RANKS[label] !== undefined);
+  if (graded.length === 0) return undefined;
+
+  const causative = graded.some((l) => l === 'causative' || l === 'short causative');
+  const passive = graded.some((l) => l === 'passive' || l === 'potential / passive');
+  if (causative && passive) return { key: `grammar:${graded.join('>')}`, tier: rankTier(STACKED_GRAMMAR_RANK) };
+
+  let hardestLabel = graded[0] as string;
+  for (const label of graded) {
+    if ((GRAMMAR_RANKS[label] as number) > (GRAMMAR_RANKS[hardestLabel] as number)) hardestLabel = label;
+  }
+  const rank = GRAMMAR_RANKS[hardestLabel] as number;
+  if (graded.length === 1) return { key: `grammar:${hardestLabel}`, tier: rankTier(rank) };
+  return { key: `grammar:${graded.join('>')}`, tier: rankTier(NEXT_GRAMMAR_RANK[rank] ?? rank) };
+}
+
+/**
  * `hardest * 64 + second` over the two hardest DISTINCT lemmas (second = 0 with a single content word), 0–4030.
  * Every search result contains the searched word, so this groups "only the searched word is hard" sentences together
  * and orders them by their context. Undefined when the sentence has no tokens or no content word, or when the
@@ -160,6 +254,13 @@ export function computeDifficulty(
     const tier = tokenTier(token, lookup);
     const previous = tierByLemma.get(token.d);
     if (previous === undefined || tier > previous) tierByLemma.set(token.d, tier);
+  }
+  // Grammar points compete with the words for the two places; the same construction twice counts once.
+  for (const token of tokens) {
+    const grammar = grammarTier(token);
+    if (!grammar) continue;
+    const previous = tierByLemma.get(grammar.key);
+    if (previous === undefined || grammar.tier > previous) tierByLemma.set(grammar.key, grammar.tier);
   }
   if (tierByLemma.size === 0) return undefined;
 

@@ -424,7 +424,7 @@
         "sorttime_desc": "Ordem cronológica inversa",
         "sortdifficulty_asc": "Mais fáceis primeiro",
         "sortdifficulty_desc": "Mais difíceis primeiro",
-        "sortdifficulty_hint": "Estimado pela raridade das palavras em animes. Não mede a gramática nem a velocidade da fala.",
+        "sortdifficulty_hint": "Estimado pela raridade das palavras em animes e pelo nível da gramática. Não mede a velocidade da fala.",
         "sortrandom": "Aleatória",
         "wordfrequency": "Posição por frequência",
         "wordjlpt": "Nível do JLPT",

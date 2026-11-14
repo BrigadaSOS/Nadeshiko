@@ -83,8 +83,8 @@ const sortContent = async (type: string) => {
                     :iconPath="mdiClockOutline" />
                 <SearchDropdownItem @click="sortContent('time_desc')" :text="t('searchpage.main.buttons.sorttime_desc')"
                     :iconPath="mdiClockAlertOutline" />
-                <!-- `title` falls through to the item's root: a native hover hint that the order is a vocabulary
-                     estimate, since "difficulty" could be read as grammar or speed. -->
+                <!-- `title` falls through to the item's root: a native hover hint that the order estimates
+                     vocabulary and grammar, not speaking speed. -->
                 <SearchDropdownItem @click="sortContent('difficulty_asc')"
                     :text="t('searchpage.main.buttons.sortdifficulty_asc')"
                     :title="t('searchpage.main.buttons.sortdifficulty_hint')" :iconPath="mdiSignalCellular1" />
