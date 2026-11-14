@@ -4,6 +4,8 @@ import { Media, Segment } from '@app/models';
 import { In, type SelectQueryBuilder } from 'typeorm';
 import type { SegmentDocumentShape, ReindexMediaItem } from '../SegmentDocument';
 import { isElasticsearchNotFound } from '@lib/elasticsearchErrors';
+import { computeDifficulty, isFragment, type RankLookup } from './difficulty';
+import { loadDifficultyLookup } from './difficultyLookup';
 
 interface BulkResult {
   succeeded: number;
@@ -57,10 +59,11 @@ export class SegmentIndexer {
         return false;
       }
 
+      const lookup = await loadDifficultyLookup();
       await client.index({
         index: INDEX_NAME,
         id: segment.id.toString(),
-        document: SegmentIndexer.buildDocument(segment, media),
+        document: SegmentIndexer.buildDocument(segment, media, lookup),
       });
 
       logger.info({ segmentId: segment.id }, 'Indexed segment in ES');
@@ -83,6 +86,7 @@ export class SegmentIndexer {
     const mediaIds = [...new Set(segments.map((s) => s.mediaId))];
     const mediaList = await Media.find({ where: { id: In(mediaIds) } });
     const mediaMap = new Map(mediaList.map((m) => [m.id, m]));
+    const lookup = await loadDifficultyLookup();
 
     const operations: object[] = [];
     const skippedErrors: BulkResult['errors'] = [];
@@ -94,7 +98,7 @@ export class SegmentIndexer {
         continue;
       }
       operations.push({ index: { _index: indexName, _id: segment.id.toString() } });
-      operations.push(SegmentIndexer.buildDocument(segment, media));
+      operations.push(SegmentIndexer.buildDocument(segment, media, lookup));
     }
 
     if (operations.length === 0) {
@@ -291,7 +295,14 @@ export class SegmentIndexer {
     }
   }
 
-  private static buildDocument(segment: Segment, media: Media): SegmentDocumentShape {
+  /** 1 for a one-word or cut-off line, 0 for a full sentence, absent without tokens. A number rather than
+   * a boolean so its sort value and the keyset cursor stay plain integers. */
+  private static fragmentFlag(segment: Segment): 0 | 1 | undefined {
+    const fragment = isFragment(segment.tokens, segment.contentJa);
+    return fragment === undefined ? undefined : fragment ? 1 : 0;
+  }
+
+  private static buildDocument(segment: Segment, media: Media, lookup: RankLookup): SegmentDocumentShape {
     return {
       uuid: segment.uuid,
       publicId: segment.publicId,
@@ -316,6 +327,8 @@ export class SegmentIndexer {
       storageBasePath: segment.storageBasePath,
       tokens: segment.tokens?.length ? segment.tokens : undefined,
       recurringRepeat: segment.recurringRepeat ?? false,
+      difficulty: computeDifficulty(segment.tokens, lookup),
+      fragment: SegmentIndexer.fragmentFlag(segment),
     };
   }
 }

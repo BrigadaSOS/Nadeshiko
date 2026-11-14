@@ -94,6 +94,21 @@ describe('SegmentQuery.buildSortAndRandomScore', () => {
   const scoreThenLength = [{ _score: { order: 'desc' } }, ...lengthAscending];
 
   const lengthDescending = [{ characterCount: { order: 'desc', unmapped_type: 'short' } }, ...tieBreakers];
+  // Unscored segments carry an explicit sort value past 0–4030 so they come last both ways, and the keyset cursor
+  // stays a plain JSON number (`_last` would hand back Long.MIN/MAX).
+  const fragmentsLast = { fragment: { order: 'asc', missing: 1, unmapped_type: 'byte' } };
+  const difficultyAscending = [
+    fragmentsLast,
+    { difficulty: { order: 'asc', missing: 32767, unmapped_type: 'short' } },
+    { characterCount: { order: 'asc', unmapped_type: 'short' } },
+    ...tieBreakers,
+  ];
+  const difficultyDescending = [
+    fragmentsLast,
+    { difficulty: { order: 'desc', missing: -1, unmapped_type: 'short' } },
+    { characterCount: { order: 'desc', unmapped_type: 'short' } },
+    ...tieBreakers,
+  ];
   const timeAscending = [
     { episode: { order: 'asc' } },
     { position: { order: 'asc' } },
@@ -125,6 +140,10 @@ describe('SegmentQuery.buildSortAndRandomScore', () => {
     ['descending length overrides scoring', { mode: 'DESC' }, { min: 10 }, true, lengthDescending, null],
     ['ascending time keeps its tie order', { mode: 'TIME_ASC' }, { min: 10 }, true, timeAscending, null],
     ['descending time keeps its tie order', { mode: 'TIME_DESC' }, { min: 10 }, true, timeDescending, null],
+    ['easiest first', { mode: 'DIFFICULTY_ASC' }, undefined, false, difficultyAscending, null],
+    ['easiest first match-all minimum', { mode: 'DIFFICULTY_ASC' }, { min: 10 }, true, difficultyAscending, null],
+    ['hardest first', { mode: 'DIFFICULTY_DESC' }, undefined, false, difficultyDescending, null],
+    ['hardest first match-all', { mode: 'DIFFICULTY_DESC' }, undefined, true, difficultyDescending, null],
     ['random match-all', { mode: 'RANDOM', seed: 42 }, undefined, true, scoreThenLength, 'replace'],
     ['random match-all minimum', { mode: 'RANDOM', seed: 42 }, { min: 10 }, true, scoreThenLength, 'replace'],
     ['random text', { mode: 'RANDOM', seed: 42 }, undefined, false, scoreThenLength, 'multiply'],

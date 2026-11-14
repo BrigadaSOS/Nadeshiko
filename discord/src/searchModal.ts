@@ -272,7 +272,7 @@ export function showSearchModal(
   const sortInput = new TextInputBuilder()
     .setCustomId('search_sort')
     .setLabel('Sort')
-    .setPlaceholder('asc, desc, time_asc, time_desc, or random')
+    .setPlaceholder('asc, desc, time_asc, time_desc, difficulty_asc, difficulty_desc, random')
     .setStyle(TextInputStyle.Short)
     .setValue(defaults?.sort?.toLowerCase() ?? '')
     .setRequired(false);

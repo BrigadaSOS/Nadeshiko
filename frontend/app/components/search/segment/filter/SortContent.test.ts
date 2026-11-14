@@ -138,6 +138,25 @@ describe('picking an ordinary sort', () => {
   });
 });
 
+describe('picking a difficulty sort', () => {
+  test.each([
+    ['sortdifficulty_asc', 'difficulty_asc'],
+    ['sortdifficulty_desc', 'difficulty_desc'],
+  ])('%s writes %s to the URL', async (key, sort) => {
+    const wrapper = render();
+
+    await pick(wrapper, key);
+
+    expect(setQuery).toHaveBeenCalledWith({ sort, seed: null });
+  });
+
+  test('names it on the button, from the same key as the menu item', () => {
+    route.query = { sort: 'difficulty_desc' };
+
+    expect(activeLabel(render()).text()).toContain('sortdifficulty_desc');
+  });
+});
+
 describe('picking random', () => {
   test('writes a seed alongside the sort', async () => {
     // Without one the backend seeds from the calendar day, so "random" is one

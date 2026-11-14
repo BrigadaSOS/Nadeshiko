@@ -7,6 +7,8 @@ import {
   mdiClockOutline,
   mdiClockAlertOutline,
   mdiDice2,
+  mdiSignalCellular1,
+  mdiSignalCellular3,
 } from '@mdi/js';
 
 const { t } = useI18n();
@@ -81,6 +83,14 @@ const sortContent = async (type: string) => {
                     :iconPath="mdiClockOutline" />
                 <SearchDropdownItem @click="sortContent('time_desc')" :text="t('searchpage.main.buttons.sorttime_desc')"
                     :iconPath="mdiClockAlertOutline" />
+                <!-- `title` falls through to the item's root: a native hover hint that the order estimates
+                     vocabulary and grammar, not speaking speed. -->
+                <SearchDropdownItem @click="sortContent('difficulty_asc')"
+                    :text="t('searchpage.main.buttons.sortdifficulty_asc')"
+                    :title="t('searchpage.main.buttons.sortdifficulty_hint')" :iconPath="mdiSignalCellular1" />
+                <SearchDropdownItem @click="sortContent('difficulty_desc')"
+                    :text="t('searchpage.main.buttons.sortdifficulty_desc')"
+                    :title="t('searchpage.main.buttons.sortdifficulty_hint')" :iconPath="mdiSignalCellular3" />
                 <SearchDropdownItem @click="sortContent('random')" :text="t('searchpage.main.buttons.sortrandom')"
                     :iconPath="mdiDice2" />
             </SearchDropdownContent>

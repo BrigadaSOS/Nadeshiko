@@ -54,7 +54,7 @@ describe('shouldDiversify', () => {
   });
 
   it('leaves an explicit sort alone', () => {
-    for (const mode of ['asc', 'desc', 'time_asc', 'time_desc', 'random']) {
+    for (const mode of ['asc', 'desc', 'time_asc', 'time_desc', 'difficulty_asc', 'difficulty_desc', 'random']) {
       expect(shouldDiversify({ sort: { mode } } as never, NO_FILTERS, true)).toBe(false);
     }
   });

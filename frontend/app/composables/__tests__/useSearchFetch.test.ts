@@ -463,13 +463,27 @@ describe('fetchSentences preferMedia', () => {
   });
 
   it('omits it under a sort the reader named', async () => {
-    for (const sort of ['time_asc', 'time_desc', 'asc', 'desc', 'random']) {
+    for (const sort of ['time_asc', 'time_desc', 'difficulty_asc', 'difficulty_desc', 'asc', 'desc', 'random']) {
       sdkMocks.search.mockReset();
       okOnce();
 
       await createSearchFetcher(fakeSdk).fetchSentences(scope({ sort, preferMedia: ['aaaaaaaaaaaa'] }));
 
       expect(bodyOf()).not.toHaveProperty('preferMedia');
+    }
+  });
+
+  it('sends a difficulty sort as the API enum, without a seed', async () => {
+    for (const [sort, mode] of [
+      ['difficulty_asc', 'DIFFICULTY_ASC'],
+      ['difficulty_desc', 'DIFFICULTY_DESC'],
+    ] as const) {
+      sdkMocks.search.mockReset();
+      okOnce();
+
+      await createSearchFetcher(fakeSdk).fetchSentences(scope({ sort }));
+
+      expect(bodyOf().sort).toEqual({ mode });
     }
   });
 

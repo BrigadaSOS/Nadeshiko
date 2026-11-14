@@ -391,7 +391,10 @@ export const s_SearchQuery = z.object({
 });
 
 export const s_SearchSort = z.object({
-  mode: z.enum(['RELEVANCE', 'ASC', 'DESC', 'TIME_ASC', 'TIME_DESC', 'RANDOM']).optional().default('RELEVANCE'),
+  mode: z
+    .enum(['RELEVANCE', 'ASC', 'DESC', 'TIME_ASC', 'TIME_DESC', 'DIFFICULTY_ASC', 'DIFFICULTY_DESC', 'RANDOM'])
+    .optional()
+    .default('RELEVANCE'),
   seed: z.coerce.number().min(0).optional(),
 });
 
