@@ -764,7 +764,7 @@
       "difficulty": {
         "type": "short"
       },
-      "fragment": {
+      "quality": {
         "type": "byte"
       },
       "contentRating": {

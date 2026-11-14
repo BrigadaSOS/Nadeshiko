@@ -6,6 +6,8 @@ import {
   grammarBonus,
   isContentToken,
   isFragment,
+  SENTENCE_QUALITY,
+  sentenceQuality,
   lookupRank,
   MAX_DIFFICULTY,
   MAX_RANK_TIER,
@@ -227,6 +229,39 @@ describe('buildRankLookup', () => {
 describe('isFragment', () => {
   const sentence = [tok('猫'), particle('が'), tok('魔法'), particle('を'), tok('使う', { p: '動詞' })];
 
+  it('flags a line that trails off right after a particle that does not end sentences', () => {
+    const endingOn = (last: ReturnType<typeof tok>) => [tok('会長'), particle('の'), tok('体'), last];
+    expect(isFragment(endingOn(particle('って')), '会長の体って...')).toBe(true);
+    expect(isFragment(endingOn(particle('は')), '会長の体は-')).toBe(true);
+    // の right after a noun is the possessive.
+    expect(isFragment([tok('これ'), particle('は'), tok('先生'), particle('の')], 'これは先生の...')).toBe(true);
+  });
+
+  it('recognises the usual ellipsis and dash spellings, also before 。 or a closing bracket', () => {
+    const cut = [tok('会長'), particle('の'), tok('体'), particle('って')];
+    for (const ending of ['..', '...', '…', '‥', '・・・', '。。。', '-', '－', '―', '—', '–', '─', '…。', '...」']) {
+      expect(isFragment(cut, `会長の体って${ending}`), ending).toBe(true);
+    }
+    expect(isFragment(cut, '会長の体って。')).toBe(false);
+  });
+
+  it('keeps conjunctive and sentence-final particles before an ellipsis, also drawn out', () => {
+    const verbThen = (s: string, d = s) => [tok('こと'), tok('ある', { p: '動詞' }), { ...particle(s), d }];
+    expect(isFragment(verbThen('けど'), '聞きたいことがあるんだけど...')).toBe(false);
+    expect(isFragment(verbThen('から'), 'ことがあるから…')).toBe(false);
+    expect(isFragment(verbThen('ねぇ', 'ね'), '綺麗なことがあるねぇ...')).toBe(false);
+    expect(isFragment(verbThen('の'), 'どうしたことがあるの...')).toBe(false);
+  });
+
+  it('keeps a finished sentence that trails off, and a long vowel at the end', () => {
+    const finished = [tok('冷気'), { ...particle('だ'), p: '助動詞' }];
+    expect(isFragment([tok('凍る', { p: '動詞' }), ...finished], '凍りつきそうな冷気だ...')).toBe(false);
+    expect(isFragment([tok('元気'), tok('いる', { p: '動詞' }), particle('ね')], '元気でいるね...')).toBe(false);
+    expect(isFragment([tok('行く', { p: '動詞' }), tok('今'), particle('よ')], '今 行くよ...')).toBe(false);
+    expect(isFragment([tok('皆さん'), tok('さようなら')], '皆さん さようならー')).toBe(false);
+    expect(isFragment([tok('会長'), particle('の'), tok('体'), particle('って')], '会長の体って...?')).toBe(false);
+  });
+
   it('is false for a full sentence', () => {
     expect(isFragment(sentence, '猫が魔法を使う')).toBe(false);
   });
@@ -313,5 +348,54 @@ describe('computeDifficulty with grammar', () => {
     expect(computeDifficulty([tok('駆ける', { p: '動詞' }), tok('魔法'), long], lookup)).toBe(
       rankTier(9000) * 64 + MAX_RANK_TIER,
     );
+  });
+});
+
+describe('sentenceQuality', () => {
+  const words = (...lemmas: string[]) => lemmas.map((d) => tok(d));
+
+  it('is good for a full sentence of ordinary length', () => {
+    expect(sentenceQuality(words('猫', '魔法', '使う'), '猫がいつも魔法を使う')).toBe(SENTENCE_QUALITY.GOOD);
+  });
+
+  it('is marginal for a full sentence that is very short or very long', () => {
+    expect(sentenceQuality(words('先生', 'これ'), '先生これ')).toBe(SENTENCE_QUALITY.MARGINAL);
+    expect(sentenceQuality(words('猫', '魔法'), '猫が'.repeat(21))).toBe(SENTENCE_QUALITY.MARGINAL);
+    // Bidi marks and surrounding spaces do not count.
+    expect(sentenceQuality(words('猫', '魔法', '使う'), '\u200e 猫がいつも魔法を使う ')).toBe(SENTENCE_QUALITY.GOOD);
+  });
+
+  it('is marginal for a stutter or a word said three times', () => {
+    expect(sentenceQuality(words('先生', 'せせせ'), 'せせせせ... 先生！ 待って')).toBe(SENTENCE_QUALITY.MARGINAL);
+    expect(sentenceQuality(words('猫', '猫', '猫', 'が'), 'ね 猫が... 猫 猫...が')).toBe(SENTENCE_QUALITY.MARGINAL);
+    expect(sentenceQuality(words('猫', '猫', '魔法'), '猫と猫が魔法を使う')).toBe(SENTENCE_QUALITY.GOOD);
+  });
+
+  it('counts letters and digits only, from 6 to 40', () => {
+    const two = words('先生', 'これ');
+    expect(sentenceQuality(two, '先生、これ!!!!')).toBe(SENTENCE_QUALITY.MARGINAL);
+    expect(sentenceQuality(two, 'あいうえお')).toBe(SENTENCE_QUALITY.MARGINAL);
+    expect(sentenceQuality(two, 'あいうえおか')).toBe(SENTENCE_QUALITY.GOOD);
+    expect(sentenceQuality(two, 'あいうえおか?')).toBe(SENTENCE_QUALITY.GOOD);
+    expect(sentenceQuality(two, 'あいうえ'.repeat(10))).toBe(SENTENCE_QUALITY.GOOD);
+    expect(sentenceQuality(two, `${'あいうえ'.repeat(10)}お`)).toBe(SENTENCE_QUALITY.MARGINAL);
+    expect(sentenceQuality(two, `${'あいうえ'.repeat(10)}。 !!`)).toBe(SENTENCE_QUALITY.GOOD);
+  });
+
+  it('is marginal for a line trailing off after a noun, often a full noun sentence', () => {
+    expect(sentenceQuality([tok('本当'), tok('ごめん')], '本当に本当にごめん…')).toBe(SENTENCE_QUALITY.MARGINAL);
+    expect(sentenceQuality([tok('本当'), tok('ごめん')], '本当に本当にごめん')).toBe(SENTENCE_QUALITY.GOOD);
+    const name = [tok('アルフォンス'), tok('来る', { p: '動詞' }), tok('様', { p: '接尾辞' })];
+    expect(sentenceQuality(name, 'もう来たよ アルフォンス様...')).toBe(SENTENCE_QUALITY.MARGINAL);
+  });
+
+  it('does not take a long vowel or a doubled 々 for a stutter', () => {
+    expect(sentenceQuality(words('すごい', '本当'), '本当にすごーーーい')).toBe(SENTENCE_QUALITY.GOOD);
+    expect(sentenceQuality(words('人々', '時々'), '人々は時々笑う')).toBe(SENTENCE_QUALITY.GOOD);
+  });
+
+  it('is a fragment for a fragment, and undefined without tokens', () => {
+    expect(sentenceQuality(words('大丈夫'), '大丈夫だよ、きっとね')).toBe(SENTENCE_QUALITY.FRAGMENT);
+    expect(sentenceQuality(null, '猫が魔法を使う')).toBeUndefined();
   });
 });

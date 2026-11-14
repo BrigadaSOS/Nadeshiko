@@ -58,10 +58,23 @@ Code: `app/services/search/segmentDocument/difficulty.ts`.
    ends on a comma, or ends on a case or binding particle (が, を, に, へ, で, と, は, も) without a closing
    `?` or `!`, which is usually a sentence cut across subtitle cues (記録上 あの子は幼いころに). With the mark
    it is an inverted or elliptical sentence and is kept (何を?, なんだ… これは!, 学校で!). Sentence-final and
-   conjunctive particles (よ, ね, か, から, けど) end real lines and do not count. There is no minimum length:
-   on staging a six-distinct-character threshold mostly caught short full sentences (ただの無謀だ). Indexed as
-   `fragment` (`byte`, 1 or 0).
-7. **Sort.** `fragment` ascending in both directions (full sentences first), then `difficulty`, then
+   conjunctive particles (よ, ね, か, から, けど) end real lines and do not count. A line that ends on an
+   ellipsis or dash (`..`, `…`, `‥`, `・・・`, `。。。`, `-`, `―`, `—`, `─`, also before `。` or a closing
+   bracket) right after any other particle was cut off too (会長の体って..., これは先生の...: の right after a
+   noun is the possessive). After a sentence-final or conjunctive particle (今 行くよ..., あるんだけど...),
+   matched also by lemma and without a drawn-out vowel (綺麗だねぇ...), or after a verb or an auxiliary
+   (冷気だ...), it only trails off and is kept. The long vowel mark ー is not a dash (さようならー). On a
+   50,000-segment staging sample every line ending in は..., が... or を... is a fragment, and 6% of those ending
+   in けど... (only for other reasons).
+7. **Quality.** Each segment gets a `quality` (`byte`): 0 for a full sentence of ordinary length (6 to 40
+   letters and digits, so punctuation and spaces do not count), 1 for a full sentence that is shorter (先生これ,
+   食べていい), longer (several sentences in one segment, a transcript paragraph), stuttered (the same kana or
+   kanji three times in a row, as in せせせせ... 先生!, or the same word three times) or trailing off after a
+   noun (本当にごめん…, often a full noun sentence, sometimes a cut one), 2 for a fragment. On staging the first
+   difficulty sort opened on two-word lines for 43% of its top results, and "hardest first" on multi-sentence
+   segments whose words and conjugations add up to the maximum. On the sample, 73.7% of segments are quality 0,
+   5.8% quality 1 and 20.5% fragments; 3.6% of full sentences have fewer than 6 letters and 1.2% more than 40.
+8. **Sort.** `quality` ascending in both directions, then `difficulty`, then
    `characterCount` in the same direction, then the usual tie-breakers
    (`mediaId`, `episode`, `position`). Difficulty sorts are explicit sorts, so there is no rounds-by-title
    diversification and `preferMedia` is ignored.
@@ -69,12 +82,12 @@ Code: `app/services/search/segmentDocument/difficulty.ts`.
 ## Unscored segments
 
 A segment with no tokens or no content word gets no `difficulty` field, and without tokens no
-`fragment` either. The sort treats a missing `fragment` as 1 and sets an explicit `difficulty`
+`quality` either. The sort treats a missing `quality` as 2 and sets an explicit `difficulty`
 `missing` value (32767 ascending, -1 descending), so these segments come last in both directions.
 Do not use `_last`: Elasticsearch returns it as Long.MAX/MIN, which a JSON number cannot carry,
 and that breaks the keyset cursor. Both fields also have an `unmapped_type`, so an index that
-predates them still sorts. `fragment` is a number rather than a boolean for the same reason: its
-sort value goes into the cursor.
+predates them still sorts. `quality` is a plain number for the same reason: its sort value goes into
+the cursor.
 
 When `WordFrequency` is empty (it was never seeded), every segment is indexed without a difficulty
 instead of every word counting as unknown.
@@ -92,8 +105,13 @@ instead of every word counting as unknown.
 - The seed refuses to write when a download looks short (fewer rows or headwords than expected, or a name count
   far from 43,000), and replaces the table in one transaction, so a failure keeps the previous list.
 - A long-running server that fails to reload the list keeps the one it loaded before.
-- `difficulty` and `fragment` are in `ADDITIVE_MAPPING_FIELDS`, so a live index gets the mapping at boot. Documents
-  only get values once they are indexed again, so a full reindex is what makes the sort useful.
+- `difficulty` and `quality` are in `ADDITIVE_MAPPING_FIELDS`, so a live index gets the mapping at boot. Documents
+  only get values once they are indexed again, so a full reindex is what makes the sort useful. Until then a
+  missing `quality` counts as 2, so every segment ties on it and the order falls back to `difficulty`. That also
+  drops the earlier fragment ordering: `es:reindex` builds a new index and swaps the alias, so until the swap the
+  live index has no `quality` and one-word lines are back near the top of "easiest first". Reindex right after
+  deploying.
+- `quality` replaced an earlier `fragment` flag (1 or 0). An index built before it keeps the old field unused.
 
 ## Measurements (staging, 2026-11-13)
 

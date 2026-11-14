@@ -38,6 +38,8 @@ const PREFERRED_MEDIA_SCORE_WEIGHT = 1.15;
 /** Sort values for a segment without `difficulty`: past every real value (0–4030) in either direction. */
 export const DIFFICULTY_MISSING_ASC = 32767;
 export const DIFFICULTY_MISSING_DESC = -1;
+/** `quality` sort value for a segment without tokens: with the fragments. */
+export const QUALITY_MISSING = 2;
 
 export class SegmentQuery {
   static buildSearchMust(
@@ -156,9 +158,10 @@ export class SegmentQuery {
     } else if (sortMode === 'difficulty_asc' || sortMode === 'difficulty_desc') {
       const order: estypes.SortOrder = sortMode === 'difficulty_asc' ? 'asc' : 'desc';
       sort = [
-        // Full sentences before one-word and cut-off lines in both directions, so "easiest first" does not open on
-        // hundreds of bare 大丈夫. Missing (no tokens) counts as a fragment.
-        { fragment: { order: 'asc', missing: 1, unmapped_type: 'byte' } },
+        // Good full sentences first in both directions, then very short, long or stuttered ones, then fragments: so
+        // "easiest first" does not open on bare 大丈夫 or 先生これ, nor "hardest first" on transcript paragraphs.
+        // Missing (no tokens) counts as a fragment.
+        { quality: { order: 'asc', missing: QUALITY_MISSING, unmapped_type: 'byte' } },
         // Unscored segments (no content word) sort last both ways. An explicit number rather than `_last`, which
         // Elasticsearch returns as Long.MIN/MAX: those overflow a JSON number and break the keyset cursor.
         {
