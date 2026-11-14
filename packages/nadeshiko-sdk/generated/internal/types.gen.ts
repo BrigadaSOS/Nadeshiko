@@ -239,7 +239,7 @@ export type SearchSort = {
      * (the rarest first, then the second rarest), and longer conjugations (食べさせられた over 食べた) raise a
      * sentence within the group its rarest word sets. Proper names and words not on the list count as a moderately
      * rare word (rank 5,000), not the rarest. It does not measure speech speed. In both directions, full sentences
-     * of ordinary length (8 to 40 characters) come first; then very short, very long or stuttered ones; then
+     * of ordinary length (6 to 40 letters) come first; then very short, very long or stuttered ones; then
      * one-word and cut-off lines; segments without a scorable word come last
      * - `RANDOM`: deterministic random order (pass `seed` for reproducibility)
      *

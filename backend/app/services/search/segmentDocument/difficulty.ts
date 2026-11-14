@@ -35,8 +35,9 @@ const NON_CONTENT_POS = new Set(['助詞', '助動詞', '補助記号', '記号'
 const INTERJECTION_POS = '感動詞';
 const EXPRESSION_POS = '連語';
 
-/** Bidi marks some subtitle files carry, which the parser keeps as part of a "noun". */
-const BIDI_MARKS = /[\u200E\u200F\u202A-\u202E]/g;
+/** Bidi marks and other invisible characters some subtitle files carry (zero-width space, isolates, BOM), which the
+ * parser keeps as part of a "noun". */
+const BIDI_MARKS = /[\u200B\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g;
 const HAS_LETTER = /\p{L}/u;
 /** Latin-only tokens (OK, LINE, A) are loanwords, abbreviations or stray letters the frequency list does not rank,
  * so they would all count as unknown words. They do not count. */
@@ -239,29 +240,45 @@ const MIN_CONTENT_WORDS = 2;
  * elliptical sentence (何を? / なんだ… これは! / 学校で!), not one cut across cues. */
 const FINISHED_UTTERANCE = /[?？!！][\s」』）)"]*$/;
 const TRAILING_COMMA = /[、，,]\s*$/;
-/** An ellipsis or dash at the end: the line trails off (冷気だ...) or was cut across cues (会長の体って...). The long
- * vowel mark ー is not one: it ends real lines (さようならー). */
-const TRAILING_OFF = /(\.\.\.|…|‥|[-－―⸺])[\s」』）)"]*$/;
-/** Particles that end a finished sentence even before an ellipsis (そうだよ..., 行くかな...). Any other particle
- * before one (って..., けど..., 東京は...) leaves the sentence unfinished. */
-const SENTENCE_FINAL_PARTICLES = new Set([
-  'よ',
-  'ね',
-  'な',
-  'ぞ',
-  'ぜ',
-  'わ',
-  'さ',
-  'か',
-  'かな',
-  'の',
-  'もん',
-  'っけ',
-  'かしら',
-  'ねえ',
-  'なあ',
+/** An ellipsis or dash at the end, possibly followed by 。 or a closing bracket (novels write …。): the line trails off
+ * (冷気だ...) or was cut across cues (会長の体って...). The long vowel mark ー is not one: it ends real lines
+ * (さようならー). */
+const TRAILING_OFF = /(\.{2,}|…|‥|・{2,}|。{2,}|[-－―⸺—–─])[\s」』）)"。]*$/;
+/** Particles that leave a finished or naturally trailing sentence before an ellipsis: sentence-final ones
+ * (そうだよ..., 行くかな...) and conjunctive ones, as at the end of a line without one (あるんだけど...,
+ * 行きたいから..., 待って...). Any other particle before one (って..., 東京は..., 先生の...) leaves it unfinished.
+ * Matched on surface, lemma and the surface without a drawn-out vowel (ねぇ). */
+const TRAILING_PARTICLES = new Set([
+  ...['よ', 'ね', 'な', 'ぞ', 'ぜ', 'わ', 'さ', 'か', 'かな', 'の', 'もん', 'っけ', 'かしら', 'ねえ', 'なあ'],
+  ...['けど', 'けれど', 'けれども', 'から', 'のに', 'ので', 'し', 'かも', 'て', 'ても', 'たり', 'ば'],
 ]);
 const NOUN_POS = new Set(['名詞', '代名詞']);
+/** A noun, or a suffix that ends one (鷹村さん..., アルフォンス様...). */
+const NOUN_END_POS = new Set([...NOUN_POS, '接尾辞']);
+
+/** The last two tokens that are not punctuation or space, last one last. */
+function lastWords(tokens: readonly DifficultyToken[]): [DifficultyToken | undefined, DifficultyToken | undefined] {
+  let previous: DifficultyToken | undefined;
+  let last: DifficultyToken | undefined;
+  for (const raw of tokens) {
+    const token = stripBidi(raw);
+    if (token.kind === 'symbol' || token.p === '補助記号' || token.p === '記号' || !token.s.trim()) continue;
+    previous = last;
+    last = token;
+  }
+  return [previous, last];
+}
+
+/** Ends on an ellipsis or dash without a closing ? or !. */
+function trailsOff(text: string): boolean {
+  const plain = text.replace(BIDI_MARKS, '');
+  return TRAILING_OFF.test(plain) && !FINISHED_UTTERANCE.test(plain);
+}
+
+function keepsTrailingOff(particle: DifficultyToken, previous: DifficultyToken | undefined): boolean {
+  if (particle.s === 'の' && previous && NOUN_POS.has(previous.p)) return false;
+  return [particle.s, particle.d, particle.s.replace(ELONGATION, '')].some((form) => TRAILING_PARTICLES.has(form));
+}
 
 function isParticle(token: DifficultyToken): boolean {
   return token.kind === 'function' || token.p === '助詞';
@@ -270,9 +287,10 @@ function isParticle(token: DifficultyToken): boolean {
 /**
  * Whether a line is too small or too cut off to be a useful example: fewer than two distinct content words (大丈夫,
  * 先生!), or ending on a comma, on a dangling particle without a closing ? or !, or on an ellipsis or dash right
- * after a particle or a noun (でも 先生..., 会長の体って...). The difficulty sorts put these after every complete
- * sentence, so "easiest first" does not open on hundreds of one-word lines. Undefined without tokens: such a segment
- * has no difficulty either and sorts last.
+ * after a particle that does not end sentences (会長の体って..., これは先生の...: の right after a noun is the
+ * possessive, after anything else the sentence-final の of どうしたの...). The difficulty sorts put these
+ * after every complete sentence, so "easiest first" does not open on hundreds of one-word lines. Undefined without
+ * tokens: such a segment has no difficulty either and sorts last.
  *
  * Length is handled by `sentenceQuality`, not here: measured on staging, a distinct-character threshold mostly caught
  * short full sentences (ただの無謀だ, 少年よ 戦え), and the content-word rule already covers bare words.
@@ -281,34 +299,36 @@ export function isFragment(tokens: readonly DifficultyToken[] | null | undefined
   if (!tokens?.length) return undefined;
 
   const lemmas = new Set<string>();
-  let last: DifficultyToken | undefined;
   for (const raw of tokens) {
     const token = stripBidi(raw);
     if (isContentToken(token)) lemmas.add(token.d);
-    if (token.kind !== 'symbol' && token.p !== '補助記号' && token.p !== '記号' && token.s.trim()) last = token;
   }
   if (lemmas.size < MIN_CONTENT_WORDS) return true;
 
   const plain = text.replace(BIDI_MARKS, '');
   if (TRAILING_COMMA.test(plain)) return true;
+  const [previous, last] = lastWords(tokens);
   if (!last || FINISHED_UTTERANCE.test(plain)) return false;
   if (isParticle(last) && DANGLING_PARTICLES.has(last.s)) return true;
-  if (!TRAILING_OFF.test(plain)) return false;
   // Only a true particle (助詞): an auxiliary such as だ or です finishes the sentence (冷気だ...).
-  return last.p === '助詞' ? !SENTENCE_FINAL_PARTICLES.has(last.s) : NOUN_POS.has(last.p);
+  return trailsOff(plain) && last.p === '助詞' && !keepsTrailingOff(last, previous);
 }
 
 /** How well a segment works as an example sentence, the first key of the difficulty sorts (lower first).
  * `GOOD`: a full sentence of ordinary length. `MARGINAL`: a full sentence that is very short (先生これ, 食べていい),
- * very long (several sentences, a transcript paragraph) or stuttered (せせせせ... 先生!, 猫 猫... 猫...).
+ * very long (several sentences, a transcript paragraph), stuttered (せせせせ... 先生!, 猫 猫... 猫...) or trailing
+ * off after a noun (でも 先生..., 本当にごめん…: often a full noun sentence, sometimes a cut one).
  * `FRAGMENT`: see `isFragment`. */
 export const SENTENCE_QUALITY = { GOOD: 0, MARGINAL: 1, FRAGMENT: 2 } as const;
 export type SentenceQuality = (typeof SENTENCE_QUALITY)[keyof typeof SENTENCE_QUALITY];
 
-/** Ordinary length in UTF-16 units of the trimmed text, the count the indexed `characterCount` uses. On staging 73% of segments are
- * full sentences within it; most shorter ones are two-word lines, most longer ones several sentences in one segment,
- * which filled "hardest first" because their words and conjugations add up. */
-export const GOOD_LENGTH = { min: 8, max: 40 } as const;
+/** Ordinary length, counted in letters and digits only (kana, kanji, Latin, ー, 々), so punctuation and spaces do not
+ * lift a two-word line into range (先生、これ!!!!). Not the indexed `characterCount`, which is the raw UTF-16 length.
+ * On a 50,000-segment staging sample, 3.6% of full sentences have fewer than 6 (mostly two-word lines) and 1.2% more
+ * than 40 (mostly several sentences in one segment, which filled "hardest first" because their words and conjugations
+ * add up); 37 to 40 letters are still single sentences. */
+export const GOOD_LENGTH = { min: 6, max: 40 } as const;
+const LETTER_OR_DIGIT = /[\p{L}\p{N}]/gu;
 /** The same kana or kanji three times in a row: a stutter (せせせ, あああ) or a drawn-out cry. ー is not a letter. */
 const STUTTER = /([\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}])\1\1/u;
 const MAX_LEMMA_REPEATS = 2;
@@ -334,9 +354,14 @@ export function sentenceQuality(
   if (fragment === undefined || !tokens) return undefined;
   if (fragment) return SENTENCE_QUALITY.FRAGMENT;
 
-  const plain = text.replace(BIDI_MARKS, '').trim();
-  const outOfRange = plain.length < GOOD_LENGTH.min || plain.length > GOOD_LENGTH.max;
-  return outOfRange || STUTTER.test(plain) || repeatsAWord(tokens) ? SENTENCE_QUALITY.MARGINAL : SENTENCE_QUALITY.GOOD;
+  const plain = text.replace(BIDI_MARKS, '');
+  const letters = plain.match(LETTER_OR_DIGIT)?.length ?? 0;
+  const outOfRange = letters < GOOD_LENGTH.min || letters > GOOD_LENGTH.max;
+  const [, last] = lastWords(tokens);
+  const trailsOffAfterNoun = !!last && NOUN_END_POS.has(last.p) && trailsOff(plain);
+  return outOfRange || trailsOffAfterNoun || STUTTER.test(plain) || repeatsAWord(tokens)
+    ? SENTENCE_QUALITY.MARGINAL
+    : SENTENCE_QUALITY.GOOD;
 }
 
 /** Builds the lookup from `WordFrequency` rows, keeping the lowest rank per key and capping names at
