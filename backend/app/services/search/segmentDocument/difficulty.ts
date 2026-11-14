@@ -105,6 +105,8 @@ function directRank(token: DifficultyToken, lookup: RankLookup): number | undefi
   return best;
 }
 
+const MIN_REPAIRED_LENGTH = 2;
+
 /** Frequency rank of a content token, or undefined when no spelling of it is on the list. */
 export function lookupRank(token: DifficultyToken, lookup: RankLookup): number | undefined {
   const alias = LEMMA_ALIASES[token.d];
@@ -118,7 +120,8 @@ export function lookupRank(token: DifficultyToken, lookup: RankLookup): number |
     token.s.replace(ELONGATION, ''),
     token.d.replace(HONORIFIC, ''),
   ]) {
-    if (key && key !== token.d) {
+    // At least two characters left: にぃ minus its small ぃ is the particle に, rank 3, which is not the word.
+    if ([...key].length >= MIN_REPAIRED_LENGTH && key !== token.d) {
       const rank = rankOf(key, lookup);
       if (rank !== undefined) return rank;
     }
@@ -177,13 +180,19 @@ export function computeDifficulty(
  * (猫が… / これは). Sentence-final particles (よ, ね, か, の) and conjunctive ones (から, けど, て) end real lines. */
 const DANGLING_PARTICLES = new Set(['が', 'を', 'に', 'へ', 'で', 'と', 'は', 'も']);
 const MIN_CONTENT_WORDS = 2;
-const MIN_DISTINCT_CHARACTERS = 6;
+/** A line ending in a question or exclamation mark is a finished utterance even after a particle: an inverted or
+ * elliptical sentence (何を? / なんだ… これは! / 学校で!), not one cut across cues. */
+const FINISHED_UTTERANCE = /[?？!！][\s」』）)"]*$/;
+const TRAILING_COMMA = /[、，,]\s*$/;
 
 /**
  * Whether a line is too small or too cut off to be a useful example: fewer than two distinct content words (大丈夫,
- * 先生!), fewer than six distinct characters, or ending on a dangling particle or a comma. The difficulty sorts put
- * these after every complete sentence, so "easiest first" does not open on hundreds of one-word lines. Undefined
- * without tokens: such a segment has no difficulty either and sorts last.
+ * 先生!), or ending on a comma or on a dangling particle without a closing ? or !. The difficulty sorts put these
+ * after every complete sentence, so "easiest first" does not open on hundreds of one-word lines. Undefined without
+ * tokens: such a segment has no difficulty either and sorts last.
+ *
+ * There is deliberately no minimum length: measured on staging, a distinct-character threshold mostly caught short
+ * full sentences (ただの無謀だ, 少年よ 戦え), and the content-word rule already covers bare words.
  */
 export function isFragment(tokens: readonly DifficultyToken[] | null | undefined, text: string): boolean | undefined {
   if (!tokens?.length) return undefined;
@@ -197,11 +206,8 @@ export function isFragment(tokens: readonly DifficultyToken[] | null | undefined
   }
   if (lemmas.size < MIN_CONTENT_WORDS) return true;
 
-  const characters = new Set(text.replace(BIDI_MARKS, '').replace(/\s/g, ''));
-  if (characters.size < MIN_DISTINCT_CHARACTERS) return true;
-
-  if (/[、，,]\s*$/.test(text)) return true;
-  if (!last) return false;
+  if (TRAILING_COMMA.test(text)) return true;
+  if (!last || FINISHED_UTTERANCE.test(text)) return false;
   return (last.kind === 'function' || last.p === '助詞') && DANGLING_PARTICLES.has(last.s);
 }
 

@@ -73,11 +73,18 @@ async function downloadHeadwords(url: string): Promise<Set<string>> {
   return headwords;
 }
 
-/** A word that is a proper name and nothing else: in JMnedict, not in JMdict. 桜 or 光 are both, so they stay words. */
+function toHiragana(text: string): string {
+  return text.replace(/[ァ-ヶ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+}
+
+/** A word that is a proper name and nothing else: in JMnedict, not in JMdict. 桜 or 光 are both, so they stay words.
+ * JMdict spells many words only in hiragana or kanji, so a katakana entry (イチゴ, マグマ) is also checked as
+ * hiragana before it is called a name. */
 function markNames(words: FreqWord[], names: ReadonlySet<string>, dictionary: ReadonlySet<string>): number {
   let marked = 0;
   for (const word of words) {
-    word.isName = names.has(word.word) && !dictionary.has(word.word);
+    const inDictionary = dictionary.has(word.word) || dictionary.has(toHiragana(word.word));
+    word.isName = names.has(word.word) && !inDictionary;
     if (word.isName) marked++;
   }
   return marked;

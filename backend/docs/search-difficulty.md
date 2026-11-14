@@ -24,7 +24,8 @@ Code: `app/services/search/segmentDocument/difficulty.ts`.
    - the kana reading, only when the word is written in kana as its own lemma;
    - for a grouped token, its rarest part.
 
-   If none of those match, these repairs are tried in order: drop a trailing elongation
+   If none of those match, these repairs are tried in order (each must leave at least two characters,
+   so にぃ is not read as the particle に): drop a trailing elongation
    (ねこー), drop an honorific or plural suffix (さくらちゃん, 貴様ら), map a potential verb to its
    plain form (勝てる → 勝つ), and map three known bad lemmas (なた → なる, あた → ある,
    感ずる → 感じる).
@@ -32,7 +33,8 @@ Code: `app/services/search/segmentDocument/difficulty.ts`.
    A word with no match counts as a rank-5,000 word (tier 49), not the rarest: most of these are character names,
    which a reader picks up from the show, and counting them as the rarest filled "hardest first" with
    name-heavy lines. Listed proper names are capped the same way: the seed marks entries that are only names
-   (in JMnedict but not JMdict, such as 田中 or ナルト) and their rank counts as at most 5,000, since how often a
+   (in JMnedict but not JMdict, also checking a katakana entry as hiragana so イチゴ stays a word; such as 田中
+   or ナルト) and their rank counts as at most 5,000, since how often a
    name occurs says nothing about how hard it is to read. Expressions (連語 such
    as のだ, そうだ, すると) are capped at the tier of rank 5,000, because the list splits them into
    their parts and lists the whole far rarer than the words in it.
@@ -40,10 +42,13 @@ Code: `app/services/search/segmentDocument/difficulty.ts`.
    `second` is 0 when there is only one content word. The range is 0–4030, stored as an
    Elasticsearch `short`. Every search result contains the searched word, so this keeps together the
    sentences where only that word is hard and orders them by everything else.
-5. **Fragments.** A line is a fragment when it has fewer than two distinct content words (大丈夫！), fewer
-   than six distinct characters, or ends on a comma or on a case or binding particle (が, を, に, へ, で, と,
-   は, も), which is usually a sentence cut across subtitle cues. Sentence-final and conjunctive particles
-   (よ, ね, か, から, けど) end real lines and do not count. Indexed as `fragment` (`byte`, 1 or 0).
+5. **Fragments.** A line is a fragment when it has fewer than two distinct content words (大丈夫！), or
+   ends on a comma, or ends on a case or binding particle (が, を, に, へ, で, と, は, も) without a closing
+   `?` or `!`, which is usually a sentence cut across subtitle cues (記録上 あの子は幼いころに). With the mark
+   it is an inverted or elliptical sentence and is kept (何を?, なんだ… これは!, 学校で!). Sentence-final and
+   conjunctive particles (よ, ね, か, から, けど) end real lines and do not count. There is no minimum length:
+   on staging a six-distinct-character threshold mostly caught short full sentences (ただの無謀だ). Indexed as
+   `fragment` (`byte`, 1 or 0).
 6. **Sort.** `fragment` ascending in both directions (full sentences first), then `difficulty`, then
    `characterCount` in the same direction, then the usual tie-breakers
    (`mediaId`, `episode`, `position`). Difficulty sorts are explicit sorts, so there is no rounds-by-title

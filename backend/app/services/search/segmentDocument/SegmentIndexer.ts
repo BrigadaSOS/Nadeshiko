@@ -295,7 +295,7 @@ export class SegmentIndexer {
     }
   }
 
-  /** 1 for a one-word, very short or cut-off line, 0 for a full sentence, absent without tokens. A number rather than
+  /** 1 for a one-word or cut-off line, 0 for a full sentence, absent without tokens. A number rather than
    * a boolean so its sort value and the keyset cursor stay plain integers. */
   private static fragmentFlag(segment: Segment): 0 | 1 | undefined {
     const fragment = isFragment(segment.tokens, segment.contentJa);

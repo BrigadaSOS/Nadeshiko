@@ -64,7 +64,7 @@ export interface SegmentDocumentShape {
   recurringRepeat?: boolean;
   /** Estimated vocabulary difficulty, 0–4030; absent when the segment has no content word. See `difficulty.ts`. */
   difficulty?: number;
-  /** 1 when the line is a fragment (one word, very short, or cut off mid-sentence), 0 otherwise; absent without tokens.
+  /** 1 when the line is a fragment (one word, or cut off mid-sentence), 0 otherwise; absent without tokens.
    * The difficulty sorts put fragments after full sentences. See `isFragment` in `difficulty.ts`. */
   fragment?: 0 | 1;
 }

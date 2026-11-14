@@ -18,6 +18,7 @@ import {
 
 const lookup = buildRankLookup([
   { rank: 1, word: 'の', form: 'の' },
+  { rank: 3, word: 'に', form: 'に' },
   { rank: 28, word: '私', form: 'わたし' },
   { rank: 13, word: 'する', form: 'する' },
   { rank: 100, word: '猫', form: 'ねこ' },
@@ -113,6 +114,11 @@ describe('lookupRank', () => {
     expect(lookupRank(tok('ねこー'), lookup)).toBe(100);
     expect(lookupRank(tok('さくらちゃん'), lookup)).toBe(6000);
     expect(lookupRank(tok('勝てる', { s: '勝てない', p: '動詞', kind: 'inflected' }), lookup)).toBe(1000);
+  });
+
+  it('does not repair a word down to a single kana that happens to be a particle', () => {
+    // にぃ ("big brother") minus its small ぃ is に, rank 3.
+    expect(lookupRank(tok('にぃ'), lookup)).toBeUndefined();
   });
 
   it('maps the parser’s known bad lemmas', () => {
@@ -222,8 +228,17 @@ describe('isFragment', () => {
     expect(isFragment([tok('先生'), tok('先生')], '先生、先生')).toBe(true);
   });
 
-  it('flags a line with fewer than six distinct characters', () => {
-    expect(isFragment([tok('猫'), tok('犬')], '猫と犬')).toBe(true);
+  it('keeps a short full sentence, however few characters it has', () => {
+    expect(
+      isFragment([tok('無謀', { p: '形状詞' }), tok('ただ'), { ...particle('だ'), p: '助動詞' }], 'ただの無謀だ'),
+    ).toBe(false);
+  });
+
+  it('keeps an inverted or elliptical line that ends on a particle and a question or exclamation mark', () => {
+    const question = [tok('味方'), tok('なぜ', { p: '副詞' }), particle('を'), punctuation('?')];
+
+    expect(isFragment(question, 'なぜ味方を?')).toBe(false);
+    expect(isFragment([tok('学校'), tok('明日'), particle('で'), punctuation('!')], '明日 学校で!')).toBe(false);
   });
 
   it('flags a line cut off on a case or binding particle, ignoring trailing punctuation', () => {

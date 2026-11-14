@@ -1507,8 +1507,7 @@ components:
               direction. Each content word is ranked on an anime word-frequency list; the two rarest distinct words
               set the order (the rarest first, then the second rarest). Proper names and words not on the list count
               as a moderately rare word (rank 5,000), not the rarest. It measures vocabulary rarity only, not grammar
-              or speech speed. In both directions, full sentences come first; one-word, very short and cut-off lines
-              follow, and segments without a scorable word come last
+              or speech speed. In both directions, full sentences come first; one-word and cut-off lines follow, and segments without a scorable word come last
             - `RANDOM`: deterministic random order (pass `seed` for reproducibility)
           enum:
             - RELEVANCE
