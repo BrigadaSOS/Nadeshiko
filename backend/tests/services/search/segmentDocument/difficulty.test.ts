@@ -84,6 +84,18 @@ describe('isContentToken', () => {
     expect(isContentToken(tok('1', { s: '1本', kind: 'counter' }))).toBe(false);
     expect(isContentToken(tok('➨'))).toBe(false);
   });
+
+  it('reads a token as a number only when it starts with a digit or is kanji numerals throughout', () => {
+    for (const number of ['十', '二十五', '百万', '3人', '２回']) expect(isContentToken(tok(number))).toBe(false);
+    for (const word of ['十分', '万引き', '百合', '千切る', '千葉', '万一', '十人']) {
+      expect(isContentToken(tok(word))).toBe(true);
+    }
+  });
+
+  it('skips Latin-only tokens, which the list does not rank', () => {
+    for (const latin of ['OK', 'LINE', 'A', 'ＯＫ']) expect(isContentToken(tok(latin))).toBe(false);
+    expect(isContentToken(tok('Tシャツ'))).toBe(true);
+  });
 });
 
 describe('lookupRank', () => {
@@ -267,12 +279,21 @@ describe('grammarBonus', () => {
 
   it('grows with how far each conjugation stretches the word', () => {
     expect(grammarBonus([verb('食べる', '食べた')])).toBe(0);
-    expect(grammarBonus([verb('食べる', '食べました')])).toBe(Math.round(2 * 1.7));
     expect(grammarBonus([verb('食べる', '食べさせられた')])).toBe(Math.round(4 * 1.7));
   });
 
   it('sums over the sentence and never goes negative for a kana surface of a kanji lemma', () => {
-    expect(grammarBonus([verb('食べる', '食べました'), verb('分かる', 'わかった')])).toBe(Math.round(3 * 1.7));
+    expect(grammarBonus([verb('食べる', '食べさせた'), verb('分かる', 'わかった')])).toBe(Math.round(3 * 1.7));
+  });
+
+  it('reads polite endings as plain ones, so politeness is not counted as grammar', () => {
+    const bonus = (d: string, s: string) => grammarBonus([verb(d, s)]);
+    expect(bonus('食べる', '食べました')).toBe(bonus('食べる', '食べた'));
+    expect(bonus('食べる', '食べます')).toBe(0);
+    expect(bonus('行く', '行きました')).toBe(bonus('行く', '行った'));
+    expect(bonus('食べる', '食べませんでした')).toBe(bonus('食べる', '食べなかった'));
+    expect(bonus('食べる', '食べませんでした')).toBeLessThan(bonus('食べる', '食べさせられた'));
+    expect(bonus('思う', '思っていました')).toBe(bonus('思う', '思っていた'));
   });
 });
 

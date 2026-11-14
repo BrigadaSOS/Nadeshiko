@@ -14,8 +14,9 @@ in the sort menu says so.
 
 Code: `app/services/search/segmentDocument/difficulty.ts`.
 
-1. **Content words.** Particles, auxiliaries, punctuation, interjections (感動詞), numbers and
-   letterless tokens do not count. Tokens with Shirabe's `kind` use it (`function` and `symbol` are
+1. **Content words.** Particles, auxiliaries, punctuation, interjections (感動詞), numbers (a leading
+   digit, or kanji numerals only: 十 and 百万 are numbers, 十分 and 千葉 are words), Latin-only tokens (OK,
+   LINE) and letterless tokens do not count. Tokens with Shirabe's `kind` use it (`function` and `symbol` are
    skipped). Older tokens without a `kind` fall back to the UniDic part of speech.
 2. **Rank.** Each content word is looked up in `WordFrequency` (an anime word-frequency list),
    keeping the lowest rank per key. The rank is the best of:
@@ -39,8 +40,9 @@ Code: `app/services/search/segmentDocument/difficulty.ts`.
    as のだ, そうだ, すると) are capped at the tier of rank 5,000, because the list splits them into
    their parts and lists the whole far rarer than the words in it.
 4. **Grammar.** A light term on top of the vocabulary: every conjugated token contributes how much longer
-   its surface is than its dictionary form (食べさせられた over 食べる is 4 characters, 食べました 2, 食べた 0),
-   and the sum, at about 1.7 tiers per character, is added to the second place below, capped at 62. Grammar
+   its surface is than its dictionary form (食べさせられた over 食べる is 4 characters, 食べた 0). Polite endings
+   are read as their plain counterparts (食べました as 食べた, 食べませんでした as 食べなかった), since
+   politeness is register rather than difficulty. The sum, at about 1.7 tiers per character, is added to the second place below, capped at 62. Grammar
    therefore orders sentences within the group their hardest word sets and never moves one into a harder
    group.
 
@@ -87,6 +89,9 @@ instead of every word counting as unknown.
   reading fallback needs it.
 - The seed also downloads JMnedict and JMdict from EDRDG (about 23 MB, CC BY-SA 4.0) to set
   `WordFrequency.is_name`. On the current list that marks about 43,000 entries, almost all past rank 20,000.
+- The seed refuses to write when a download looks short (fewer rows or headwords than expected, or a name count
+  far from 43,000), and replaces the table in one transaction, so a failure keeps the previous list.
+- A long-running server that fails to reload the list keeps the one it loaded before.
 - `difficulty` and `fragment` are in `ADDITIVE_MAPPING_FIELDS`, so a live index gets the mapping at boot. Documents
   only get values once they are indexed again, so a full reindex is what makes the sort useful.
 
@@ -103,8 +108,9 @@ Measured read-only on a 50,000-segment sample of ACTIVE segments.
 No ACTIVE segment was untokenized. The remaining unknown words are mostly character names, laughs,
 and single Latin letters. Counting unknown words as the rarest put mostly
 name-heavy lines at the hardest end of `DIFFICULTY_DESC`, which is why they now count as rank 5,000.
-Names the list does include (at rank 40k and beyond) still read as rare; skipping proper nouns outright
-would need UniDic's POS subcategory, which the stored tokens no longer carry.
+Names the list includes are capped at rank 5,000 through `is_name` (see step 3). That is a dictionary
+heuristic: telling every proper noun apart exactly would need UniDic's POS subcategory, which the stored
+tokens no longer carry.
 
 ## Blind test (2026-11-14)
 

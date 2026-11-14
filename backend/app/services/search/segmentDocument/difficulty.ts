@@ -36,10 +36,17 @@ const INTERJECTION_POS = '感動詞';
 const EXPRESSION_POS = '連語';
 
 /** Bidi marks some subtitle files carry, which the parser keeps as part of a "noun". */
-const BIDI_MARKS = /[‎‏‪-‮]/g;
+const BIDI_MARKS = /[\u200E\u200F\u202A-\u202E]/g;
 const HAS_LETTER = /\p{L}/u;
+/** Latin-only tokens (OK, LINE, A) are loanwords, abbreviations or stray letters the frequency list does not rank,
+ * so they would all count as unknown words. They do not count. */
+const HAS_JAPANESE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
 const KANA_ONLY = /^[\p{Script=Hiragana}\p{Script=Katakana}ー]+$/u;
-const NUMERAL = /^[0-9０-９.,万億千百十]+/;
+/** A number: starts with a digit (3人, ２回), or is written in kanji numerals only (十, 二十五, 百万). A word that only
+ * starts with one (十分, 百合, 千葉) is a word; 万一 is the one all-numeral word kept. */
+const DIGIT_START = /^[0-9０-９]/;
+const KANJI_NUMERAL = /^[〇零一二三四五六七八九十百千万億兆]+$/;
+const NUMERAL_WORDS = new Set(['万一']);
 const ELONGATION = /[ーッっぁぃぅぇぉ~〜…]+$/;
 const HONORIFIC = /(ちゃん|くん|君|さん|様|さま|たち|達|ら|殿|先生|せんせー|せんせい)$/;
 /** Potential verbs (勝てる, 会える) are lemmatised as their own verb; the list has the plain verb (勝つ, 会う). */
@@ -65,11 +72,16 @@ function stripBidi<T extends DifficultyToken>(token: T): T {
   return { ...token, s: token.s.replace(BIDI_MARKS, ''), d: token.d.replace(BIDI_MARKS, '') };
 }
 
-/** A word a reader has to know: not a particle, auxiliary, punctuation, interjection or number. */
+function isNumeral(text: string): boolean {
+  return DIGIT_START.test(text) || (KANJI_NUMERAL.test(text) && !NUMERAL_WORDS.has(text));
+}
+
+/** A word a reader has to know: not a particle, auxiliary, punctuation, interjection, number or Latin-only token. */
 export function isContentToken(token: DifficultyToken): boolean {
   if (token.p === INTERJECTION_POS) return false;
   if (!HAS_LETTER.test(token.d)) return false;
-  if (NUMERAL.test(token.d) || NUMERAL.test(token.s)) return false;
+  if (!HAS_JAPANESE.test(token.d) && !HAS_JAPANESE.test(token.s)) return false;
+  if (isNumeral(token.d) || isNumeral(token.s)) return false;
   if (token.kind) return !NON_CONTENT_KINDS.has(token.kind);
   return !NON_CONTENT_POS.has(token.p);
 }
@@ -150,13 +162,35 @@ function tokenTier(token: DifficultyToken, lookup: RankLookup): number {
  * blind test, overweighted causatives and set phrases (行かせない, 待たせてもらいました, 行ってくる).
  */
 const GRAMMAR_TIERS_PER_CHARACTER = 1.7;
+/** Polite endings and their plain counterparts. Politeness is register, not difficulty: measured as is, 食べました
+ * outweighed 食べた and 食べませんでした outweighed 食べさせられた, which pushed polite speech down "easiest first".
+ * The surface is measured as if plain (行きました as 行きた, as long as 行った); longest endings first. */
+const POLITE_TO_PLAIN: readonly (readonly [string, string])[] = [
+  ['ませんでした', 'なかった'],
+  ['ましょう', 'よう'],
+  ['ました', 'た'],
+  ['ません', 'ない'],
+  ['まして', 'て'],
+  ['ます', ''],
+  ['でしょう', ''],
+  ['でした', ''],
+  ['です', ''],
+];
 
-/** Tiers of grammar in a sentence: the summed surface-over-lemma length of its conjugated tokens, scaled. */
+function plainSurface(surface: string): string {
+  for (const [polite, plain] of POLITE_TO_PLAIN) {
+    if (surface.endsWith(polite)) return surface.slice(0, -polite.length) + plain;
+  }
+  return surface;
+}
+
+/** Tiers of grammar in a sentence: the summed surface-over-lemma length of its conjugated tokens, polite endings
+ * read as plain, scaled. */
 export function grammarBonus(tokens: readonly DifficultyToken[]): number {
   let extra = 0;
   for (const token of tokens) {
     if (token.kind !== 'inflected' && !token.inflection) continue;
-    extra += Math.max(0, [...token.s].length - [...token.d].length);
+    extra += Math.max(0, [...plainSurface(token.s)].length - [...token.d].length);
   }
   return Math.round(extra * GRAMMAR_TIERS_PER_CHARACTER);
 }

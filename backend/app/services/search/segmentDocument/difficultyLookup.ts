@@ -21,7 +21,12 @@ async function load(): Promise<RankLookup> {
     if (rows.length === 0) logger.warn('WordFrequency is empty; segments are indexed without a difficulty');
     return lookup;
   } catch (error) {
-    // Indexing must not fail over the sort key: documents simply lack `difficulty` and sort last until a reindex.
+    // Indexing must not fail over the sort key. A reload that fails keeps the list already loaded; with none,
+    // documents simply lack `difficulty` and sort last until a reindex.
+    if (cached) {
+      logger.warn({ err: error }, 'Could not reload WordFrequency; keeping the list loaded before');
+      return cached.lookup;
+    }
     logger.warn({ err: error }, 'Could not load WordFrequency; indexing without difficulty');
     return EMPTY;
   } finally {
