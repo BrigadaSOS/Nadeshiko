@@ -1,5 +1,6 @@
 import type { ListEpisodes, CreateEpisode, GetEpisode, UpdateEpisode, DeleteEpisode } from 'generated/routes/media';
 import { Episode, Media, Segment } from '@app/models';
+import { DuplicateKeyError } from '@app/errors';
 import { enqueueSegmentEsDeletes } from './mediaController';
 import { toEpisodeDTO, toEpisodeListDTO } from './mappers/episodeMapper';
 import { encodeKeysetCursor, decodeKeysetCursor } from '@lib/cursor';
@@ -52,6 +53,16 @@ export const createEpisode: CreateEpisode = async ({ params, body }, respond) =>
     });
     if (existing) {
       return respond.with201().body(toEpisodeDTO(existing, media.publicId));
+    }
+
+    // A new video must not take a number another video already has: the save below is an upsert on
+    // (mediaId, episodeNumber), so it would silently replace that episode and keep its segments.
+    const taken = await Episode.findOne({ where: { mediaId: media.id, episodeNumber: body.episodeNumber } });
+    if (taken) {
+      throw new DuplicateKeyError(
+        `Episode ${body.episodeNumber} already belongs to video ${taken.externalVideoId ?? '(none)'}; ` +
+          'give the new video the next free episode number.',
+      );
     }
   }
 

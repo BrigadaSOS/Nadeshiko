@@ -3,7 +3,14 @@ import { ExpressRuntimeError } from '@nahkies/typescript-express-runtime/errors'
 import { EntityNotFoundError, QueryFailedError, TypeORMError } from 'typeorm';
 import { trace } from '@opentelemetry/api';
 import { logger } from '@config/log';
-import { ApiError, ValidationFailedError, NotFoundError, InternalServerError, isApiError } from '@app/errors';
+import {
+  ApiError,
+  ValidationFailedError,
+  NotFoundError,
+  InternalServerError,
+  DuplicateKeyError,
+  isApiError,
+} from '@app/errors';
 import { RATE_LIMIT_REASON_HEADER, type RateLimitReason } from '@lib/rateLimitReason';
 import { recordError, recordClientError } from '@lib/errorFingerprint';
 import { trafficAttributesFor } from '@app/middleware/trafficClassification';
@@ -372,12 +379,6 @@ function getMissingResourceNameFromForeignKeyConstraint(constraint: string | und
 
   const idTokenOffset = parts[parts.length - 2]?.toLowerCase() === 'id' ? 3 : 2;
   return lookupPublicResourceName(parts[parts.length - idTokenOffset]);
-}
-
-class DuplicateKeyError extends ApiError {
-  readonly code = 'DUPLICATE_KEY' as const;
-  readonly title = 'Resource already exists';
-  readonly status = 409;
 }
 
 function createDuplicateKeyError(driverError: PgDriverError, requestId: string): ApiError {

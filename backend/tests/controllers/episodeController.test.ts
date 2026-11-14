@@ -192,6 +192,44 @@ describe('POST /v1/media/:mediaId/episodes', () => {
     expect(getRes.status).toBe(200);
     expect(getRes.body).toMatchObject({ airedAt: '2024-06-01T00:00:00.000Z' });
   });
+
+  it('returns the existing episode when the video is already there', async () => {
+    const fixtures = await loadFixtures(['singleMedia']);
+    const media = fixtures.media.testShow;
+    const url = `/v1/media/${media.publicId}/episodes`;
+
+    await request(app).post(url).send({ episodeNumber: 3, externalVideoId: 'vidA', titleJa: 'A' }).expect(201);
+    await assertNoDifference(
+      () => Episode.count(),
+      async () => {
+        const res = await request(app).post(url).send({ episodeNumber: 9, externalVideoId: 'vidA' });
+        expect(res.status).toBe(201);
+        expect(res.body).toMatchObject({ episodeNumber: 3, externalVideoId: 'vidA' });
+      },
+    );
+  });
+
+  it('refuses a new video under a number another video already has, instead of overwriting it', async () => {
+    const fixtures = await loadFixtures(['singleMedia']);
+    const media = fixtures.media.testShow;
+    const url = `/v1/media/${media.publicId}/episodes`;
+
+    await request(app).post(url).send({ episodeNumber: 1, externalVideoId: 'vidA', titleJa: 'A' }).expect(201);
+    await assertNoDifference(
+      () => Episode.count(),
+      async () => {
+        const res = await request(app).post(url).send({ episodeNumber: 1, externalVideoId: 'vidB', titleJa: 'B' });
+        expect(res.status).toBe(409);
+        expect(res.body).toMatchObject({ code: 'DUPLICATE_KEY' });
+      },
+    );
+
+    const kept = await Episode.findOneBy({ mediaId: media.id, episodeNumber: 1 });
+    expect(kept?.externalVideoId).toBe('vidA');
+    expect(kept?.titleJa).toBe('A');
+
+    await request(app).post(url).send({ episodeNumber: 2, externalVideoId: 'vidB' }).expect(201);
+  });
 });
 
 describe('GET /v1/media/:mediaId/episodes/:episodeNumber', () => {
