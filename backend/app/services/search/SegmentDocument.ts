@@ -64,9 +64,10 @@ export interface SegmentDocumentShape {
   recurringRepeat?: boolean;
   /** Estimated vocabulary and grammar difficulty, 0–4030; absent when the segment has no content word. See `difficulty.ts`. */
   difficulty?: number;
-  /** 1 when the line is a fragment (one word, or cut off mid-sentence), 0 otherwise; absent without tokens.
-   * The difficulty sorts put fragments after full sentences. See `isFragment` in `difficulty.ts`. */
-  fragment?: 0 | 1;
+  /** 0 for a full sentence of ordinary length, 1 for a very short, very long or stuttered one, 2 for a fragment
+   * (one word, or cut off mid-sentence); absent without tokens. The first key of the difficulty sorts. A number so
+   * its sort value and the keyset cursor stay plain integers. See `sentenceQuality` in `difficulty.ts`. */
+  quality?: 0 | 1 | 2;
 }
 
 export interface ReindexMediaItem {

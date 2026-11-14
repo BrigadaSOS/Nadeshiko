@@ -239,15 +239,43 @@ const MIN_CONTENT_WORDS = 2;
  * elliptical sentence (何を? / なんだ… これは! / 学校で!), not one cut across cues. */
 const FINISHED_UTTERANCE = /[?？!！][\s」』）)"]*$/;
 const TRAILING_COMMA = /[、，,]\s*$/;
+/** An ellipsis or dash at the end: the line trails off (冷気だ...) or was cut across cues (会長の体って...). The long
+ * vowel mark ー is not one: it ends real lines (さようならー). */
+const TRAILING_OFF = /(\.\.\.|…|‥|[-－―⸺])[\s」』）)"]*$/;
+/** Particles that end a finished sentence even before an ellipsis (そうだよ..., 行くかな...). Any other particle
+ * before one (って..., けど..., 東京は...) leaves the sentence unfinished. */
+const SENTENCE_FINAL_PARTICLES = new Set([
+  'よ',
+  'ね',
+  'な',
+  'ぞ',
+  'ぜ',
+  'わ',
+  'さ',
+  'か',
+  'かな',
+  'の',
+  'もん',
+  'っけ',
+  'かしら',
+  'ねえ',
+  'なあ',
+]);
+const NOUN_POS = new Set(['名詞', '代名詞']);
+
+function isParticle(token: DifficultyToken): boolean {
+  return token.kind === 'function' || token.p === '助詞';
+}
 
 /**
  * Whether a line is too small or too cut off to be a useful example: fewer than two distinct content words (大丈夫,
- * 先生!), or ending on a comma or on a dangling particle without a closing ? or !. The difficulty sorts put these
- * after every complete sentence, so "easiest first" does not open on hundreds of one-word lines. Undefined without
- * tokens: such a segment has no difficulty either and sorts last.
+ * 先生!), or ending on a comma, on a dangling particle without a closing ? or !, or on an ellipsis or dash right
+ * after a particle or a noun (でも 先生..., 会長の体って...). The difficulty sorts put these after every complete
+ * sentence, so "easiest first" does not open on hundreds of one-word lines. Undefined without tokens: such a segment
+ * has no difficulty either and sorts last.
  *
- * There is deliberately no minimum length: measured on staging, a distinct-character threshold mostly caught short
- * full sentences (ただの無謀だ, 少年よ 戦え), and the content-word rule already covers bare words.
+ * Length is handled by `sentenceQuality`, not here: measured on staging, a distinct-character threshold mostly caught
+ * short full sentences (ただの無謀だ, 少年よ 戦え), and the content-word rule already covers bare words.
  */
 export function isFragment(tokens: readonly DifficultyToken[] | null | undefined, text: string): boolean | undefined {
   if (!tokens?.length) return undefined;
@@ -261,9 +289,54 @@ export function isFragment(tokens: readonly DifficultyToken[] | null | undefined
   }
   if (lemmas.size < MIN_CONTENT_WORDS) return true;
 
-  if (TRAILING_COMMA.test(text)) return true;
-  if (!last || FINISHED_UTTERANCE.test(text)) return false;
-  return (last.kind === 'function' || last.p === '助詞') && DANGLING_PARTICLES.has(last.s);
+  const plain = text.replace(BIDI_MARKS, '');
+  if (TRAILING_COMMA.test(plain)) return true;
+  if (!last || FINISHED_UTTERANCE.test(plain)) return false;
+  if (isParticle(last) && DANGLING_PARTICLES.has(last.s)) return true;
+  if (!TRAILING_OFF.test(plain)) return false;
+  // Only a true particle (助詞): an auxiliary such as だ or です finishes the sentence (冷気だ...).
+  return last.p === '助詞' ? !SENTENCE_FINAL_PARTICLES.has(last.s) : NOUN_POS.has(last.p);
+}
+
+/** How well a segment works as an example sentence, the first key of the difficulty sorts (lower first).
+ * `GOOD`: a full sentence of ordinary length. `MARGINAL`: a full sentence that is very short (先生これ, 食べていい),
+ * very long (several sentences, a transcript paragraph) or stuttered (せせせせ... 先生!, 猫 猫... 猫...).
+ * `FRAGMENT`: see `isFragment`. */
+export const SENTENCE_QUALITY = { GOOD: 0, MARGINAL: 1, FRAGMENT: 2 } as const;
+export type SentenceQuality = (typeof SENTENCE_QUALITY)[keyof typeof SENTENCE_QUALITY];
+
+/** Ordinary length in UTF-16 units of the trimmed text, the count the indexed `characterCount` uses. On staging 73% of segments are
+ * full sentences within it; most shorter ones are two-word lines, most longer ones several sentences in one segment,
+ * which filled "hardest first" because their words and conjugations add up. */
+export const GOOD_LENGTH = { min: 8, max: 40 } as const;
+/** The same kana or kanji three times in a row: a stutter (せせせ, あああ) or a drawn-out cry. ー is not a letter. */
+const STUTTER = /([\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}])\1\1/u;
+const MAX_LEMMA_REPEATS = 2;
+
+function repeatsAWord(tokens: readonly DifficultyToken[]): boolean {
+  const counts = new Map<string, number>();
+  for (const raw of tokens) {
+    const token = stripBidi(raw);
+    if (!isContentToken(token)) continue;
+    const count = (counts.get(token.d) ?? 0) + 1;
+    if (count > MAX_LEMMA_REPEATS) return true;
+    counts.set(token.d, count);
+  }
+  return false;
+}
+
+/** The segment's `SentenceQuality`; undefined without tokens, like `isFragment`. */
+export function sentenceQuality(
+  tokens: readonly DifficultyToken[] | null | undefined,
+  text: string,
+): SentenceQuality | undefined {
+  const fragment = isFragment(tokens, text);
+  if (fragment === undefined || !tokens) return undefined;
+  if (fragment) return SENTENCE_QUALITY.FRAGMENT;
+
+  const plain = text.replace(BIDI_MARKS, '').trim();
+  const outOfRange = plain.length < GOOD_LENGTH.min || plain.length > GOOD_LENGTH.max;
+  return outOfRange || STUTTER.test(plain) || repeatsAWord(tokens) ? SENTENCE_QUALITY.MARGINAL : SENTENCE_QUALITY.GOOD;
 }
 
 /** Builds the lookup from `WordFrequency` rows, keeping the lowest rank per key and capping names at

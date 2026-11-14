@@ -58,10 +58,17 @@ Code: `app/services/search/segmentDocument/difficulty.ts`.
    ends on a comma, or ends on a case or binding particle (が, を, に, へ, で, と, は, も) without a closing
    `?` or `!`, which is usually a sentence cut across subtitle cues (記録上 あの子は幼いころに). With the mark
    it is an inverted or elliptical sentence and is kept (何を?, なんだ… これは!, 学校で!). Sentence-final and
-   conjunctive particles (よ, ね, か, から, けど) end real lines and do not count. There is no minimum length:
-   on staging a six-distinct-character threshold mostly caught short full sentences (ただの無謀だ). Indexed as
-   `fragment` (`byte`, 1 or 0).
-7. **Sort.** `fragment` ascending in both directions (full sentences first), then `difficulty`, then
+   conjunctive particles (よ, ね, か, から, けど) end real lines and do not count. A line that ends on an
+   ellipsis or dash (`...`, `…`, `-`, `―`) right after any other particle or after a noun was cut off too
+   (でも 先生..., 会長の体って...); after a verb, an auxiliary or a sentence-final particle it only trails off
+   and is kept (冷気だ..., 今 行くよ...). The long vowel mark ー is not a dash (さようならー).
+7. **Quality.** Each segment gets a `quality` (`byte`): 0 for a full sentence of ordinary length (8 to 40
+   characters), 1 for a full sentence that is shorter (先生これ, 食べていい), longer (several sentences in one
+   segment, a transcript paragraph) or stuttered (the same kana or kanji three times in a row, as in
+   せせせせ... 先生!, or the same word three times), 2 for a fragment. On staging the first difficulty sort
+   opened on two-word lines for 43% of its top results, and "hardest first" on multi-sentence segments whose
+   words and conjugations add up to the maximum; 73% of segments are quality 0.
+8. **Sort.** `quality` ascending in both directions, then `difficulty`, then
    `characterCount` in the same direction, then the usual tie-breakers
    (`mediaId`, `episode`, `position`). Difficulty sorts are explicit sorts, so there is no rounds-by-title
    diversification and `preferMedia` is ignored.
@@ -69,12 +76,12 @@ Code: `app/services/search/segmentDocument/difficulty.ts`.
 ## Unscored segments
 
 A segment with no tokens or no content word gets no `difficulty` field, and without tokens no
-`fragment` either. The sort treats a missing `fragment` as 1 and sets an explicit `difficulty`
+`quality` either. The sort treats a missing `quality` as 2 and sets an explicit `difficulty`
 `missing` value (32767 ascending, -1 descending), so these segments come last in both directions.
 Do not use `_last`: Elasticsearch returns it as Long.MAX/MIN, which a JSON number cannot carry,
 and that breaks the keyset cursor. Both fields also have an `unmapped_type`, so an index that
-predates them still sorts. `fragment` is a number rather than a boolean for the same reason: its
-sort value goes into the cursor.
+predates them still sorts. `quality` is a plain number for the same reason: its sort value goes into
+the cursor.
 
 When `WordFrequency` is empty (it was never seeded), every segment is indexed without a difficulty
 instead of every word counting as unknown.
@@ -92,8 +99,10 @@ instead of every word counting as unknown.
 - The seed refuses to write when a download looks short (fewer rows or headwords than expected, or a name count
   far from 43,000), and replaces the table in one transaction, so a failure keeps the previous list.
 - A long-running server that fails to reload the list keeps the one it loaded before.
-- `difficulty` and `fragment` are in `ADDITIVE_MAPPING_FIELDS`, so a live index gets the mapping at boot. Documents
-  only get values once they are indexed again, so a full reindex is what makes the sort useful.
+- `difficulty` and `quality` are in `ADDITIVE_MAPPING_FIELDS`, so a live index gets the mapping at boot. Documents
+  only get values once they are indexed again, so a full reindex is what makes the sort useful. Until then a
+  missing `quality` counts as 2, so every segment ties on it and the order falls back to `difficulty`.
+- `quality` replaced an earlier `fragment` flag (1 or 0). An index built before it keeps the old field unused.
 
 ## Measurements (staging, 2026-11-13)
 
