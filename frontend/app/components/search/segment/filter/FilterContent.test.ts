@@ -296,6 +296,35 @@ describe('audiobook chapters in the drill-down', () => {
   });
 });
 
+describe('YouTube videos in the drill-down', () => {
+  test('each video row shows the video title, or "Video N" without one', async () => {
+    routeQuery.media = 'channel';
+    const channel = media(
+      'channel',
+      { nameEn: 'にほんごのじかん' },
+      {
+        category: 'YOUTUBE',
+        episodeHits: [
+          {
+            episode: 4,
+            title: "Let's Play Phoenix Wright Ace Attorney EP03-4 | Advanced Japanese Comprehensible Input (CI)",
+            hitCount: 2,
+          },
+          { episode: 5, title: null, hitCount: 1 },
+        ],
+      },
+    );
+    const wrapper = render([channel]);
+    await nextTick();
+
+    expect(labels(wrapper)).toEqual([
+      "Let's Play Phoenix Wright Ace Attorney EP03-4 | Advanced Japanese Comprehensible Input (CI)",
+      'searchpage.main.labels.video 5',
+    ]);
+    delete routeQuery.media;
+  });
+});
+
 describe('category tags in the mixed list', () => {
   // An anime and its audiobook can share a name; the tag is what tells them apart.
   const SAME_NAME = [

@@ -4,13 +4,29 @@ import { buildSentencePath } from '~/utils/routes';
 
 type AiringFormat = Media['airingFormat'];
 
-/** Audiobooks are split into chapters; everything else we catalog into episodes. */
-export const isAudiobook = (media: { category?: string } | null | undefined): boolean =>
-  media?.category === 'AUDIOBOOK';
+type MediaCategory = { category?: string } | null | undefined;
 
-/** i18n key for "Episode {number}", or "Chapter {number}" for audiobooks. */
-export const episodeLabelKey = (media: { category?: string } | null | undefined): string =>
-  isAudiobook(media) ? 'searchpage.main.labels.chapter' : 'searchpage.main.labels.episode';
+/** Audiobooks are split into chapters; everything else we catalog into episodes. */
+export const isAudiobook = (media: MediaCategory): boolean => media?.category === 'AUDIOBOOK';
+
+/** A YouTube channel's "episodes" are its videos. */
+export const isYoutube = (media: MediaCategory): boolean => media?.category === 'YOUTUBE';
+
+/** i18n key for "Episode {number}", "Chapter {number}" for audiobooks, or "Video {number}" for YouTube. */
+export const episodeLabelKey = (media: MediaCategory): string =>
+  isAudiobook(media)
+    ? 'searchpage.main.labels.chapter'
+    : isYoutube(media)
+      ? 'searchpage.main.labels.video'
+      : 'searchpage.main.labels.episode';
+
+/** Same unit as `episodeLabelKey`, in the `seo.sentence` namespace (which takes `{n}`). */
+export const seoEpisodeLabelKey = (media: MediaCategory): string =>
+  isAudiobook(media) ? 'seo.sentence.chapter' : isYoutube(media) ? 'seo.sentence.video' : 'seo.sentence.episode';
+
+/** The English unit the Anki sentence-info field uses: "Chapter", "Video" or "Episode". */
+export const episodeUnitName = (media: MediaCategory): string =>
+  isAudiobook(media) ? 'Chapter' : isYoutube(media) ? 'Video' : 'Episode';
 
 const KANJI_DIGITS: Record<string, number> = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
 
@@ -82,22 +98,38 @@ export const bookChapterName = (title: string): string => {
 
 /**
  * An audiobook chapter with a title is named by it, as the book's contents name
- * it ("① とにかく…", "あとがき"); the label ("Chapter 4") stays only for chapters
- * with no title and for everything that is not an audiobook.
+ * it ("① とにかく…", "あとがき"); a YouTube video with a title is named by its
+ * title as YouTube shows it -- no chapter parsing, since "EP03-4" in a video
+ * title is the channel's numbering, not a book's. The label ("Chapter 4",
+ * "Video 4") stays only for entries with no title and for anime and other
+ * series, whose episode titles are not reliable enough to replace the number.
  */
-export const withChapterTitle = (
-  label: string,
-  media: { category?: string } | null | undefined,
-  title?: string | null,
-): string => (isAudiobook(media) && title?.trim() ? bookChapterName(title) : label);
+export const withChapterTitle = (label: string, media: MediaCategory, title?: string | null): string => {
+  const trimmed = title?.trim();
+  if (!trimmed) return label;
+  if (isAudiobook(media)) return bookChapterName(trimmed);
+  if (isYoutube(media)) return trimmed;
+  return label;
+};
 
-/** "Episode 4", or for an audiobook the chapter as its book names it ("① とにかく…") when it has a title. */
+/**
+ * "Episode 4"; for an audiobook the chapter as its book names it ("① とにかく…"),
+ * and for YouTube the video's title, when they have one.
+ */
 export const episodeLabel = (
   t: (key: string, values?: Record<string, unknown>) => string,
-  media: { category?: string } | null | undefined,
+  media: MediaCategory,
   number: number,
   title?: string | null,
 ): string => withChapterTitle(t(episodeLabelKey(media), { number }), media, title);
+
+/** `episodeLabel` for page titles and structured data (the `seo.sentence` keys). */
+export const seoEpisodeLabel = (
+  t: (key: string, values?: Record<string, unknown>) => string,
+  media: MediaCategory,
+  n: number,
+  title?: string | null,
+): string => withChapterTitle(t(seoEpisodeLabelKey(media), { n }), media, title);
 
 type ConcatenatedAudio = {
   blob: Blob;

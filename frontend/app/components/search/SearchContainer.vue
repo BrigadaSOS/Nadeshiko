@@ -9,6 +9,7 @@ import { userStore } from '~/stores/auth';
 import { CATEGORY_API_MAPPING, CATEGORY_LABEL_KEYS, CATEGORY_SLUGS, discountHiddenMedia } from '~/utils/categories';
 import { buildHiddenBreakdown, countHiddenResults, type HiddenBreakdownRow } from '~/utils/hiddenResults';
 import { decodeSearchQuery, readSearchRouteFilters, splitLocalePrefix } from '~/utils/routes';
+import { episodeLabelKey } from '~/utils/media';
 import { EPISODE_HITS_LOADING, type FetchOutcome, type SearchScope } from '~/composables/useSearchFetch';
 import { canRetrySearchFailure, SEARCH_FAILURE_MESSAGES, type SearchFailure } from '~/utils/searchFailure';
 import type { SearchResponse, SearchStatsResponse, ResolvedMediaStats, ResolvedCategoryCount } from '~/types/search';
@@ -299,7 +300,7 @@ const animeTabName = computed(() => {
     if (mediaSource) {
       let name = mediaName(mediaSource);
       if (episode.value !== null) {
-        name += `, ${t('searchpage.main.labels.episode', { number: episode.value })}`;
+        name += `, ${t(episodeLabelKey(mediaSource), { number: episode.value })}`;
       }
       return name;
     }
@@ -737,7 +738,7 @@ const selectedMediaTabName = computed(() => {
   const stat = (searchData.value?.media || []).find((item) => item.mediaPublicId === media.value);
   const source = stat || searchData.value?.results?.[0]?.media || null;
   const name = source ? mediaName(source) : props.mediaDisplayName || t('searchContainer.selectedMediaFallback');
-  return episode.value !== null ? `${name}, ${t('searchpage.main.labels.episode', { number: episode.value })}` : name;
+  return episode.value !== null ? `${name}, ${t(episodeLabelKey(source), { number: episode.value })}` : name;
 });
 
 const categoryFilter = (categoryKey: string) => {

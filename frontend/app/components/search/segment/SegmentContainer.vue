@@ -588,10 +588,20 @@ watch(playingVideoId, (id) => {
                   <UiBaseIcon :path="mdiEyeOff" size="12" />
                   {{ $t('searchpage.main.labels.hiddenMediaBadge') }}
                 </span>
-                <!-- YouTube channels have no episode number; link out to the
-                     source video at the segment's timestamp instead. -->
+                <!-- A YouTube video is named by its title (cut to one line here; the
+                     full title is the tooltip), plus a link out to the source video
+                     at the segment's timestamp. -->
                 <template v-if="result.media.category === 'YOUTUBE'">
                   &bull;
+                  <NuxtLink
+                    data-testid="segment-episode-link"
+                    :title="episodeLabel($t, result.media, result.segment.episode, result.segment.episodeTitle)"
+                    :to="mediaFilterLink(result.media, result.segment.episode)"
+                    lang="ja"
+                    class="inline-block max-w-[min(28rem,55vw)] truncate align-bottom select-text hover:text-white hover:underline transition-colors cursor-pointer">
+                    {{ episodeLabel($t, result.media, result.segment.episode, result.segment.episodeTitle) }}
+                  </NuxtLink>
+                  <span v-if="result.segment.externalVideoId"> &bull; </span>
                   <a
                     v-if="result.segment.externalVideoId"
                     data-testid="segment-youtube-link"

@@ -436,6 +436,7 @@
         "episode": "Episodio {number}",
         "movie": "Película",
         "chapter": "Capítulo {number}",
+        "video": "Vídeo {number}",
         "hiddenMediaBadge": "Oculto",
         "hiddenMediaBadgeTitle": "Este título está en tu lista de ocultos",
         "searchmain": "Buscar títulos",
@@ -1318,6 +1319,7 @@
       "defaultDescription": "Busca entre más de un millón de frases en japonés de anime, series y YouTube. Consulta sus traducciones al español.",
       "episode": "Episodio {n}",
       "chapter": "Capítulo {n}",
+      "video": "Vídeo {n}",
       "pageTitle": "「{sentence}」 ({media})"
     },
     "collection": {

@@ -123,7 +123,7 @@ import { defineStore } from 'pinia';
 import { tokensToAnkiFurigana } from '~/utils/tokenEnrichment';
 import { userStore } from '@/stores/auth';
 import { apiErrorStatus, handleApiError } from '~/utils/apiError';
-import { isAudiobook, withChapterTitle } from '~/utils/media';
+import { episodeUnitName, withChapterTitle } from '~/utils/media';
 import { reportError, reportEvent } from '~/utils/reportError';
 import { cspViolationLog, installCspViolationLog } from '~/utils/cspViolations';
 import { classifyAnkiAddress } from '~/utils/ankiAddress';
@@ -812,7 +812,7 @@ export const ankiStore = defineStore('anki', {
               return wordAudioResult?.result ? `[sound:${wordAudioResult.result}]` : undefined;
             case 'sentence-info': {
               const isMovie = sentence.media.airingFormat === 'MOVIE';
-              const unit = isAudiobook(sentence.media) ? 'Chapter' : 'Episode';
+              const unit = episodeUnitName(sentence.media);
               const episodePart = isMovie
                 ? 'Movie'
                 : withChapterTitle(

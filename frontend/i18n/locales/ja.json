@@ -436,6 +436,7 @@
         "episode": "第{number}話",
         "movie": "映画",
         "chapter": "第{number}章",
+        "video": "動画{number}",
         "hiddenMediaBadge": "非表示",
         "hiddenMediaBadgeTitle": "この作品は非表示リストに入っています",
         "searchmain": "作品のタイトルを検索",
@@ -1318,6 +1319,7 @@
       "defaultDescription": "アニメ・ドラマ・YouTubeの日本語例文を100万件以上収録。単語やフレーズで検索し、音声や英語・スペイン語の翻訳を確認できます。",
       "episode": "第{n}話",
       "chapter": "第{n}章",
+      "video": "動画{n}",
       "pageTitle": "「{sentence}」（{media}）"
     },
     "collection": {
