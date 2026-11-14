@@ -378,7 +378,7 @@ describe('sentenceQuality', () => {
     expect(sentenceQuality(two, 'あいうえおか')).toBe(SENTENCE_QUALITY.GOOD);
     expect(sentenceQuality(two, 'あいうえおか?')).toBe(SENTENCE_QUALITY.GOOD);
     expect(sentenceQuality(two, 'あいうえ'.repeat(10))).toBe(SENTENCE_QUALITY.GOOD);
-    expect(sentenceQuality(two, 'あいうえ'.repeat(10) + 'お')).toBe(SENTENCE_QUALITY.MARGINAL);
+    expect(sentenceQuality(two, `${'あいうえ'.repeat(10)}お`)).toBe(SENTENCE_QUALITY.MARGINAL);
     expect(sentenceQuality(two, `${'あいうえ'.repeat(10)}。 !!`)).toBe(SENTENCE_QUALITY.GOOD);
   });
 
