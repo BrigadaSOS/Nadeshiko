@@ -316,7 +316,8 @@ export function isFragment(tokens: readonly DifficultyToken[] | null | undefined
 
 /** How well a segment works as an example sentence, the first key of the difficulty sorts (lower first).
  * `GOOD`: a full sentence of ordinary length. `MARGINAL`: a full sentence that is very short (先生これ, 食べていい),
- * very long (several sentences, a transcript paragraph), stuttered (せせせせ... 先生!, 猫 猫... 猫...) or trailing
+ * very long (a transcript paragraph), several sentences in one segment (大丈夫なわけあるか! 海人! おう! 朔!?),
+ * stuttered (せせせせ... 先生!, 猫 猫... 猫...) or trailing
  * off after a noun (でも 先生..., 本当にごめん…: often a full noun sentence, sometimes a cut one).
  * `FRAGMENT`: see `isFragment`. */
 export const SENTENCE_QUALITY = { GOOD: 0, MARGINAL: 1, FRAGMENT: 2 } as const;
@@ -332,6 +333,12 @@ const LETTER_OR_DIGIT = /[\p{L}\p{N}]/gu;
 /** The same kana or kanji three times in a row: a stutter (せせせ, あああ) or a drawn-out cry. ー is not a letter. */
 const STUTTER = /([\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}])\1\1/u;
 const MAX_LEMMA_REPEATS = 2;
+/** A run of sentence-ending marks (。, !, ?, also !? or !!) ends one sentence. Three or more in one segment are several
+ * lines, often of different speakers, that fit within `GOOD_LENGTH` because each is short. They are poor examples
+ * (where is the word, who says it), and they filled "hardest first": the second place and the grammar term are taken
+ * over every line, so they add up. */
+const SENTENCE_END = /[。！？!?]+/g;
+const MAX_SENTENCE_ENDS = 2;
 
 function repeatsAWord(tokens: readonly DifficultyToken[]): boolean {
   const counts = new Map<string, number>();
@@ -359,7 +366,8 @@ export function sentenceQuality(
   const outOfRange = letters < GOOD_LENGTH.min || letters > GOOD_LENGTH.max;
   const [, last] = lastWords(tokens);
   const trailsOffAfterNoun = !!last && NOUN_END_POS.has(last.p) && trailsOff(plain);
-  return outOfRange || trailsOffAfterNoun || STUTTER.test(plain) || repeatsAWord(tokens)
+  const severalSentences = (plain.match(SENTENCE_END)?.length ?? 0) > MAX_SENTENCE_ENDS;
+  return outOfRange || severalSentences || trailsOffAfterNoun || STUTTER.test(plain) || repeatsAWord(tokens)
     ? SENTENCE_QUALITY.MARGINAL
     : SENTENCE_QUALITY.GOOD;
 }
