@@ -3,7 +3,7 @@ import {
   buildRankLookup,
   computeDifficulty,
   EXPRESSION_TIER_CAP,
-  grammarTier,
+  grammarBonus,
   isContentToken,
   isFragment,
   lookupRank,
@@ -258,67 +258,39 @@ describe('isFragment', () => {
   });
 });
 
-describe('grammarTier', () => {
-  const inflected = (...labels: string[]) => ({ inflection: { labels, base: '' } });
+describe('grammarBonus', () => {
+  const verb = (d: string, s: string) => tok(d, { s, p: '動詞', kind: 'inflected' });
 
-  it('adds nothing for basic forms, however many steps they chain', () => {
-    expect(grammarTier(inflected('past'))).toBeUndefined();
-    // 思っていました
-    expect(grammarTier(inflected('past', 'polite', 'progressive', 'te-form'))).toBeUndefined();
-    expect(grammarTier({})).toBeUndefined();
+  it('is zero for dictionary forms and plain words', () => {
+    expect(grammarBonus([tok('猫'), verb('食べる', '食べる')])).toBe(0);
   });
 
-  it('ignores a label it does not know, so a new parser label cannot make sentences harder', () => {
-    expect(grammarTier(inflected('some future label'))).toBeUndefined();
+  it('grows with how far each conjugation stretches the word', () => {
+    expect(grammarBonus([verb('食べる', '食べた')])).toBe(0);
+    expect(grammarBonus([verb('食べる', '食べました')])).toBe(Math.round(2 * 1.7));
+    expect(grammarBonus([verb('食べる', '食べさせられた')])).toBe(Math.round(4 * 1.7));
   });
 
-  it('grades elementary, intermediate and advanced constructions', () => {
-    expect(grammarTier(inflected('conditional (〜たら)'))?.tier).toBe(rankTier(1000));
-    expect(grammarTier(inflected('causative'))?.tier).toBe(rankTier(5000));
-    expect(grammarTier(inflected('negative volitional (〜まい)'))?.tier).toBe(rankTier(15000));
-  });
-
-  it('makes causative plus passive advanced', () => {
-    // 食べさせられた
-    expect(grammarTier(inflected('past', 'potential / passive', 'causative'))?.tier).toBe(rankTier(15000));
-  });
-
-  it('raises two other graded constructions on one verb by a level', () => {
-    // 助けられてしまった
-    expect(grammarTier(inflected('past', 'completive (〜しまう)', 'potential / passive'))?.tier).toBe(rankTier(5000));
-  });
-
-  it('does not double-count the なきゃ contraction', () => {
-    expect(grammarTier(inflected('conditional contraction (〜ゃ)', 'provisional (〜ば)', 'negative'))?.tier).toBe(
-      rankTier(1000),
-    );
+  it('sums over the sentence and never goes negative for a kana surface of a kanji lemma', () => {
+    expect(grammarBonus([verb('食べる', '食べました'), verb('分かる', 'わかった')])).toBe(Math.round(3 * 1.7));
   });
 });
 
 describe('computeDifficulty with grammar', () => {
-  it('lets a grammar point outrank common words', () => {
-    const tokens = [
-      tok('猫'),
-      particle('に'),
-      tok('食べる', {
-        s: '食べさせられた',
-        p: '動詞',
-        kind: 'inflected',
-        inflection: { labels: ['past', 'potential / passive', 'causative'], base: '食べる' },
-      }),
-    ];
+  it('raises the second place without changing the hardest word', () => {
+    const plain = [tok('魔法'), tok('食べる', { p: '動詞' })];
+    const conjugated = [tok('魔法'), tok('食べる', { s: '食べさせられた', p: '動詞', kind: 'inflected' })];
 
-    expect(computeDifficulty(tokens, lookup)).toBe(rankTier(15000) * 64 + rankTier(197));
+    expect(computeDifficulty(plain, lookup)).toBe(rankTier(5000) * 64 + rankTier(197));
+    expect(computeDifficulty(conjugated, lookup)).toBe(rankTier(5000) * 64 + rankTier(197) + Math.round(4 * 1.7));
   });
 
-  it('counts the same construction twice only once', () => {
-    const tara = { labels: ['conditional (〜たら)'], base: '' };
-    const tokens = [
-      tok('食べる', { p: '動詞', kind: 'inflected', inflection: tara }),
-      tok('猫'),
-      tok('勝つ', { p: '動詞', kind: 'inflected', inflection: tara }),
-    ];
+  it('keeps the grammar term inside the hardest word’s group', () => {
+    const long = tok('食べる', { s: '食べさせられなかったでしょうか', p: '動詞', kind: 'inflected' });
 
-    expect(computeDifficulty(tokens, lookup)).toBe(rankTier(1000) * 64 + rankTier(1000));
+    // 駆ける (rank 9,000) is the hardest word; 魔法 second plus a long conjugation would pass it, and is capped.
+    expect(computeDifficulty([tok('駆ける', { p: '動詞' }), tok('魔法'), long], lookup)).toBe(
+      rankTier(9000) * 64 + MAX_RANK_TIER,
+    );
   });
 });

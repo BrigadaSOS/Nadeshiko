@@ -38,21 +38,18 @@ Code: `app/services/search/segmentDocument/difficulty.ts`.
    name occurs says nothing about how hard it is to read. Expressions (連語 such
    as のだ, そうだ, すると) are capped at the tier of rank 5,000, because the list splits them into
    their parts and lists the whole far rarer than the words in it.
-4. **Grammar.** Shirabe labels each conjugated token with its steps (`inflection.labels`, such as
-   `past`, `potential / passive`, `causative`). Graded constructions count like a word of matching rarity
-   (`GRAMMAR_RANKS`): elementary ones (〜たら, 〜ば, passive, potential, 〜てくれる, 〜てみる, 〜ちゃう…)
-   like rank 1,000, intermediate ones (causative, 〜ていただく, 〜てくださる, 〜べき, 〜ぬ, Kansai
-   dialect…) like rank 5,000, and literary ones (〜ざる, 〜まい, 〜かねる, 〜つつ) like rank 15,000.
-   Causative plus passive on one verb (食べさせられた) is 15,000; any other two graded constructions on one
-   verb go one level up. Basic forms (past, て-form, negative, polite, progressive, たい, volitional) and
-   their colloquial spellings add nothing, and neither does a label the table does not know, so a new
-   parser label cannot make sentences harder until someone classifies it. Each construction competes with
-   the words for the two places below; the same construction twice counts once.
+4. **Grammar.** A light term on top of the vocabulary: every conjugated token contributes how much longer
+   its surface is than its dictionary form (食べさせられた over 食べる is 4 characters, 食べました 2, 食べた 0),
+   and the sum, at about 1.7 tiers per character, is added to the second place below, capped at 62. Grammar
+   therefore orders sentences within the group their hardest word sets and never moves one into a harder
+   group.
 
-   On 50,000 staging lines, 51% carry a conjugation; grammar changes 7.7% of the scores and is the hardest
-   item in 3.3% (させていただけないでしょうか, 使わせてもらってます, 教えてくださらなかった).
-5. **Score.** Take the two hardest *distinct* items, words and grammar points together:
-   `difficulty = hardest * 64 + second`, where `second` is 0 when there is only one. The range is 0–4030, stored as an
+   A first version graded Shirabe's inflection labels (〜たら, causative, 〜ていただく…) and let them compete
+   with words for the hardest place. In a blind test of 40 pairs it agreed with the reader less often than
+   vocabulary alone (3 of 8 decided pairs) because it overweighted causatives and set phrases (行かせない,
+   待たせてもらいました, 行ってくる), so it was replaced by this term.
+5. **Score.** Take the two hardest *distinct* lemmas: `difficulty = hardest * 64 + second + grammar`,
+   where `second` is 0 when there is only one content word. The range is 0–4030, stored as an
    Elasticsearch `short`. Every search result contains the searched word, so this keeps together the
    sentences where only that word is hard and orders them by everything else.
 6. **Fragments.** A line is a fragment when it has fewer than two distinct content words (大丈夫！), or
@@ -108,3 +105,9 @@ and single Latin letters. Counting unknown words as the rarest put mostly
 name-heavy lines at the hardest end of `DIFFICULTY_DESC`, which is why they now count as rank 5,000.
 Names the list does include (at rank 40k and beyond) still read as rare; skipping proper nouns outright
 would need UniDic's POS subcategory, which the stored tokens no longer carry.
+
+## Blind test (2026-11-14)
+
+The operator judged 40 pairs of full sentences from staging that share the searched word, without seeing
+any score. Against "shortest first", this order agreed on 8 of 13 decided pairs and length on 5 (7 were
+"about the same"). That is the direction we want, on too few pairs to be conclusive.

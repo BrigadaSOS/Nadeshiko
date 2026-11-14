@@ -235,9 +235,9 @@ export type SearchSort = {
      * - `ASC` / `DESC`: by segment length (character count)
      * - `TIME_ASC` / `TIME_DESC`: by episode & position within an episode
      * - `DIFFICULTY_ASC` / `DIFFICULTY_DESC`: by estimated difficulty, then by length in the same direction.
-     * Each content word is ranked on an anime word-frequency list, and each graded conjugation (〜たら,
-     * passive, causative, 〜ていただく...) counts like a word of matching rarity; the two hardest items set the
-     * order (the hardest first, then the second). Proper names and words not on the list count as a moderately
+     * Each content word is ranked on an anime word-frequency list; the two rarest distinct words set the order
+     * (the rarest first, then the second rarest), and longer conjugations (食べさせられた over 食べた) raise a
+     * sentence within the group its rarest word sets. Proper names and words not on the list count as a moderately
      * rare word (rank 5,000), not the rarest. It does not measure speech speed. In both directions, full sentences come first; one-word and cut-off lines follow, and segments without a scorable word come last
      * - `RANDOM`: deterministic random order (pass `seed` for reproducibility)
      *
